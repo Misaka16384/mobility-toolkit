@@ -68,6 +68,10 @@ def main():
     parser_install.add_argument("--local", action="store_true", help="Install skills locally in project .agents/skills/")
     parser_install.add_argument("--global-install", action="store_true", help="Force install skills globally in ~/.gemini/config/skills/")
 
+    # doctor
+    parser_doctor = subparsers.add_parser("doctor", help="Diagnose the Macaulay2 backend on this platform")
+    parser_doctor.add_argument("--no-smoke", action="store_true", help="Skip the live M2 '2+2' smoke test")
+
     try:
         args = parser.parse_args()
 
@@ -101,6 +105,21 @@ def main():
                     is_local = True
             install_skills(is_local)
             sys.exit(0)
+        elif args.command == "doctor":
+            from mobility_toolkit.engine import describe_m2_backend, run_macaulay2
+            info = describe_m2_backend()
+            if not args.no_smoke and info["available"]:
+                res = run_macaulay2("2+2", timeout_seconds=20.0)
+                info["smoke_test"] = {
+                    "ran": True,
+                    "ok": res["exit_code"] == 0 and "4" in res["stdout"],
+                    "exit_code": res["exit_code"],
+                    "stderr": res["stderr"].strip()[:300],
+                }
+            else:
+                info["smoke_test"] = {"ran": False, "ok": None}
+            print(json.dumps(info, indent=2))
+            sys.exit(0 if info["available"] and info["smoke_test"].get("ok") is not False else 1)
         else:
             raise ValueError(f"Unknown command: {args.command}")
 
