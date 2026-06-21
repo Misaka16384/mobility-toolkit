@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mobility-toolkit"
+version = "0.1.0"
+description = "Homological-algebra toolkit for computing excitation mobility properties of translation-invariant stabilizer codes, backed by Macaulay2."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Misaka16384" }]
+keywords = [
+    "stabilizer codes",
+    "topological order",
+    "homological algebra",
+    "macaulay2",
+    "fracton",
+    "anyon mobility",
+    "quantum error correction",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+# Core is pure-stdlib Python; all algebra is delegated to an external
+# Macaulay2 binary via the engine. No third-party runtime deps.
+dependencies = []
+
+[project.optional-dependencies]
+# MCP transport (used by `mobility-toolkit install` to wire agents that
+# prefer Model Context Protocol over native skill folders).
+mcp = ["fastmcp>=2.0"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+mobility-toolkit = "mobility_toolkit.__main__:main"
+
+[tool.setuptools]
+packages = ["mobility_toolkit"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
