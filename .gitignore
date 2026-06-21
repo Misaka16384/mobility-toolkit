@@ -27,9 +27,14 @@ m2_script_*_dump.m2
 mobility_models.db
 
 # ---- Per-platform install targets (written by `install`, not source) ----
+# (AGENTS.md is authored/committed, so it is intentionally NOT ignored.)
 .agents/skills/
+.claude/
+.opencode/
+.codex/
 .gemini/
 .mcp.json
+opencode.json
 
 # ---- Editor / OS ----
 .vscode/

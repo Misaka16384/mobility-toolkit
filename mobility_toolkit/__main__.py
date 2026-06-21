@@ -11,7 +11,7 @@ from mobility_toolkit import (
     search_koszul_models,
     query_vector_db
 )
-from mobility_toolkit.installer import install_skills
+from mobility_toolkit.installer import run_install, run_uninstall, run_status, ALL_TARGETS
 
 class JSONArgumentParser(argparse.ArgumentParser):
     def error(self, message):
@@ -64,9 +64,15 @@ def main():
     parser_db.add_argument("--query-str", type=str, default="SELECT * FROM models", help="SQL query string for query action")
 
     # install
-    parser_install = subparsers.add_parser("install", help="Register custom skills and MCP server for AI agents")
-    parser_install.add_argument("--local", action="store_true", help="Install skills locally in project .agents/skills/")
-    parser_install.add_argument("--global-install", action="store_true", help="Force install skills globally in ~/.gemini/config/skills/")
+    parser_install = subparsers.add_parser("install", help="Install skills + MCP server into AI agents (project-level by default)")
+    parser_install.add_argument(
+        "--target", action="append", choices=ALL_TARGETS + ["all"], default=None,
+        help="Agent(s) to install for; repeatable. Omit to auto-detect (claude/codex/opencode). Use 'all' to include Antigravity (global).",
+    )
+    parser_install.add_argument("--project-dir", type=str, default=None, help="Project directory to install into (default: CWD)")
+    parser_install.add_argument("--no-agents-md", action="store_true", help="Do not write/update AGENTS.md")
+    parser_install.add_argument("--uninstall", action="store_true", help="Remove installed skills/MCP entries instead of installing")
+    parser_install.add_argument("--list", action="store_true", help="Show install status for each agent and exit")
 
     # doctor
     parser_doctor = subparsers.add_parser("doctor", help="Diagnose the Macaulay2 backend on this platform")
@@ -99,12 +105,18 @@ def main():
             else:
                 result = query_vector_db(args.action)
         elif args.command == "install":
-            is_local = args.local
-            if not args.local and not args.global_install:
-                if os.path.isdir(".agents"):
-                    is_local = True
-            install_skills(is_local)
-            sys.exit(0)
+            if args.list:
+                run_status(project_dir=args.project_dir)
+                sys.exit(0)
+            if args.uninstall:
+                ok = run_uninstall(targets=args.target, project_dir=args.project_dir)
+            else:
+                ok = run_install(
+                    targets=args.target,
+                    project_dir=args.project_dir,
+                    write_agents=not args.no_agents_md,
+                )
+            sys.exit(0 if ok else 1)
         elif args.command == "doctor":
             from mobility_toolkit.engine import describe_m2_backend, run_macaulay2
             info = describe_m2_backend()
