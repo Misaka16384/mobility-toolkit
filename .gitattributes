@@ -1,0 +1,15 @@
+# Normalize line endings to LF in the repo for cross-platform consistency.
+* text=auto eol=lf
+
+# Scripts that must stay LF even when checked out on Windows
+*.py    text eol=lf
+*.sh    text eol=lf
+*.m2    text eol=lf
+*.md    text eol=lf
+*.toml  text eol=lf
+*.json  text eol=lf
+
+# Binary assets — never normalize
+*.db    binary
+*.png   binary
+*.jpg   binary

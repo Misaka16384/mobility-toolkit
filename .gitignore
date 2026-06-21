@@ -1,0 +1,38 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Virtual environments ----
+.venv/
+venv/
+env/
+
+# ---- Runtime artifacts ----
+# M2 execution logs and scratch scripts (regenerated on every run)
+output/logs/
+output/tmp/
+*.m2
+m2_script_*_dump.m2
+
+# Generated/seeded SQLite cache — reproducible via `db init` / `db sync`.
+# Tracked seed data lives in registry.py; uncomment to ship a prebuilt DB.
+mobility_models.db
+
+# ---- Per-platform install targets (written by `install`, not source) ----
+.agents/skills/
+.gemini/
+.mcp.json
+
+# ---- Editor / OS ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
