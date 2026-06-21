@@ -22,12 +22,12 @@ binary.
 **One-time — install the CLI** (isolated, with [pipx](https://pipx.pypa.io)):
 
 ```bash
-pipx install "git+ssh://git@github.com/Misaka16384/mobility-toolkit.git"
+pipx install "git+https://github.com/Misaka16384/mobility-toolkit.git"
 # also want the optional MCP server?
-#   pipx install "mobility-toolkit[mcp] @ git+ssh://git@github.com/Misaka16384/mobility-toolkit.git"
+#   pipx install "mobility-toolkit[mcp] @ git+https://github.com/Misaka16384/mobility-toolkit.git"
 ```
 
-> No pipx? `python -m pip install --user pipx && pipx ensurepath`, or `pip install "git+ssh://…"` into a venv.
+> No pipx? `python -m pip install --user pipx && pipx ensurepath`, or `pip install "git+https://…"` into a venv.
 
 **Per project — one interactive line.** Open a terminal in the project folder and run:
 
@@ -41,7 +41,7 @@ into that project. Run `mobility-toolkit doctor` first to check the Macaulay2 ba
 <details><summary>From a clone (development)</summary>
 
 ```bash
-git clone git@github.com:Misaka16384/mobility-toolkit.git
+git clone https://github.com/Misaka16384/mobility-toolkit.git
 cd mobility-toolkit
 python -m venv .venv && . .venv/Scripts/activate   # (Linux/macOS: . .venv/bin/activate)
 pip install -e ".[dev]"        # editable; add ".[mcp]" for the MCP server
