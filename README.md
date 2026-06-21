@@ -37,16 +37,17 @@ are present, writing each agent's native config:
 | Claude Code | `.claude/skills/` | `.mcp.json` |
 | opencode | `.opencode/skills/` (also reads `.claude/skills/`) | `opencode.json` |
 | Codex | `.agents/skills/` | `.codex/config.toml` |
-| Antigravity | `~/.gemini/skills/` *(global only)* | `~/.gemini/config/mcp_config.json` |
+| Antigravity 2.0 | `.agents/skills/` *(shared with Codex)* | `.agents/mcp_config.json` |
 
-Antigravity has no per-project config, so it is **opt-in**: `mobility-toolkit install
---target antigravity` (or `--target all`).
+All four are project-level. `.agents/skills/` is shared by Codex and Antigravity 2.0.
+To install Antigravity globally instead (`~/.gemini/`), add `--antigravity-global`.
 
 Useful install flags:
 
 ```bash
 mobility-toolkit install --target claude --target codex   # pick agents
-mobility-toolkit install --target all                     # incl. Antigravity (global)
+mobility-toolkit install --target all                     # all four agents
+mobility-toolkit install --target antigravity --antigravity-global  # Antigravity into ~/.gemini
 mobility-toolkit install --project-dir /path/to/project   # install elsewhere
 mobility-toolkit install --list                           # show status
 mobility-toolkit install --uninstall                      # remove

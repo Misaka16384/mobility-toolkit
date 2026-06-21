@@ -63,5 +63,10 @@ resolved backend and runs a `2+2` smoke test.
 - Run tests: `pytest` (M2-backed tests need a working Macaulay2 backend).
 - Package layout: importable code is in `mobility_toolkit/`; SKILL.md sources are in
   `skills/`; the installer copies those into each agent's location.
-- Don't commit install artifacts (`.claude/`, `.opencode/`, `.codex/`, `.mcp.json`,
-  `opencode.json`, `output/`); they're git-ignored.
+- Don't commit install artifacts (`.claude/`, `.opencode/`, `.codex/`, `.agents/`,
+  `.mcp.json`, `opencode.json`, `output/`); they're git-ignored.
+
+Project-level install targets per agent: Claude `.claude/skills/` + `.mcp.json`;
+opencode `.opencode/skills/` + `opencode.json`; Codex `.agents/skills/` +
+`.codex/config.toml`; Antigravity 2.0 `.agents/skills/` + `.agents/mcp_config.json`
+(`.agents/skills/` is shared by Codex and Antigravity).

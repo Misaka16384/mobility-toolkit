@@ -70,6 +70,7 @@ def main():
         help="Agent(s) to install for; repeatable. Omit to auto-detect (claude/codex/opencode). Use 'all' to include Antigravity (global).",
     )
     parser_install.add_argument("--project-dir", type=str, default=None, help="Project directory to install into (default: CWD)")
+    parser_install.add_argument("--antigravity-global", action="store_true", help="Install Antigravity into global ~/.gemini instead of project .agents/")
     parser_install.add_argument("--no-agents-md", action="store_true", help="Do not write/update AGENTS.md")
     parser_install.add_argument("--uninstall", action="store_true", help="Remove installed skills/MCP entries instead of installing")
     parser_install.add_argument("--list", action="store_true", help="Show install status for each agent and exit")
@@ -115,6 +116,7 @@ def main():
                     targets=args.target,
                     project_dir=args.project_dir,
                     write_agents=not args.no_agents_md,
+                    antigravity_global=args.antigravity_global,
                 )
             sys.exit(0 if ok else 1)
         elif args.command == "doctor":

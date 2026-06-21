@@ -2,15 +2,16 @@
 
 Wires the mobility_toolkit skills + MCP server into AI coding agents:
 
-  - Claude Code   project: .claude/skills/  +  .mcp.json
+  - Claude Code   project: .claude/skills/   +  .mcp.json
   - opencode      project: .opencode/skills/ +  opencode.json   (also reads .claude/skills/)
-  - Codex         project: .agents/skills/  +  .codex/config.toml
-  - Antigravity   GLOBAL ONLY: ~/.gemini/skills/ + ~/.gemini/config/mcp_config.json
-                  (Antigravity has no documented per-project config location)
+  - Codex         project: .agents/skills/   +  .codex/config.toml
+  - Antigravity   project: .agents/skills/   +  .agents/mcp_config.json
+                  (Antigravity 2.0; --antigravity-global targets ~/.gemini instead)
 
-The default install is project-level. Skills are the primary artifact; the
-MCP server is wired as the universal fallback (every supported agent speaks
-MCP, and it is the only clean way to reach Antigravity).
+All four agents support per-project config, so the default install is fully
+project-level. Note `.agents/skills/` is shared by Codex and Antigravity 2.0.
+Skills are the primary artifact; the MCP server is wired as the universal
+fallback (every supported agent speaks MCP).
 """
 
 import json
@@ -37,8 +38,8 @@ MCP_NAME = "mobility_toolkit"
 MCP_COMMAND = sys.executable                           # pin the interpreter that has the package
 MCP_ARGS = ["-m", "mobility_toolkit.mcp_server"]
 
-PROJECT_TARGETS = ["claude", "codex", "opencode"]      # support per-project config
-ALL_TARGETS = PROJECT_TARGETS + ["antigravity"]        # antigravity is global-only
+PROJECT_TARGETS = ["claude", "codex", "opencode", "antigravity"]  # all support per-project config
+ALL_TARGETS = list(PROJECT_TARGETS)
 
 _BOOTSTRAP_MARKER = "mobility_toolkit path bootstrap"
 AGENTS_BLOCK_START = "<!-- mobility-toolkit:start -->"
@@ -246,23 +247,33 @@ def install_codex(project: Path, log: Logger) -> None:
     _merge_codex_toml(project / ".codex" / "config.toml", log)
 
 
-def install_antigravity(log: Logger, project: Optional[Path] = None) -> None:
-    home = Path.home()
-    log("[antigravity] GLOBAL ~/.gemini (no per-project config supported)")
-    _copy_skills(home / ".gemini" / "skills", log)
-    _json_set_mcp(
-        home / ".gemini" / "config" / "mcp_config.json",
-        "mcpServers",
-        {"command": MCP_COMMAND, "args": MCP_ARGS},
-        log,
-    )
+def install_antigravity(project: Path, log: Logger, use_global: bool = False) -> None:
+    if use_global:
+        home = Path.home()
+        log("[antigravity] GLOBAL ~/.gemini")
+        _copy_skills(home / ".gemini" / "skills", log)
+        _json_set_mcp(
+            home / ".gemini" / "config" / "mcp_config.json",
+            "mcpServers",
+            {"command": MCP_COMMAND, "args": MCP_ARGS},
+            log,
+        )
+    else:
+        log("[antigravity] project-level (.agents/ — shared with Codex skills)")
+        _copy_skills(project / ".agents" / "skills", log)
+        _json_set_mcp(
+            project / ".agents" / "mcp_config.json",
+            "mcpServers",
+            {"command": MCP_COMMAND, "args": MCP_ARGS},
+            log,
+        )
 
 
 _INSTALLERS = {
     "claude": lambda p, log: install_claude(p, log),
     "codex": lambda p, log: install_codex(p, log),
     "opencode": lambda p, log: install_opencode(p, log),
-    "antigravity": lambda p, log: install_antigravity(log, project=p),
+    # antigravity is handled explicitly in run_install (needs the --antigravity-global flag)
 }
 
 
@@ -275,6 +286,9 @@ def detect_agents(project: Path) -> List[str]:
         found.append("codex")
     if (project / ".opencode").exists() or (project / "opencode.json").exists() or shutil.which("opencode"):
         found.append("opencode")
+    if (project / ".agents").exists() or (Path.home() / ".gemini").exists() \
+            or shutil.which("antigravity") or shutil.which("agy"):
+        found.append("antigravity")
     return found
 
 
@@ -283,14 +297,12 @@ def _resolve_targets(targets: Optional[List[str]], project: Path, log: Logger) -
         return [t for t in targets if t in ALL_TARGETS]
     if targets == ["all"]:
         return list(ALL_TARGETS)
-    detected = detect_agents(project)
+    detected = list(dict.fromkeys(detect_agents(project)))
     chosen = detected or list(PROJECT_TARGETS)
     if detected:
         log(f"Detected agents: {', '.join(detected)}")
     else:
-        log("No agents detected; defaulting to project-level for claude, codex, opencode.")
-    if "antigravity" not in chosen:
-        log("(Antigravity is global-only — run with `--target antigravity` to set it up.)")
+        log("No agents detected; defaulting to project-level for: " + ", ".join(PROJECT_TARGETS))
     return chosen
 
 
@@ -308,6 +320,7 @@ def run_install(
     targets: Optional[List[str]] = None,
     project_dir: Optional[str] = None,
     write_agents: bool = True,
+    antigravity_global: bool = False,
     log: Logger = print,
 ) -> bool:
     project = Path(project_dir or os.getcwd()).resolve()
@@ -325,7 +338,10 @@ def run_install(
         return False
 
     for t in chosen:
-        _INSTALLERS[t](project, log)
+        if t == "antigravity":
+            install_antigravity(project, log, use_global=antigravity_global)
+        else:
+            _INSTALLERS[t](project, log)
 
     if write_agents and any(t in PROJECT_TARGETS for t in chosen):
         _write_agents_md(project, log)
@@ -357,6 +373,9 @@ def run_uninstall(
             _remove_skills(project / ".agents" / "skills", log)
             _remove_codex_toml(project / ".codex" / "config.toml", log)
         elif t == "antigravity":
+            # project-level (.agents/) and global (~/.gemini) are both cleaned
+            _remove_skills(project / ".agents" / "skills", log)
+            _json_unset_mcp(project / ".agents" / "mcp_config.json", "mcpServers", log)
             home = Path.home()
             _remove_skills(home / ".gemini" / "skills", log)
             _json_unset_mcp(home / ".gemini" / "config" / "mcp_config.json", "mcpServers", log)
@@ -368,12 +387,11 @@ def run_uninstall(
 
 def run_status(project_dir: Optional[str] = None, log: Logger = print) -> dict:
     project = Path(project_dir or os.getcwd()).resolve()
-    home = Path.home()
     checks = {
         "claude": [project / ".claude" / "skills" / SKILL_NAMES[0], project / ".mcp.json"],
         "opencode": [project / ".opencode" / "skills" / SKILL_NAMES[0], project / "opencode.json"],
         "codex": [project / ".agents" / "skills" / SKILL_NAMES[0], project / ".codex" / "config.toml"],
-        "antigravity": [home / ".gemini" / "skills" / SKILL_NAMES[0], home / ".gemini" / "config" / "mcp_config.json"],
+        "antigravity": [project / ".agents" / "skills" / SKILL_NAMES[0], project / ".agents" / "mcp_config.json"],
     }
     status = {}
     log(f"Install status  (project: {project})")

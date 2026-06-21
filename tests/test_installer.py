@@ -16,9 +16,9 @@ from mobility_toolkit.installer import (
 _QUIET = lambda *a, **k: None  # noqa: E731
 
 
-def test_install_project_level_all_three(tmp_path):
+def test_install_project_level_all_agents(tmp_path):
     proj = str(tmp_path)
-    assert run_install(targets=["claude", "codex", "opencode"], project_dir=proj, log=_QUIET)
+    assert run_install(targets=["claude", "codex", "opencode", "antigravity"], project_dir=proj, log=_QUIET)
 
     # skills copied into each agent's directory
     assert (tmp_path / ".claude" / "skills" / "translate_to_algebra" / "SKILL.md").exists()
@@ -26,6 +26,10 @@ def test_install_project_level_all_three(tmp_path):
     assert (tmp_path / ".opencode" / "skills" / "query_vector_db" / "SKILL.md").exists()
     for name in SKILL_NAMES:
         assert (tmp_path / ".claude" / "skills" / name).is_dir()
+
+    # antigravity 2.0 is project-level: .agents/skills (shared w/ codex) + .agents/mcp_config.json
+    ag = json.loads((tmp_path / ".agents" / "mcp_config.json").read_text(encoding="utf-8"))
+    assert MCP_NAME in ag["mcpServers"]
 
     # bootstrap injected into copied scripts
     script = tmp_path / ".claude" / "skills" / "translate_to_algebra" / "scripts" / "translate_to_algebra.py"
