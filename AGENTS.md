@@ -66,7 +66,9 @@ resolved backend and runs a `2+2` smoke test.
 - Don't commit install artifacts (`.claude/`, `.opencode/`, `.codex/`, `.agents/`,
   `.mcp.json`, `opencode.json`, `output/`); they're git-ignored.
 
-Project-level install targets per agent: Claude `.claude/skills/` + `.mcp.json`;
-opencode `.opencode/skills/` + `opencode.json`; Codex `.agents/skills/` +
-`.codex/config.toml`; Antigravity 2.0 `.agents/skills/` + `.agents/mcp_config.json`
-(`.agents/skills/` is shared by Codex and Antigravity).
+Install is **skills-only by default** (the agent runs each skill's bundled
+`scripts/<name>.py` directly); MCP is opt-in via `mobility-toolkit install --mcp`.
+Project-level skill dirs: Claude `.claude/skills/`; opencode `.opencode/skills/`;
+Codex & Antigravity 2.0 share `.agents/skills/`. With `--mcp`, the matching MCP
+config is also written (`.mcp.json` / `opencode.json` / `.codex/config.toml` /
+`.agents/mcp_config.json`).

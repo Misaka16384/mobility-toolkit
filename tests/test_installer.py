@@ -15,10 +15,13 @@ from mobility_toolkit.installer import (
 
 _QUIET = lambda *a, **k: None  # noqa: E731
 
+_ALL = ["claude", "codex", "opencode", "antigravity"]
+_MCP_FILES = [".mcp.json", "opencode.json", ".codex/config.toml", ".agents/mcp_config.json"]
 
-def test_install_project_level_all_agents(tmp_path):
-    proj = str(tmp_path)
-    assert run_install(targets=["claude", "codex", "opencode", "antigravity"], project_dir=proj, log=_QUIET)
+
+def test_install_skills_only_by_default(tmp_path):
+    """Default install writes skills (+ AGENTS.md) but NO MCP config."""
+    assert run_install(targets=_ALL, project_dir=str(tmp_path), log=_QUIET)
 
     # skills copied into each agent's directory
     assert (tmp_path / ".claude" / "skills" / "translate_to_algebra" / "SKILL.md").exists()
@@ -27,37 +30,41 @@ def test_install_project_level_all_agents(tmp_path):
     for name in SKILL_NAMES:
         assert (tmp_path / ".claude" / "skills" / name).is_dir()
 
-    # antigravity 2.0 is project-level: .agents/skills (shared w/ codex) + .agents/mcp_config.json
-    ag = json.loads((tmp_path / ".agents" / "mcp_config.json").read_text(encoding="utf-8"))
-    assert MCP_NAME in ag["mcpServers"]
-
-    # bootstrap injected into copied scripts
+    # bootstrap injected so the copied script can import the core
     script = tmp_path / ".claude" / "skills" / "translate_to_algebra" / "scripts" / "translate_to_algebra.py"
     assert _BOOTSTRAP_MARKER in script.read_text(encoding="utf-8")
 
-    # claude MCP
+    # AGENTS.md managed block present
+    agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    assert "mobility-toolkit:start" in agents and "mobility-toolkit:end" in agents
+
+    # MCP is opt-in: none of the MCP config files should exist
+    for rel in _MCP_FILES:
+        assert not (tmp_path / rel).exists(), f"unexpected MCP file written: {rel}"
+
+
+def test_install_with_mcp_writes_configs(tmp_path):
+    """`--mcp` (with_mcp=True) writes each agent's MCP config in its native shape."""
+    assert run_install(targets=_ALL, project_dir=str(tmp_path), with_mcp=True, log=_QUIET)
+
     mcp = json.loads((tmp_path / ".mcp.json").read_text(encoding="utf-8"))
-    assert MCP_NAME in mcp["mcpServers"]
     assert mcp["mcpServers"][MCP_NAME]["args"] == ["-m", "mobility_toolkit.mcp_server"]
 
-    # opencode MCP (local type, command as list)
     oc = json.loads((tmp_path / "opencode.json").read_text(encoding="utf-8"))
     assert oc["mcp"][MCP_NAME]["type"] == "local"
     assert oc["mcp"][MCP_NAME]["command"][-2:] == ["-m", "mobility_toolkit.mcp_server"]
 
-    # codex MCP (TOML block)
     toml_text = (tmp_path / ".codex" / "config.toml").read_text(encoding="utf-8")
     assert f"[mcp_servers.{MCP_NAME}]" in toml_text
 
-    # AGENTS.md managed block
-    agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
-    assert "mobility-toolkit:start" in agents and "mobility-toolkit:end" in agents
+    ag = json.loads((tmp_path / ".agents" / "mcp_config.json").read_text(encoding="utf-8"))
+    assert MCP_NAME in ag["mcpServers"]
 
 
 def test_install_is_idempotent(tmp_path):
     proj = str(tmp_path)
-    run_install(targets=["codex"], project_dir=proj, log=_QUIET)
-    run_install(targets=["codex"], project_dir=proj, log=_QUIET)
+    run_install(targets=["codex"], project_dir=proj, with_mcp=True, log=_QUIET)
+    run_install(targets=["codex"], project_dir=proj, with_mcp=True, log=_QUIET)
 
     toml_text = (tmp_path / ".codex" / "config.toml").read_text(encoding="utf-8")
     assert toml_text.count(f"[mcp_servers.{MCP_NAME}]") == 1
@@ -71,14 +78,20 @@ def test_status_reflects_install(tmp_path):
     before = run_status(project_dir=proj, log=_QUIET)
     assert before["claude"] == {"skills": False, "mcp": False}
 
+    # skills-only install -> skills present, mcp absent
     run_install(targets=["claude"], project_dir=proj, log=_QUIET)
+    mid = run_status(project_dir=proj, log=_QUIET)
+    assert mid["claude"] == {"skills": True, "mcp": False}
+
+    # add MCP -> both present
+    run_install(targets=["claude"], project_dir=proj, with_mcp=True, log=_QUIET)
     after = run_status(project_dir=proj, log=_QUIET)
     assert after["claude"] == {"skills": True, "mcp": True}
 
 
 def test_uninstall_removes_entries(tmp_path):
     proj = str(tmp_path)
-    run_install(targets=["claude", "codex", "opencode"], project_dir=proj, log=_QUIET)
+    run_install(targets=["claude", "codex", "opencode"], project_dir=proj, with_mcp=True, log=_QUIET)
     run_uninstall(targets=["claude", "codex", "opencode"], project_dir=proj, log=_QUIET)
 
     assert not (tmp_path / ".claude" / "skills" / "translate_to_algebra").exists()

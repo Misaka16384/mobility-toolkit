@@ -181,10 +181,10 @@ def _agents_block() -> str:
         "translation-invariant stabilizer codes (backed by Macaulay2).\n\n"
         "Skills (SKILL.md) installed under this agent's skills directory:\n"
         "`translate_to_algebra`, `compute_homology_and_mobility`, "
-        "`analyze_fusion_interference`, `query_vector_db`.\n\n"
-        "Also exposed as MCP server `mobility_toolkit` with tools: "
-        "`compute_homology`, `compute_mobility`, `compute_grobner`, "
-        "`compute_fusion_interference`, `search_models`.\n\n"
+        "`analyze_fusion_interference`, `query_vector_db`. Each skill bundles a "
+        "script run directly, e.g. `python scripts/<name>.py < input.json`.\n\n"
+        "Optionally also available as MCP server `mobility_toolkit` "
+        "(install with `mobility-toolkit install --mcp`).\n\n"
         "Run `mobility-toolkit doctor` to verify the Macaulay2 backend.\n"
         f"{AGENTS_BLOCK_END}"
     )
@@ -221,58 +221,65 @@ def _remove_agents_block(project: Path, log: Logger) -> None:
 
 
 # --- per-agent installers --------------------------------------------------
-def install_claude(project: Path, log: Logger) -> None:
+# Skills are always installed; the MCP config is written only when with_mcp=True
+# (MCP is opt-in -- the default install is skills-only, scripts called directly).
+def install_claude(project: Path, log: Logger, with_mcp: bool = False) -> None:
     log("[claude] project-level (.claude/)")
     _copy_skills(project / ".claude" / "skills", log)
-    _json_set_mcp(project / ".mcp.json", "mcpServers", {"command": MCP_COMMAND, "args": MCP_ARGS}, log)
+    if with_mcp:
+        _json_set_mcp(project / ".mcp.json", "mcpServers", {"command": MCP_COMMAND, "args": MCP_ARGS}, log)
 
 
-def install_opencode(project: Path, log: Logger) -> None:
+def install_opencode(project: Path, log: Logger, with_mcp: bool = False) -> None:
     log("[opencode] project-level (.opencode/)")
     _copy_skills(project / ".opencode" / "skills", log)
-    cfg = project / "opencode.json"
-    data = _load_json(cfg)
-    data.setdefault("$schema", "https://opencode.ai/config.json")
-    data.setdefault("mcp", {})[MCP_NAME] = {
-        "type": "local",
-        "command": [MCP_COMMAND] + MCP_ARGS,
-        "enabled": True,
-    }
-    _save_json(cfg, data, log)
+    if with_mcp:
+        cfg = project / "opencode.json"
+        data = _load_json(cfg)
+        data.setdefault("$schema", "https://opencode.ai/config.json")
+        data.setdefault("mcp", {})[MCP_NAME] = {
+            "type": "local",
+            "command": [MCP_COMMAND] + MCP_ARGS,
+            "enabled": True,
+        }
+        _save_json(cfg, data, log)
 
 
-def install_codex(project: Path, log: Logger) -> None:
+def install_codex(project: Path, log: Logger, with_mcp: bool = False) -> None:
     log("[codex] project-level (.agents/, .codex/)")
     _copy_skills(project / ".agents" / "skills", log)
-    _merge_codex_toml(project / ".codex" / "config.toml", log)
+    if with_mcp:
+        _merge_codex_toml(project / ".codex" / "config.toml", log)
 
 
-def install_antigravity(project: Path, log: Logger, use_global: bool = False) -> None:
+def install_antigravity(project: Path, log: Logger, use_global: bool = False, with_mcp: bool = False) -> None:
     if use_global:
         home = Path.home()
         log("[antigravity] GLOBAL ~/.gemini")
         _copy_skills(home / ".gemini" / "skills", log)
-        _json_set_mcp(
-            home / ".gemini" / "config" / "mcp_config.json",
-            "mcpServers",
-            {"command": MCP_COMMAND, "args": MCP_ARGS},
-            log,
-        )
+        if with_mcp:
+            _json_set_mcp(
+                home / ".gemini" / "config" / "mcp_config.json",
+                "mcpServers",
+                {"command": MCP_COMMAND, "args": MCP_ARGS},
+                log,
+            )
     else:
         log("[antigravity] project-level (.agents/ — shared with Codex skills)")
         _copy_skills(project / ".agents" / "skills", log)
-        _json_set_mcp(
-            project / ".agents" / "mcp_config.json",
-            "mcpServers",
-            {"command": MCP_COMMAND, "args": MCP_ARGS},
-            log,
-        )
+        if with_mcp:
+            _json_set_mcp(
+                project / ".agents" / "mcp_config.json",
+                "mcpServers",
+                {"command": MCP_COMMAND, "args": MCP_ARGS},
+                log,
+            )
 
 
 _INSTALLERS = {
-    "claude": lambda p, log: install_claude(p, log),
-    "codex": lambda p, log: install_codex(p, log),
-    "opencode": lambda p, log: install_opencode(p, log),
+    "claude": install_claude,
+    "codex": install_codex,
+    "opencode": install_opencode,
     # antigravity is handled explicitly in run_install (needs the --antigravity-global flag)
 }
 
@@ -321,6 +328,7 @@ def run_install(
     project_dir: Optional[str] = None,
     write_agents: bool = True,
     antigravity_global: bool = False,
+    with_mcp: bool = False,
     log: Logger = print,
 ) -> bool:
     project = Path(project_dir or os.getcwd()).resolve()
@@ -330,6 +338,7 @@ def run_install(
 
     log("=" * 60)
     log(f"  Mobility Toolkit installer  |  project: {project}")
+    log(f"  mode: skills{' + MCP' if with_mcp else ' only (scripts called directly; pass --mcp to also wire MCP)'}")
     log("=" * 60)
 
     chosen = _resolve_targets(targets, project, log)
@@ -339,14 +348,15 @@ def run_install(
 
     for t in chosen:
         if t == "antigravity":
-            install_antigravity(project, log, use_global=antigravity_global)
+            install_antigravity(project, log, use_global=antigravity_global, with_mcp=with_mcp)
         else:
-            _INSTALLERS[t](project, log)
+            _INSTALLERS[t](project, log, with_mcp)
 
     if write_agents and any(t in PROJECT_TARGETS for t in chosen):
         _write_agents_md(project, log)
 
-    _check_fastmcp(log)
+    if with_mcp:
+        _check_fastmcp(log)
 
     log("")
     log("Done. Verify with:  mobility-toolkit doctor")

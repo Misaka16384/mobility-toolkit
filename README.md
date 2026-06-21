@@ -23,16 +23,17 @@ binary.
 git clone <this-repo> mobility_toolkit
 cd mobility_toolkit
 python -m venv .venv && . .venv/Scripts/activate   # (Linux/macOS: . .venv/bin/activate)
-pip install -e ".[mcp]"        # core + MCP server; use ".[dev]" to also get pytest
+pip install -e .               # core only (add ".[mcp]" for the MCP server, ".[dev]" for pytest)
 
 mobility-toolkit doctor        # verify the Macaulay2 backend
-mobility-toolkit install       # wire skills + MCP into detected agents (project-level)
+mobility-toolkit install       # install skills into detected agents (project-level)
 ```
 
-`mobility-toolkit install` is **project-level by default** and auto-detects which agents
-are present, writing each agent's native config:
+`mobility-toolkit install` is **project-level by default** and installs **skills only** —
+the agent runs each skill's bundled script directly (`python scripts/<name>.py < input.json`).
+MCP is **opt-in** via `--mcp`. The toolkit auto-detects which agents are present:
 
-| Agent | Skills → | MCP config → |
+| Agent | Skills → (always) | MCP config → (only with `--mcp`) |
 |---|---|---|
 | Claude Code | `.claude/skills/` | `.mcp.json` |
 | opencode | `.opencode/skills/` (also reads `.claude/skills/`) | `opencode.json` |
@@ -41,12 +42,14 @@ are present, writing each agent's native config:
 
 All four are project-level. `.agents/skills/` is shared by Codex and Antigravity 2.0.
 To install Antigravity globally instead (`~/.gemini/`), add `--antigravity-global`.
+(The MCP server needs the `[mcp]` extra: `pip install -e ".[mcp]"`.)
 
 Useful install flags:
 
 ```bash
 mobility-toolkit install --target claude --target codex   # pick agents
 mobility-toolkit install --target all                     # all four agents
+mobility-toolkit install --mcp                            # also wire the MCP server
 mobility-toolkit install --target antigravity --antigravity-global  # Antigravity into ~/.gemini
 mobility-toolkit install --project-dir /path/to/project   # install elsewhere
 mobility-toolkit install --list                           # show status
