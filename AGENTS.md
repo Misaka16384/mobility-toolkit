@@ -62,7 +62,8 @@ resolved backend and runs a `2+2` smoke test.
 - Install editable: `pip install -e ".[dev]"` (add `mcp` extra for the MCP server).
 - Run tests: `pytest` (M2-backed tests need a working Macaulay2 backend).
 - Package layout: importable code is in `mobility_toolkit/`; SKILL.md sources are in
-  `skills/`; the installer copies those into each agent's location.
+  `mobility_toolkit/skills/` (bundled in the wheel); the installer copies those into
+  each agent's location.
 - Don't commit install artifacts (`.claude/`, `.opencode/`, `.codex/`, `.agents/`,
   `.mcp.json`, `opencode.json`, `output/`); they're git-ignored.
 

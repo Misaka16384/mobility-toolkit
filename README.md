@@ -19,15 +19,35 @@ binary.
 
 ## Install
 
-```bash
-git clone <this-repo> mobility_toolkit
-cd mobility_toolkit
-python -m venv .venv && . .venv/Scripts/activate   # (Linux/macOS: . .venv/bin/activate)
-pip install -e .               # core only (add ".[mcp]" for the MCP server, ".[dev]" for pytest)
+**One-time — install the CLI** (isolated, with [pipx](https://pipx.pypa.io)):
 
-mobility-toolkit doctor        # verify the Macaulay2 backend
-mobility-toolkit install       # install skills into detected agents (project-level)
+```bash
+pipx install "git+ssh://git@github.com/Misaka16384/mobility-toolkit.git"
+# also want the optional MCP server?
+#   pipx install "mobility-toolkit[mcp] @ git+ssh://git@github.com/Misaka16384/mobility-toolkit.git"
 ```
+
+> No pipx? `python -m pip install --user pipx && pipx ensurepath`, or `pip install "git+ssh://…"` into a venv.
+
+**Per project — one interactive line.** Open a terminal in the project folder and run:
+
+```bash
+mobility-toolkit install
+```
+
+That launches an interactive flow (pick agents → MCP yes/no → confirm) and wires everything
+into that project. Run `mobility-toolkit doctor` first to check the Macaulay2 backend.
+
+<details><summary>From a clone (development)</summary>
+
+```bash
+git clone git@github.com:Misaka16384/mobility-toolkit.git
+cd mobility-toolkit
+python -m venv .venv && . .venv/Scripts/activate   # (Linux/macOS: . .venv/bin/activate)
+pip install -e ".[dev]"        # editable; add ".[mcp]" for the MCP server
+mobility-toolkit install
+```
+</details>
 
 `mobility-toolkit install` is **project-level by default** and installs **skills only** —
 the agent runs each skill's bundled script directly (`python scripts/<name>.py < input.json`).
@@ -44,9 +64,11 @@ All four are project-level. `.agents/skills/` is shared by Codex and Antigravity
 To install Antigravity globally instead (`~/.gemini/`), add `--antigravity-global`.
 (The MCP server needs the `[mcp]` extra: `pip install -e ".[mcp]"`.)
 
-Useful install flags:
+A bare `mobility-toolkit install` is **interactive** when run in a terminal. Passing any
+of `--target` / `--mcp` / `--yes` makes it non-interactive (scriptable / CI):
 
 ```bash
+mobility-toolkit install --yes                            # non-interactive: detected agents, skills-only
 mobility-toolkit install --target claude --target codex   # pick agents
 mobility-toolkit install --target all                     # all four agents
 mobility-toolkit install --mcp                            # also wire the MCP server
@@ -103,5 +125,6 @@ pip install -e ".[dev]"
 pytest                       # M2-backed tests require a working Macaulay2 backend
 ```
 
-Importable code lives in `mobility_toolkit/`; SKILL.md sources live in `skills/`. See
+Importable code lives in `mobility_toolkit/`; SKILL.md sources live in
+`mobility_toolkit/skills/` (bundled into the wheel). See
 [`AGENTS.md`](AGENTS.md) for agent-facing usage notes.

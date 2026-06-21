@@ -39,5 +39,10 @@ mobility-toolkit = "mobility_toolkit.__main__:main"
 [tool.setuptools]
 packages = ["mobility_toolkit"]
 
+[tool.setuptools.package-data]
+# Skill bundles (SKILL.md + scripts) ship inside the wheel so a pipx/wheel
+# install from the git URL can wire them into agents.
+mobility_toolkit = ["skills/**/*.md", "skills/**/*.py", "skills/**/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

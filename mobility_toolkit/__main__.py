@@ -11,7 +11,7 @@ from mobility_toolkit import (
     search_koszul_models,
     query_vector_db
 )
-from mobility_toolkit.installer import run_install, run_uninstall, run_status, ALL_TARGETS
+from mobility_toolkit.installer import run_install, run_uninstall, run_status, run_interactive, ALL_TARGETS
 
 class JSONArgumentParser(argparse.ArgumentParser):
     def error(self, message):
@@ -75,6 +75,7 @@ def main():
     parser_install.add_argument("--no-agents-md", action="store_true", help="Do not write/update AGENTS.md")
     parser_install.add_argument("--uninstall", action="store_true", help="Remove installed skills/MCP entries instead of installing")
     parser_install.add_argument("--list", action="store_true", help="Show install status for each agent and exit")
+    parser_install.add_argument("-y", "--yes", action="store_true", help="Non-interactive: use detected agents + defaults, no prompts")
 
     # doctor
     parser_doctor = subparsers.add_parser("doctor", help="Diagnose the Macaulay2 backend on this platform")
@@ -113,13 +114,23 @@ def main():
             if args.uninstall:
                 ok = run_uninstall(targets=args.target, project_dir=args.project_dir)
             else:
-                ok = run_install(
-                    targets=args.target,
-                    project_dir=args.project_dir,
-                    write_agents=not args.no_agents_md,
-                    antigravity_global=args.antigravity_global,
-                    with_mcp=args.mcp,
+                # interactive wizard when in a TTY and the user didn't pin choices
+                interactive = (
+                    not args.yes
+                    and args.target is None
+                    and not args.mcp
+                    and sys.stdin.isatty()
                 )
+                if interactive:
+                    ok = run_interactive(project_dir=args.project_dir)
+                else:
+                    ok = run_install(
+                        targets=args.target,
+                        project_dir=args.project_dir,
+                        write_agents=not args.no_agents_md,
+                        antigravity_global=args.antigravity_global,
+                        with_mcp=args.mcp,
+                    )
             sys.exit(0 if ok else 1)
         elif args.command == "doctor":
             from mobility_toolkit.engine import describe_m2_backend, run_macaulay2

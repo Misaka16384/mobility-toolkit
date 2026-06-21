@@ -23,8 +23,8 @@ from typing import Callable, List, Optional
 
 # --- locations -------------------------------------------------------------
 PACKAGE_DIR = Path(__file__).resolve().parent          # .../mobility_toolkit/mobility_toolkit
-REPO_ROOT = PACKAGE_DIR.parent                         # repo root (holds skills/)
-SKILLS_SRC = REPO_ROOT / "skills"
+REPO_ROOT = PACKAGE_DIR.parent                         # importable root (clone root or site-packages)
+SKILLS_SRC = PACKAGE_DIR / "skills"                    # skills ship inside the package (wheel-installable)
 
 SKILL_NAMES = [
     "translate_to_algebra",
@@ -361,6 +361,72 @@ def run_install(
     log("")
     log("Done. Verify with:  mobility-toolkit doctor")
     return True
+
+
+def run_interactive(project_dir: Optional[str] = None, log: Logger = print) -> bool:
+    """Interactive install wizard (used when `install` runs in a TTY)."""
+    project = Path(project_dir or os.getcwd()).resolve()
+
+    def ask(prompt: str, default: str = "") -> str:
+        try:
+            ans = input(prompt).strip()
+        except EOFError:
+            return default
+        return ans or default
+
+    log("=" * 60)
+    log("  Mobility Toolkit — interactive install")
+    log("=" * 60)
+    log(f"Project folder : {project}")
+
+    # backend status (informational)
+    try:
+        from mobility_toolkit.engine import describe_m2_backend
+        b = describe_m2_backend()
+        log(f"Macaulay2      : {b['strategy']} "
+            f"({'available' if b['available'] else 'NOT FOUND — run `mobility-toolkit doctor`'})")
+    except Exception:
+        pass
+
+    # 1. agents
+    detected = list(dict.fromkeys(detect_agents(project)))
+    default_sel = detected or list(PROJECT_TARGETS)
+    log("\nAgents to install for:")
+    for i, t in enumerate(ALL_TARGETS, 1):
+        log(f"  {i}. {t}{'   (detected)' if t in detected else ''}")
+    raw = ask(f"Select [comma-separated numbers, Enter = {', '.join(default_sel)}]: ")
+    if raw:
+        idxs = [int(x) for x in raw.replace(" ", "").split(",") if x.isdigit() and 1 <= int(x) <= len(ALL_TARGETS)]
+        chosen = [ALL_TARGETS[i - 1] for i in idxs] or default_sel
+    else:
+        chosen = default_sel
+
+    # 2. MCP
+    with_mcp = ask("Also wire the MCP server? [y/N]: ").lower() in ("y", "yes")
+
+    # 3. antigravity scope
+    ag_global = False
+    if "antigravity" in chosen:
+        ag_global = ask("Antigravity scope — [P]roject (.agents/) or [g]lobal (~/.gemini)? [P/g]: ").lower() in ("g", "global")
+
+    # 4. confirm
+    log("\nSummary:")
+    log(f"  agents          : {', '.join(chosen)}")
+    log(f"  MCP server      : {'yes' if with_mcp else 'no (skills only — scripts called directly)'}")
+    if "antigravity" in chosen:
+        log(f"  Antigravity     : {'global (~/.gemini)' if ag_global else 'project (.agents/)'}")
+    if ask("\nProceed? [Y/n]: ", default="y").lower() in ("n", "no"):
+        log("Aborted.")
+        return False
+
+    log("")
+    return run_install(
+        targets=chosen,
+        project_dir=str(project),
+        with_mcp=with_mcp,
+        antigravity_global=ag_global,
+        log=log,
+    )
 
 
 def run_uninstall(
