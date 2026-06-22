@@ -11,7 +11,9 @@ from mobility_toolkit import (
     search_koszul_models,
     query_vector_db
 )
-from mobility_toolkit.installer import run_install, run_uninstall, run_status, run_interactive, ALL_TARGETS
+from mobility_toolkit.installer import (
+    run_install, run_uninstall, run_status, run_interactive, run_self_update, ALL_TARGETS
+)
 
 class JSONArgumentParser(argparse.ArgumentParser):
     def error(self, message):
@@ -77,6 +79,16 @@ def main():
     parser_install.add_argument("--list", action="store_true", help="Show install status for each agent and exit")
     parser_install.add_argument("-y", "--yes", action="store_true", help="Non-interactive: use detected agents + defaults, no prompts")
 
+    # self-update
+    parser_su = subparsers.add_parser(
+        "self-update",
+        help="Update the toolkit from GitHub, then refresh the current project's skills",
+    )
+    parser_su.add_argument("--project-dir", type=str, default=None, help="Project to refresh (default: CWD)")
+    parser_su.add_argument("--mcp", action="store_true", help="Force-refresh the MCP config too (default: keep the project's existing setup)")
+    parser_su.add_argument("--no-refresh", action="store_true", help="Only update the package; don't touch any project")
+    parser_su.add_argument("--dry-run", action="store_true", help="Show what would run without changing anything")
+
     # doctor
     parser_doctor = subparsers.add_parser("doctor", help="Diagnose the Macaulay2 backend on this platform")
     parser_doctor.add_argument("--no-smoke", action="store_true", help="Skip the live M2 '2+2' smoke test")
@@ -131,6 +143,14 @@ def main():
                         antigravity_global=args.antigravity_global,
                         with_mcp=args.mcp,
                     )
+            sys.exit(0 if ok else 1)
+        elif args.command == "self-update":
+            ok = run_self_update(
+                project_dir=args.project_dir,
+                with_mcp=True if args.mcp else None,
+                refresh=not args.no_refresh,
+                dry_run=args.dry_run,
+            )
             sys.exit(0 if ok else 1)
         elif args.command == "doctor":
             from mobility_toolkit.engine import describe_m2_backend, run_macaulay2

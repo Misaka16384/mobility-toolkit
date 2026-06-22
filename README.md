@@ -78,6 +78,38 @@ mobility-toolkit install --list                           # show status
 mobility-toolkit install --uninstall                      # remove
 ```
 
+## Updating
+
+The project skills are **copies**, so updating is two steps — pull the latest code,
+then refresh each project. One command does both:
+
+```bash
+cd /path/to/project
+mobility-toolkit self-update
+```
+
+It detects how the toolkit was installed and updates accordingly — `git pull` for a
+clone, or a pip reinstall from the git URL for a pipx/wheel install — then re-installs
+**exactly the agents already wired into this project** (preserving your MCP choice).
+Useful flags:
+
+```bash
+mobility-toolkit self-update --dry-run      # show what it would run, change nothing
+mobility-toolkit self-update --no-refresh   # update the package only
+mobility-toolkit self-update --mcp          # also (re)wire the MCP config
+```
+
+Prefer to do it by hand? Update the package, then re-run `install` in each project:
+
+```bash
+pipx install --force "git+https://github.com/Misaka16384/mobility-toolkit.git"  # wheel/pipx
+# or, from a clone:  git pull
+mobility-toolkit install --yes              # refresh this project's skills
+```
+
+> A plain `pipx upgrade` often reports "already up to date" because the version string
+> is unchanged — `self-update` (or `--force`) sidesteps that and re-pulls the latest commit.
+
 ## Macaulay2 backend
 
 The M2 invocation is resolved per platform, overridable by environment variable:

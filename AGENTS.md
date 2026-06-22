@@ -33,6 +33,7 @@ Exposed three ways over the same core (`mobility_toolkit/`):
 | (search) / `search_models` | `search` | Reverse-search Koszul models hitting a target dimension |
 | `query_vector_db` | `db` | SQLite model registry (init / seed / sync / query) |
 | — | `doctor` | Diagnose the Macaulay2 backend (+ live smoke test) |
+| — | `self-update` | Pull the latest toolkit from GitHub + refresh the current project's skills |
 
 ## Input conventions (IMPORTANT — these cause most errors)
 

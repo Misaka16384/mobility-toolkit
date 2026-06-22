@@ -17,6 +17,7 @@ fallback (every supported agent speaks MCP).
 import json
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Callable, List, Optional
@@ -37,6 +38,9 @@ SKILL_NAMES = [
 MCP_NAME = "mobility_toolkit"
 MCP_COMMAND = sys.executable                           # pin the interpreter that has the package
 MCP_ARGS = ["-m", "mobility_toolkit.mcp_server"]
+
+# Upstream source used by `mobility-toolkit self-update`.
+GIT_URL = "git+https://github.com/Misaka16384/mobility-toolkit.git"
 
 PROJECT_TARGETS = ["claude", "codex", "opencode", "antigravity"]  # all support per-project config
 ALL_TARGETS = list(PROJECT_TARGETS)
@@ -185,7 +189,9 @@ def _agents_block() -> str:
         "script run directly, e.g. `python scripts/<name>.py < input.json`.\n\n"
         "Optionally also available as MCP server `mobility_toolkit` "
         "(install with `mobility-toolkit install --mcp`).\n\n"
-        "Run `mobility-toolkit doctor` to verify the Macaulay2 backend.\n"
+        "Run `mobility-toolkit doctor` to verify the Macaulay2 backend; "
+        "`mobility-toolkit self-update` to pull the latest version and refresh "
+        "these skills.\n"
         f"{AGENTS_BLOCK_END}"
     )
 
@@ -477,6 +483,115 @@ def run_status(project_dir: Optional[str] = None, log: Logger = print) -> dict:
         status[agent] = {"skills": skills_ok, "mcp": mcp_ok}
         log(f"  {agent:12s} skills={'yes' if skills_ok else 'no ':3s}  mcp={'yes' if mcp_ok else 'no'}")
     return status
+
+
+# --- self-update -----------------------------------------------------------
+def detect_install_mode() -> str:
+    """How this package was installed, inferred from where it lives on disk.
+
+    - ``"git"``   : an editable clone — ``REPO_ROOT`` is a git working tree
+                    (``pip install -e .``); update by ``git pull``.
+    - ``"wheel"`` : a wheel install in site-packages (``pipx``/``pip`` from the
+                    git URL); update by re-running pip against that interpreter.
+    """
+    if (REPO_ROOT / ".git").is_dir() and (REPO_ROOT / "pyproject.toml").is_file():
+        return "git"
+    return "wheel"
+
+
+def _update_command(mode: str) -> List[str]:
+    """The subprocess that pulls the latest code for the given install mode."""
+    if mode == "git":
+        return ["git", "-C", str(REPO_ROOT), "pull", "--ff-only"]
+    # Reinstall our package (only) into the SAME interpreter/venv. We use
+    # `sys.executable -m pip` rather than `pipx` so this also works inside a
+    # pipx-managed venv WITHOUT recreating it -- recreating the venv would try
+    # to delete the running python.exe and fail on Windows. `--force-reinstall`
+    # is required because the version string is static, so a plain `--upgrade`
+    # sees 0.1.0 == 0.1.0 and skips the new commits.
+    return [
+        sys.executable, "-m", "pip", "install",
+        "--upgrade", "--force-reinstall", "--no-deps", GIT_URL,
+    ]
+
+
+def run_self_update(
+    project_dir: Optional[str] = None,
+    with_mcp: Optional[bool] = None,
+    refresh: bool = True,
+    dry_run: bool = False,
+    log: Logger = print,
+) -> bool:
+    """Pull the latest toolkit, then refresh the current project's skills.
+
+    The project refresh re-installs exactly the agents already present in the
+    project and preserves its MCP setup, unless ``with_mcp`` is given explicitly.
+    """
+    project = Path(project_dir or os.getcwd()).resolve()
+    mode = detect_install_mode()
+    cmd = _update_command(mode)
+
+    # Look at what the project currently has so we refresh like-for-like.
+    status = run_status(project_dir=str(project), log=lambda *_: None)
+    installed = [a for a, v in status.items() if v["skills"]]
+    refresh_targets = installed or None          # None -> auto-detect/default
+    if with_mcp is None:
+        with_mcp = any(v["mcp"] for v in status.values())
+
+    log("=" * 60)
+    log("  Mobility Toolkit — self-update")
+    log("=" * 60)
+    log(f"  install mode : {'editable clone (git pull)' if mode == 'git' else 'wheel (pip reinstall from git)'}")
+    log(f"  source       : {REPO_ROOT if mode == 'git' else GIT_URL}")
+    log(f"  project      : {project}")
+    log(f"  step 1/2     : update package  ->  {' '.join(cmd)}")
+    if refresh:
+        tdesc = ", ".join(installed) if installed else "auto-detect"
+        log(f"  step 2/2     : refresh skills ({tdesc}; mcp={'yes' if with_mcp else 'no'})")
+    else:
+        log("  step 2/2     : (skipped: --no-refresh)")
+
+    if dry_run:
+        log("\n[dry-run] no changes made.")
+        return True
+
+    # --- step 1: update the package -----------------------------------------
+    log("\n[1/2] updating package ...")
+    try:
+        proc = subprocess.run(cmd, cwd=(str(REPO_ROOT) if mode == "git" else None))
+    except FileNotFoundError as exc:
+        tool = "git" if mode == "git" else "pip"
+        log(f"[error] could not launch {tool}: {exc}")
+        return False
+    if proc.returncode != 0:
+        log(f"[error] package update failed (exit {proc.returncode}).")
+        if mode == "git":
+            log(f"        Resolve the git state in {REPO_ROOT} and retry "
+                f"(uncommitted changes block a fast-forward pull).")
+        else:
+            log("        Try manually:  " + " ".join(cmd))
+        return False
+    log("[1/2] package updated.")
+
+    # --- step 2: refresh the current project's skills -----------------------
+    if not refresh:
+        log("\nDone (package only). Re-run `mobility-toolkit install` inside a "
+            "project to refresh its skills.")
+        return True
+
+    # _copy_skills reads the skill sources from disk, which the step-1 update
+    # just refreshed in place (same paths), so an in-process refresh picks up
+    # the new content even though this process still holds the old modules.
+    log("\n[2/2] refreshing project skills ...")
+    ok = run_install(
+        targets=refresh_targets,
+        project_dir=str(project),
+        with_mcp=with_mcp,
+        log=log,
+    )
+    if ok:
+        log("\nSelf-update complete.  Verify with:  mobility-toolkit doctor")
+    return ok
 
 
 # --- backward-compatible shim ---------------------------------------------

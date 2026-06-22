@@ -3,11 +3,17 @@
 Pure filesystem; no Macaulay2 backend required.
 """
 import json
+import types
 
+import mobility_toolkit.installer as inst
 from mobility_toolkit.installer import (
     run_install,
     run_uninstall,
     run_status,
+    run_self_update,
+    detect_install_mode,
+    _update_command,
+    GIT_URL,
     SKILL_NAMES,
     MCP_NAME,
     _BOOTSTRAP_MARKER,
@@ -99,3 +105,56 @@ def test_uninstall_removes_entries(tmp_path):
     assert MCP_NAME not in mcp.get("mcpServers", {})
     toml_text = (tmp_path / ".codex" / "config.toml").read_text(encoding="utf-8")
     assert f"[mcp_servers.{MCP_NAME}]" not in toml_text
+
+
+# --- self-update -----------------------------------------------------------
+def test_update_command_shapes():
+    """git mode pulls; wheel mode reinstalls our package only, from the git URL."""
+    git_cmd = _update_command("git")
+    assert git_cmd[0] == "git" and git_cmd[-2:] == ["pull", "--ff-only"]
+
+    wheel_cmd = _update_command("wheel")
+    assert wheel_cmd[1:4] == ["-m", "pip", "install"]
+    # force-reinstall is required (static version) and --no-deps keeps it to us
+    assert "--force-reinstall" in wheel_cmd and "--no-deps" in wheel_cmd
+    assert wheel_cmd[-1] == GIT_URL
+
+
+def test_detect_install_mode_is_stable():
+    # Whatever the test environment, the result must be one of the two known modes.
+    assert detect_install_mode() in {"git", "wheel"}
+
+
+def test_self_update_dry_run_changes_nothing(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(inst.subprocess, "run",
+                        lambda *a, **k: calls.append(a) or types.SimpleNamespace(returncode=0))
+    assert run_self_update(project_dir=str(tmp_path), dry_run=True, log=_QUIET)
+    assert calls == []                                   # no package update launched
+    assert not (tmp_path / ".claude").exists()           # no project files written
+
+
+def test_self_update_refreshes_only_installed_agents(tmp_path, monkeypatch):
+    proj = str(tmp_path)
+    # project starts with a skills-only Claude install
+    run_install(targets=["claude"], project_dir=proj, log=_QUIET)
+
+    # fake a successful package update (no real pip/git call)
+    monkeypatch.setattr(inst.subprocess, "run",
+                        lambda *a, **k: types.SimpleNamespace(returncode=0))
+    assert run_self_update(project_dir=proj, log=_QUIET)
+
+    # claude refreshed; the other agents were NOT introduced
+    assert (tmp_path / ".claude" / "skills" / "translate_to_algebra" / "SKILL.md").exists()
+    assert not (tmp_path / ".opencode").exists()
+    assert not (tmp_path / ".agents").exists()
+    # MCP setup preserved (was off) -> still off
+    assert not (tmp_path / ".mcp.json").exists()
+
+
+def test_self_update_aborts_when_package_update_fails(tmp_path, monkeypatch):
+    monkeypatch.setattr(inst.subprocess, "run",
+                        lambda *a, **k: types.SimpleNamespace(returncode=1))
+    # should report failure and never reach the project refresh
+    assert run_self_update(project_dir=str(tmp_path), log=_QUIET) is False
+    assert not (tmp_path / ".claude").exists()
