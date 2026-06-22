@@ -4,7 +4,7 @@
 # version from this attribute (dynamic = ["version"]), and `tools/release.py`
 # bumps this line. Keep it a plain string literal so setuptools can read it
 # statically at build time without importing the package.
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 from mobility_toolkit.bridge import run_m2_script, run_macaulay2
 from mobility_toolkit.translate import translate_stabilizers, translate_to_algebra
