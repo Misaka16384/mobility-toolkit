@@ -114,6 +114,29 @@ Check what you have with `mobility-toolkit --version`.
 > number), use `mobility-toolkit self-update` or
 > `pipx install --force "git+https://github.com/Misaka16384/mobility-toolkit.git"`.
 
+## Skills
+
+The toolkit installs eight `mt-*` skills, organized as **edges between three layers** —
+so you pick a skill by "what I have → what I want":
+
+- **L1 Model** — the Pauli stabilizer matrix over `ZZ/N[x,y,z,…]`.
+- **L2 Algebra** — `Ext^{p+1}` charge module, annihilator ideal, Gröbner basis, Krull dim.
+- **L3 Physics** — mobility class (fully-mobile / planon / lineon / fracton), GSD, fusion.
+
+| Skill | Edge | What it does |
+|---|---|---|
+| `mt-translate` | L1→L2 | Stabilizer matrix → ring, variables, M2 matrix (pure) |
+| `mt-homology` | L1→L2 | `Ext^{p+1}` + Krull dim + annihilator, with the mobility class attached |
+| `mt-classify` | L2→L3 | Krull dimension → mobility class (pure) |
+| `mt-mobility` | L2→L3 | Annihilator generators → true mobility dimension |
+| `mt-gsd` | L1→L3 | GSD + anyon periodicities on an Lx×Ly torus (any N) |
+| `mt-fusion` | L1→L3 | Dimension drops under relative shift vectors |
+| `mt-models` | L1↔L3 | SQLite registry of models ↔ physical properties |
+| `mt-doctor` | infra | Diagnose the Macaulay2 backend |
+
+Each skill bundles a script the agent runs directly (`python scripts/<name>.py < input.json`).
+See [`AGENTS.md`](AGENTS.md) for the full per-skill contract.
+
 ## Macaulay2 backend
 
 The M2 invocation is resolved per platform, overridable by environment variable:
@@ -141,6 +164,13 @@ mobility-toolkit homology \
 # X-Cube point excitations: Krull dimension 2 (fractons)
 mobility-toolkit homology \
   --stabilizer '[["1 - x","1 - y","1 - z","0"],["0","1 - y","1 - z","1 - x"]]' --qudit-dim 2 --p-ext 0
+
+# Interpret a Krull dimension as a mobility class (Layer 2 -> Layer 3)
+mobility-toolkit classify --krull-dim 2 --spatial-dim 3     # -> lineon (fracton order)
+
+# Ground-state degeneracy of the Z_2 toric code on a 3x3 torus (= 4)
+mobility-toolkit grobner \
+  --stabilizer '[["1 - x","1 - y","0","0"],["0","0","1 - y","1 - x"]]' --Lx 3 --Ly 3 --qudit-dim 2
 
 # Seed + query the bundled model registry
 mobility-toolkit db init

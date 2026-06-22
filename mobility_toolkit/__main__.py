@@ -10,7 +10,8 @@ from mobility_toolkit import (
     analyze_fusion_interference,
     solve_sset_fusion,
     search_koszul_models,
-    query_vector_db
+    query_vector_db,
+    classify_mobility,
 )
 from mobility_toolkit.installer import (
     run_install, run_uninstall, run_status, run_interactive, run_self_update, ALL_TARGETS
@@ -40,6 +41,11 @@ def main():
     parser_mobility.add_argument("--generators", type=str, required=True, help="JSON list of strings")
     parser_mobility.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
     parser_mobility.add_argument("--all-vars", type=str, default=None, help="JSON list of strings")
+
+    # classify (Layer 2 -> Layer 3: Krull dimension -> mobility class)
+    parser_classify = subparsers.add_parser("classify", help="Classify mobility from a Krull dimension")
+    parser_classify.add_argument("--krull-dim", type=int, required=True, help="Krull dimension of the charge module")
+    parser_classify.add_argument("--spatial-dim", type=int, default=3, help="Number of spatial dimensions (default 3)")
 
     # grobner
     parser_grobner = subparsers.add_parser("grobner", help="Compute GSD and periodicity via Grobner bases")
@@ -108,6 +114,8 @@ def main():
             generators = json.loads(args.generators)
             all_vars = json.loads(args.all_vars) if args.all_vars is not None else None
             result = compute_true_mobility_dimension(generators, args.qudit_dim, all_vars)
+        elif args.command == "classify":
+            result = classify_mobility(args.krull_dim, args.spatial_dim)
         elif args.command == "grobner":
             stabilizer = json.loads(args.stabilizer)
             result = compute_gsd_and_periodicity(stabilizer, args.Lx, args.Ly, args.qudit_dim)

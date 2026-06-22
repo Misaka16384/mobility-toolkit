@@ -14,6 +14,7 @@ from mobility_toolkit.fusion import analyze_fusion_interference, solve_sset_fusi
 from mobility_toolkit.grobner import compute_gsd_and_periodicity
 from mobility_toolkit.search import search_koszul_models
 from mobility_toolkit.registry import ModelRegistry, query_vector_db
+from mobility_toolkit.physics import classify_mobility
 
 __all__ = [
     "__version__",
@@ -30,4 +31,5 @@ __all__ = [
     "search_koszul_models",
     "ModelRegistry",
     "query_vector_db",
+    "classify_mobility",
 ]

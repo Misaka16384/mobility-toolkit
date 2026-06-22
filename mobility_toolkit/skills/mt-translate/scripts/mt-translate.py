@@ -4,11 +4,8 @@ from mobility_toolkit.translate import translate_to_algebra
 
 if __name__ == "__main__":
     try:
-        input_data = json.loads(sys.stdin.read())
-        matrix_input = input_data.get("stabilizer_matrix")
-        q_dim = input_data.get("qudit_dim")
-        
-        result = translate_to_algebra(matrix_input, q_dim)
+        data = json.loads(sys.stdin.read())
+        result = translate_to_algebra(data.get("stabilizer_matrix"), data.get("qudit_dim"))
         result["status"] = "success"
         print(json.dumps(result))
     except Exception as e:

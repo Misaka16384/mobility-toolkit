@@ -19,21 +19,33 @@ and only orchestrates M2 scripts and parses their output.
 
 Exposed three ways over the same core (`mobility_toolkit/`):
 
-- **Skills** (`skills/*/SKILL.md`) — installed into each agent's skills directory.
+- **Skills** (`skills/mt-*/SKILL.md`) — installed into each agent's skills directory.
 - **MCP server** — `python -m mobility_toolkit.mcp_server` (needs `fastmcp`).
 - **CLI** — `mobility-toolkit <subcommand>` (JSON in / JSON out).
 
-| Skill / MCP tool | CLI | Purpose |
-|---|---|---|
-| `translate_to_algebra` | — | Parse a stabilizer matrix → Laurent ring + M2 definitions |
-| `compute_homology_and_mobility` / `compute_homology` | `homology` | `Ext^{p+1}` module + Krull dimension (excitation mobility) |
-| (mobility) / `compute_mobility` | `mobility` | True physical mobility dimension of an annihilator ideal |
-| (grobner) / `compute_grobner` | `grobner` | GSD + anyon periodicities on an Lx×Ly torus |
-| `analyze_fusion_interference` / `compute_fusion_interference` | `fusion-interference` | Dimension drops under relative shift vectors |
-| (search) / `search_models` | `search` | Reverse-search Koszul models hitting a target dimension |
-| `query_vector_db` | `db` | SQLite model registry (init / seed / sync / query) |
-| — | `doctor` | Diagnose the Macaulay2 backend (+ live smoke test) |
-| — | `self-update` | Pull the latest toolkit from GitHub + refresh the current project's skills |
+### Three-layer model
+
+Skills are named `mt-*` and organized as **edges between three layers** — pick a skill by
+"what I have → what I want":
+
+- **L1 Model** — the Pauli stabilizer matrix over `ZZ/N[x,y,z,…]`.
+- **L2 Algebra** — ring/matrix, `Ext^{p+1}` charge module, annihilator ideal, Gröbner
+  basis, Krull dimension.
+- **L3 Physics** — mobility class (fully-mobile / planon / lineon / fracton; topological
+  vs fracton), GSD, anyon periodicities, fusion interference.
+
+| Skill | Edge | CLI | Purpose |
+|---|---|---|---|
+| `mt-translate` | L1→L2 | — | Stabilizer matrix → Laurent ring + variables + M2 matrix |
+| `mt-homology` | L1→L2 | `homology` | `Ext^{p+1}` module + Krull dim + annihilator (class attached) |
+| `mt-classify` | L2→L3 | `classify` | Krull dimension → mobility class (pure, no backend) |
+| `mt-mobility` | L2→L3 | `mobility` | Annihilator generators → true mobility dimension |
+| `mt-gsd` | L1→L3 | `grobner` | GSD + anyon periodicities on an Lx×Ly torus (any N) |
+| `mt-fusion` | L1→L3 | `fusion-interference` | Dimension drops under relative shift vectors |
+| `mt-models` | L1↔L3 | `db` | SQLite model/property registry (init / seed / sync / query) |
+| `mt-doctor` | infra | `doctor` | Diagnose the Macaulay2 backend (+ live smoke test) |
+
+CLI-only (no skill): `sset-fusion`, `search`, `install`, `self-update`.
 
 ## Input conventions (IMPORTANT — these cause most errors)
 

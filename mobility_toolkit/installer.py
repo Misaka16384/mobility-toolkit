@@ -27,11 +27,17 @@ PACKAGE_DIR = Path(__file__).resolve().parent          # .../mobility_toolkit/mo
 REPO_ROOT = PACKAGE_DIR.parent                         # importable root (clone root or site-packages)
 SKILLS_SRC = PACKAGE_DIR / "skills"                    # skills ship inside the package (wheel-installable)
 
+# Skills, grouped by the three-layer model (see AGENTS.md):
+#   L1 model -> L2 algebra -> L3 physics.
 SKILL_NAMES = [
-    "translate_to_algebra",
-    "compute_homology_and_mobility",
-    "analyze_fusion_interference",
-    "query_vector_db",
+    "mt-translate",   # L1->L2  stabilizer model -> ring/matrix/variables
+    "mt-homology",    # L1->L2  Ext module + Krull dim (+ attached L3 class)
+    "mt-classify",    # L2->L3  Krull dim -> mobility class (pure)
+    "mt-mobility",    # L2->L3  annihilator generators -> true mobility dimension
+    "mt-gsd",         # L1->L3  GSD + periodicities on a torus
+    "mt-fusion",      # L1->L3  fusion interference under shifts
+    "mt-models",      # L1<->L3 model/property registry
+    "mt-doctor",      # infra   Macaulay2 backend diagnostic
 ]
 
 # --- MCP server invocation -------------------------------------------------
@@ -183,10 +189,13 @@ def _agents_block() -> str:
         "## mobility_toolkit\n\n"
         "Homological-algebra toolkit for excitation-mobility properties of "
         "translation-invariant stabilizer codes (backed by Macaulay2).\n\n"
-        "Skills (SKILL.md) installed under this agent's skills directory:\n"
-        "`translate_to_algebra`, `compute_homology_and_mobility`, "
-        "`analyze_fusion_interference`, `query_vector_db`. Each skill bundles a "
-        "script run directly, e.g. `python scripts/<name>.py < input.json`.\n\n"
+        "Skills are organized by three layers -- L1 model, L2 algebra, L3 physics -- "
+        "each skill being an edge between two layers:\n"
+        "- L1->L2: `mt-translate`, `mt-homology`\n"
+        "- L2->L3: `mt-classify`, `mt-mobility`\n"
+        "- L1->L3: `mt-gsd`, `mt-fusion`\n"
+        "- store/infra: `mt-models`, `mt-doctor`\n"
+        "Each skill bundles a script run directly, e.g. `python scripts/<name>.py < input.json`.\n\n"
         "Optionally also available as MCP server `mobility_toolkit` "
         "(install with `mobility-toolkit install --mcp`).\n\n"
         "Run `mobility-toolkit doctor` to verify the Macaulay2 backend; "
