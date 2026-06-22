@@ -181,3 +181,6 @@ python tools/release.py --dry-run       # preview, change nothing
 
 It refuses to run on a dirty tree (override with `--allow-dirty`) or a tag that
 already exists. After pushing, `pipx upgrade mobility-toolkit` picks it up.
+
+See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the full development, release,
+and update workflow (install kinds, version model, refreshing project skills).
