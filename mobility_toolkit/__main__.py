@@ -3,6 +3,7 @@ import json
 import argparse
 import os
 from mobility_toolkit import (
+    __version__,
     compute_ext_krull,
     compute_true_mobility_dimension,
     compute_gsd_and_periodicity,
@@ -21,6 +22,10 @@ class JSONArgumentParser(argparse.ArgumentParser):
 
 def main():
     parser = JSONArgumentParser(description="Mobility Fusion Generalization Toolkit CLI")
+    parser.add_argument(
+        "--version", action="version", version=f"mobility-toolkit {__version__}",
+        help="Show the installed version and exit",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True, help="Subcommands")
 
     # homology

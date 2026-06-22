@@ -4,7 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mobility-toolkit"
-version = "0.1.0"
+# Version is the single source of truth in mobility_toolkit/__init__.py
+# (`__version__`); bump it with `python tools/release.py`.
+dynamic = ["version"]
 description = "Homological-algebra toolkit for computing excitation mobility properties of translation-invariant stabilizer codes, backed by Macaulay2."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -38,6 +40,9 @@ mobility-toolkit = "mobility_toolkit.__main__:main"
 
 [tool.setuptools]
 packages = ["mobility_toolkit"]
+
+[tool.setuptools.dynamic]
+version = { attr = "mobility_toolkit.__version__" }
 
 [tool.setuptools.package-data]
 # Skill bundles (SKILL.md + scripts) ship inside the wheel so a pipx/wheel

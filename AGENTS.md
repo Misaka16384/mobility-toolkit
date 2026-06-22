@@ -65,6 +65,12 @@ resolved backend and runs a `2+2` smoke test.
 - Package layout: importable code is in `mobility_toolkit/`; SKILL.md sources are in
   `mobility_toolkit/skills/` (bundled in the wheel); the installer copies those into
   each agent's location.
+- Version: single source of truth is `mobility_toolkit.__version__` (in
+  `__init__.py`); `pyproject.toml` derives the package version from it
+  (`dynamic = ["version"]`). Never hand-edit a version into `pyproject.toml`.
+- Cut a release with `python tools/release.py [--minor|--major|--set X.Y.Z] [--push]`:
+  it bumps `__version__`, commits, and tags `vX.Y.Z`. Bumping the version is what
+  makes `pipx upgrade` pull the new release.
 - Don't commit install artifacts (`.claude/`, `.opencode/`, `.codex/`, `.agents/`,
   `.mcp.json`, `opencode.json`, `output/`); they're git-ignored.
 

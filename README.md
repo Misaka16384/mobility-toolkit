@@ -102,13 +102,17 @@ mobility-toolkit self-update --mcp          # also (re)wire the MCP config
 Prefer to do it by hand? Update the package, then re-run `install` in each project:
 
 ```bash
-pipx install --force "git+https://github.com/Misaka16384/mobility-toolkit.git"  # wheel/pipx
+pipx upgrade mobility-toolkit               # wheel/pipx — picks up the latest release
 # or, from a clone:  git pull
 mobility-toolkit install --yes              # refresh this project's skills
 ```
 
-> A plain `pipx upgrade` often reports "already up to date" because the version string
-> is unchanged — `self-update` (or `--force`) sidesteps that and re-pulls the latest commit.
+Check what you have with `mobility-toolkit --version`.
+
+> `pipx upgrade` works **across releases** because each release bumps the version (see
+> [Development](#development)). To pull *un-released* commits on `main` (same version
+> number), use `mobility-toolkit self-update` or
+> `pipx install --force "git+https://github.com/Misaka16384/mobility-toolkit.git"`.
 
 ## Macaulay2 backend
 
@@ -160,3 +164,20 @@ pytest                       # M2-backed tests require a working Macaulay2 backe
 Importable code lives in `mobility_toolkit/`; SKILL.md sources live in
 `mobility_toolkit/skills/` (bundled into the wheel). See
 [`AGENTS.md`](AGENTS.md) for agent-facing usage notes.
+
+### Cutting a release
+
+The version is a single source of truth in `mobility_toolkit/__init__.py`
+(`__version__`); `pyproject.toml` derives the package version from it. Bumping it
+on each release is what lets users `pipx upgrade`. Use the helper:
+
+```bash
+python tools/release.py                 # patch bump (0.1.0 -> 0.1.1), commit + tag
+python tools/release.py --minor         # 0.1.0 -> 0.2.0
+python tools/release.py --set 1.2.3     # explicit version
+python tools/release.py --push          # also push the commit + tag to origin
+python tools/release.py --dry-run       # preview, change nothing
+```
+
+It refuses to run on a dirty tree (override with `--allow-dirty`) or a tag that
+already exists. After pushing, `pipx upgrade mobility-toolkit` picks it up.

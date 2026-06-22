@@ -1,5 +1,11 @@
 # mobility_toolkit package
 
+# Single source of truth for the version. `pyproject.toml` derives the package
+# version from this attribute (dynamic = ["version"]), and `tools/release.py`
+# bumps this line. Keep it a plain string literal so setuptools can read it
+# statically at build time without importing the package.
+__version__ = "0.1.0"
+
 from mobility_toolkit.bridge import run_m2_script, run_macaulay2
 from mobility_toolkit.translate import translate_stabilizers, translate_to_algebra
 from mobility_toolkit.homology import compute_ext_krull, compute_homology_and_mobility
@@ -10,6 +16,7 @@ from mobility_toolkit.search import search_koszul_models
 from mobility_toolkit.registry import ModelRegistry, query_vector_db
 
 __all__ = [
+    "__version__",
     "run_m2_script",
     "run_macaulay2",
     "translate_stabilizers",
