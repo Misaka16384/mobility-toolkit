@@ -184,6 +184,18 @@ def test_bridge_integration():
 
 def test_homological_integration():
     """Verify that compute_ext_krull triggers Python log and discovery saving."""
+    # Clear computations table to prevent cache hits
+    from mobility_toolkit.registry import ModelRegistry
+    import sqlite3
+    registry = ModelRegistry()
+    conn = sqlite3.connect(registry.db_path)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM computations")
+        conn.commit()
+    finally:
+        conn.close()
+
     log_file = os.path.join(PROJECT_ROOT, "output", "logs", "python_execution.log")
     discovery_file = os.path.join(PROJECT_ROOT, "output", "discoveries", "homological_discovery.json")
     

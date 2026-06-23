@@ -47,17 +47,18 @@ def compute_mobility(generators: List[str], qudit_dim: int, variables: Optional[
     return compute_true_mobility_dimension(generators, qudit_dim, variables)
 
 @mcp.tool()
-def compute_grobner(stabilizer_matrix: List[List[str]], Lx: int, Ly: int, qudit_dim: int) -> Dict[str, Any]:
+def compute_grobner(stabilizer_matrix: List[List[str]], qudit_dim: int, Lx: Optional[int] = None, Ly: Optional[int] = None, L: Optional[List[int]] = None) -> Dict[str, Any]:
     """
     Compute the Ground State Degeneracy (GSD) and anyon periodicities on a torus.
     
     Args:
         stabilizer_matrix: Pauli stabilizer matrix.
-        Lx: Torus size in the X direction.
-        Ly: Torus size in the Y direction.
         qudit_dim: Qudit dimension.
+        Lx: Torus size in the X direction (optional).
+        Ly: Torus size in the Y direction (optional).
+        L: Torus sizes list for arbitrary dimensions (optional).
     """
-    return compute_gsd_and_periodicity(stabilizer_matrix, Lx, Ly, qudit_dim)
+    return compute_gsd_and_periodicity(stabilizer_matrix, Lx, Ly, qudit_dim, L)
 
 @mcp.tool()
 def compute_fusion_interference(stabilizer_matrix: List[List[str]], qudit_dim: int, shifts: List[List[int]]) -> Dict[str, Any]:

@@ -77,10 +77,10 @@ def test_grobner_invalid_variables():
 def test_homological_multi_char_variables():
     """Verifies that the homological solver validates against multi-character variables.
     
-    Multi-character variables like 'x1' violate the assumption of single-character variables
+    Multi-character variables like 'xx' violate the assumption of variables
     and cause undefined symbols in Macaulay2. The solver should raise a ValueError.
     """
-    stabilizer_matrix = [["x1 - 1", "0"], ["0", "0"]]
+    stabilizer_matrix = [["xx - 1", "0"], ["0", "0"]]
     with pytest.raises(ValueError):
         compute_ext_krull(stabilizer_matrix, qudit_dim=2)
 

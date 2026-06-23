@@ -132,16 +132,16 @@ def compute_true_mobility_dimension(generators: List[str], qudit_dim: int, all_v
         if not isinstance(all_vars, list) or not all_vars:
             raise ValueError("all_vars must be a non-empty list of strings.")
         for var in all_vars:
-            if not isinstance(var, str) or not re.match(r'^[a-z]$', var):
-                raise ValueError(f"Invalid variable name in all_vars: '{var}'. Only single-character lowercase variables allowed.")
+            if not isinstance(var, str) or not re.match(r'^[a-z]\d*$', var):
+                raise ValueError(f"Invalid variable name in all_vars: '{var}'. Only lowercase variables optionally followed by digits are allowed.")
         sorted_vars = sorted(list(set(all_vars)))
     else:
         variables = set()
         for gen in generators:
             found = re.findall(r'[a-zA-Z_][a-zA-Z0-9_]*', gen)
             for var in found:
-                if not re.match(r'^[a-z]$', var):
-                    raise ValueError(f"Invalid variable name: '{var}'. Only single-character lowercase variables allowed.")
+                if not re.match(r'^[a-z]\d*$', var):
+                    raise ValueError(f"Invalid variable name: '{var}'. Only lowercase variables optionally followed by digits are allowed.")
                 variables.add(var)
         sorted_vars = sorted(list(variables))
         if not sorted_vars:

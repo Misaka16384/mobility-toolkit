@@ -133,41 +133,125 @@ def parse_gf2_poly(poly_str: str) -> GF2Poly:
             val ^= (1 << exp)
     return GF2Poly(val)
 
-def parse_term(term_str: str) -> tuple[int, int]:
-    term_str = term_str.strip()
-    if term_str == "1":
-        return (0, 0)
-    if term_str == "0" or not term_str:
-        return None
-    
-    match_x = re.search(r'\bx\^(\d+)\b', term_str)
-    if match_x:
-        exp_x = int(match_x.group(1))
-    elif re.search(r'\bx\b', term_str):
-        exp_x = 1
-    else:
-        exp_x = 0
+class Z2Polynomial:
+    def __init__(self, terms: set[tuple[int, int]] = None):
+        # terms is a set of exponent tuples (exp_x, exp_y) with coefficient 1
+        self.terms = terms if terms is not None else set()
         
-    match_y = re.search(r'\by\^(\d+)\b', term_str)
-    if match_y:
-        exp_y = int(match_y.group(1))
-    elif re.search(r'\by\b', term_str):
-        exp_y = 1
-    else:
-        exp_y = 0
+    def __add__(self, other: 'Z2Polynomial') -> 'Z2Polynomial':
+        # Over Z2, addition is XOR (symmetric difference)
+        return Z2Polynomial(self.terms ^ other.terms)
         
-    return (exp_x, exp_y)
+    def __sub__(self, other: 'Z2Polynomial') -> 'Z2Polynomial':
+        # Over Z2, subtraction is the same as addition
+        return Z2Polynomial(self.terms ^ other.terms)
+        
+    def __mul__(self, other: 'Z2Polynomial') -> 'Z2Polynomial':
+        res_terms = set()
+        for (ax, ay) in self.terms:
+            for (bx, by) in other.terms:
+                term = (ax + bx, ay + by)
+                if term in res_terms:
+                    res_terms.remove(term)
+                else:
+                    res_terms.add(term)
+        return Z2Polynomial(res_terms)
+        
+    def __pow__(self, power: int) -> 'Z2Polynomial':
+        if not isinstance(power, int) or power < 0:
+            raise ValueError("Power must be a non-negative integer")
+        if power == 0:
+            return Z2Polynomial({(0, 0)})
+        res = Z2Polynomial({(0, 0)})
+        base = self
+        while power > 0:
+            if power % 2 == 1:
+                res = res * base
+            base = base * base
+            power //= 2
+        return res
+
+def tokenize(s: str) -> List[str]:
+    s = s.replace(" ", "")
+    s = s.replace("**", "^")
+    return re.findall(r'\d+|x|y|\(|\)|\+|\-|\*|\^', s)
+
+class Z2PolynomialParser:
+    def __init__(self, tokens: List[str]):
+        self.tokens = tokens
+        self.pos = 0
+        
+    def peek(self) -> str:
+        return self.tokens[self.pos] if self.pos < len(self.tokens) else None
+        
+    def consume(self, expected: str = None) -> str:
+        t = self.peek()
+        if expected is not None and t != expected:
+            raise ValueError(f"Expected {expected}, got {t}")
+        self.pos += 1
+        return t
+        
+    def parse_expression(self) -> Z2Polynomial:
+        res = self.parse_term()
+        while self.peek() in ('+', '-'):
+            op = self.consume()
+            right = self.parse_term()
+            res = res + right # subtraction is also addition mod 2
+        return res
+        
+    def parse_term(self) -> Z2Polynomial:
+        res = self.parse_factor()
+        while self.peek() == '*':
+            self.consume('*')
+            right = self.parse_factor()
+            res = res * right
+        return res
+        
+    def parse_factor(self) -> Z2Polynomial:
+        if self.peek() == '-':
+            self.consume('-')
+            return self.parse_factor()
+        elif self.peek() == '+':
+            self.consume('+')
+            return self.parse_factor()
+            
+        res = self.parse_primary()
+        if self.peek() == '^':
+            self.consume('^')
+            power_str = self.consume()
+            if not power_str.isdigit():
+                raise ValueError(f"Expected integer power exponent, got {power_str}")
+            res = res ** int(power_str)
+        return res
+        
+    def parse_primary(self) -> Z2Polynomial:
+        t = self.peek()
+        if t == '(':
+            self.consume('(')
+            res = self.parse_expression()
+            self.consume(')')
+            return res
+        elif t == 'x':
+            self.consume('x')
+            return Z2Polynomial({(1, 0)})
+        elif t == 'y':
+            self.consume('y')
+            return Z2Polynomial({(0, 1)})
+        elif t is not None and t.isdigit():
+            val = int(self.consume())
+            return Z2Polynomial({(0, 0)}) if val % 2 == 1 else Z2Polynomial(set())
+        else:
+            raise ValueError(f"Unexpected token in primary: {t}")
 
 def parse_poly_str(poly_str: str) -> set[tuple[int, int]]:
-    poly_str = poly_str.replace(" ", "").replace("\n", "").replace("\r", "")
-    if poly_str == "0" or not poly_str:
+    if not poly_str or poly_str.strip() == "0":
         return set()
-    terms = set()
-    for term_str in poly_str.split("+"):
-        parsed = parse_term(term_str)
-        if parsed is not None:
-            terms.add(parsed)
-    return terms
+    tokens = tokenize(poly_str)
+    parser = Z2PolynomialParser(tokens)
+    poly = parser.parse_expression()
+    if parser.pos < len(tokens):
+        raise ValueError(f"Extra tokens left unparsed: {tokens[parser.pos:]}")
+    return poly.terms
 
 def shift_poly(terms: set[tuple[int, int]]) -> set[tuple[int, int]]:
     if not terms:
@@ -247,21 +331,39 @@ def fuse_vector_sets(set1, set2):
                 fused_set.add(K_f)
     return fused_set
 
-def construct_monomial(shift: List[int]) -> str:
-    pos_vars = ['x', 'y', 'z']
-    inv_vars = ['t', 'u', 'w']
-    terms = []
-    for idx, val in enumerate(shift):
-        if idx >= len(pos_vars):
-            break
-        if val > 0:
-            terms.append(f"{pos_vars[idx]}^{val}" if val > 1 else pos_vars[idx])
-        elif val < 0:
-            power = -val
-            terms.append(f"{inv_vars[idx]}^{power}" if power > 1 else inv_vars[idx])
-    if not terms:
-        return "1"
-    return "*".join(terms)
+def construct_monomial(shift: List[int], variables: List[str] = None) -> str:
+    is_unified = False
+    if variables:
+        is_unified = any(re.match(r'^x\d+$', v) for v in variables)
+        
+    if is_unified:
+        terms = []
+        for idx, val in enumerate(shift):
+            var_idx = idx + 1
+            if val > 0:
+                terms.append(f"x{var_idx}^{val}" if val > 1 else f"x{var_idx}")
+            elif val < 0:
+                power = -val
+                terms.append(f"t{var_idx}^{power}" if power > 1 else f"t{var_idx}")
+        if not terms:
+            return "1"
+        return "*".join(terms)
+    else:
+        pos_vars = ['x', 'y', 'z']
+        inv_vars = ['t', 'u', 'w']
+        terms = []
+        for idx, val in enumerate(shift):
+            if idx >= len(pos_vars):
+                break
+            if val > 0:
+                terms.append(f"{pos_vars[idx]}^{val}" if val > 1 else pos_vars[idx])
+            elif val < 0:
+                power = -val
+                terms.append(f"{inv_vars[idx]}^{power}" if power > 1 else inv_vars[idx])
+        if not terms:
+            return "1"
+        return "*".join(terms)
+
 
 def classify_divisor(g_terms: set[tuple[int, int]]) -> Dict[str, Any]:
     g_terms = shift_poly(g_terms)
@@ -396,13 +498,17 @@ def analyze_fusion_interference(stabilizer_matrix: List[List[str]], qudit_dim: i
                 raise ValueError("Shift values must be integers.")
 
     # 1. Translate matrix
-    translation = translate_to_algebra(stabilizer_matrix, qudit_dim)
+    shift_dim = max(len(s) for s in shifts) if shifts else 0
+    translation = translate_to_algebra(stabilizer_matrix, qudit_dim, spatial_dim=shift_dim)
     ring_def = translation["ring_definition"]
     matrix_def = translation["matrix_definition"]
     variables = translation["variables"]
 
     # 2. Determine saturation product (product of active positive variables)
-    active_pos_vars = [v for v in variables if v in {'x', 'y', 'z'}]
+    active_pos_vars = [
+        v for v in variables 
+        if v in {'x', 'y', 'z'} or (v.startswith('x') and v[1:].isdigit())
+    ]
     sat_prod = "*".join(active_pos_vars) if active_pos_vars else "1"
 
     # 3. Construct Macaulay2 script
@@ -417,7 +523,7 @@ def analyze_fusion_interference(stabilizer_matrix: List[List[str]], qudit_dim: i
     ]
 
     for idx, shift in enumerate(shifts):
-        monomial = construct_monomial(shift)
+        monomial = construct_monomial(shift, variables)
         script_lines.extend([
             f"P{idx} = ideal(1 - ({monomial}))",
             f"J{idx} = I : P{idx}",

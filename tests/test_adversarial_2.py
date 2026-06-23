@@ -27,14 +27,14 @@ def test_homological_variable_extraction_indexed():
 def test_homological_variable_extraction_multi_char():
     """Adversarial check for homological solver's variable extraction.
     
-    When variable names have multiple characters (e.g. `x1`), the regex only extracts `x`.
-    Since `x1` is not declared in the Macaulay2 ring, Macaulay2 raises a symbol undefined
+    When variable names have multiple characters (e.g. `xx`), the regex only extracts `x`.
+    Since `xx` is not declared in the Macaulay2 ring, Macaulay2 raises a symbol undefined
     error.
     
-    This test verifies that calling the solver with `x1` raises a `ValueError` due to
+    This test verifies that calling the solver with `xx` raises a `ValueError` due to
     the new variable name validation.
     """
-    stabilizer_matrix = [["x1 - 1"]]
+    stabilizer_matrix = [["xx - 1"]]
     with pytest.raises(ValueError):
         compute_ext_krull(stabilizer_matrix, qudit_dim=2)
 

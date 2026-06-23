@@ -50,8 +50,9 @@ def main():
     # grobner
     parser_grobner = subparsers.add_parser("grobner", help="Compute GSD and periodicity via Grobner bases")
     parser_grobner.add_argument("--stabilizer", type=str, required=True, help="JSON list of lists of strings")
-    parser_grobner.add_argument("--Lx", type=int, required=True, help="Torus size Lx")
-    parser_grobner.add_argument("--Ly", type=int, required=True, help="Torus size Ly")
+    parser_grobner.add_argument("--Lx", type=int, default=None, help="Torus size Lx")
+    parser_grobner.add_argument("--Ly", type=int, default=None, help="Torus size Ly")
+    parser_grobner.add_argument("--L", type=str, default=None, help="JSON list of torus sizes L")
     parser_grobner.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
 
     # fusion-interference
@@ -118,7 +119,8 @@ def main():
             result = classify_mobility(args.krull_dim, args.spatial_dim)
         elif args.command == "grobner":
             stabilizer = json.loads(args.stabilizer)
-            result = compute_gsd_and_periodicity(stabilizer, args.Lx, args.Ly, args.qudit_dim)
+            L = json.loads(args.L) if args.L is not None else None
+            result = compute_gsd_and_periodicity(stabilizer, args.Lx, args.Ly, args.qudit_dim, L)
         elif args.command == "fusion-interference":
             stabilizer = json.loads(args.stabilizer)
             shifts = json.loads(args.shifts)

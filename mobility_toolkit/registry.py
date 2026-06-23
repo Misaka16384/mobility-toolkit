@@ -187,41 +187,44 @@ class ModelRegistry:
         
         # Ensure tables exist
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
         try:
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS models (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL UNIQUE,
-                    qudit_dim INTEGER NOT NULL,
-                    spatial_dim INTEGER NOT NULL,
-                    stabilizer_matrix TEXT NOT NULL,
-                    d0 INTEGER,
-                    d1 INTEGER,
-                    gsd_val INTEGER,
-                    l_x INTEGER,
-                    l_y INTEGER,
-                    is_topological BOOLEAN,
-                    description TEXT
-                );
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS computations (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    qudit_dim INTEGER NOT NULL,
-                    stabilizer_matrix TEXT NOT NULL,
-                    p_ext INTEGER NOT NULL,
-                    annihilator_generators TEXT,
-                    krull_dimension INTEGER,
-                    ext_modules TEXT,
-                    mobility_dimension INTEGER,
-                    valuation_matrix TEXT,
-                    kernel_basis TEXT
-                );
-            """)
-            conn.commit()
+            self._ensure_tables(conn)
         finally:
             conn.close()
+
+    def _ensure_tables(self, conn) -> None:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS models (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                qudit_dim INTEGER NOT NULL,
+                spatial_dim INTEGER NOT NULL,
+                stabilizer_matrix TEXT NOT NULL,
+                d0 INTEGER,
+                d1 INTEGER,
+                gsd_val INTEGER,
+                l_x INTEGER,
+                l_y INTEGER,
+                is_topological BOOLEAN,
+                description TEXT
+            );
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS computations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                qudit_dim INTEGER NOT NULL,
+                stabilizer_matrix TEXT NOT NULL,
+                p_ext INTEGER NOT NULL,
+                annihilator_generators TEXT,
+                krull_dimension INTEGER,
+                ext_modules TEXT,
+                mobility_dimension INTEGER,
+                valuation_matrix TEXT,
+                kernel_basis TEXT
+            );
+        """)
+        conn.commit()
 
     def get_cached_annihilator(self, stabilizer_matrix: List[List[str]], qudit_dim: int, p_ext: int) -> Dict[str, Any]:
         """Query computations table for matching qudit_dim, stabilizer_matrix, and p_ext.
@@ -230,6 +233,7 @@ class ModelRegistry:
         """
         matrix_str = json.dumps(stabilizer_matrix)
         conn = sqlite3.connect(self.db_path)
+        self._ensure_tables(conn)
         cursor = conn.cursor()
         try:
             cursor.execute("""
@@ -258,6 +262,7 @@ class ModelRegistry:
         annihilator_generators_str = json.dumps(annihilator_generators)
         
         conn = sqlite3.connect(self.db_path)
+        self._ensure_tables(conn)
         cursor = conn.cursor()
         try:
             cursor.execute("""
@@ -289,6 +294,7 @@ class ModelRegistry:
         sorted_gens = sorted(generators)
         gens_str = json.dumps(sorted_gens)
         conn = sqlite3.connect(self.db_path)
+        self._ensure_tables(conn)
         cursor = conn.cursor()
         try:
             cursor.execute("""
@@ -319,6 +325,7 @@ class ModelRegistry:
         ker_basis_str = json.dumps(kernel_basis)
         
         conn = sqlite3.connect(self.db_path)
+        self._ensure_tables(conn)
         cursor = conn.cursor()
         try:
             cursor.execute("""
