@@ -486,7 +486,7 @@ def compute_gsd_and_periodicity(stabilizer_matrix: List[List[str]], Lx: Any = No
     generators = [f"({qudit_dim})"]
     for i in range(1, d + 1):
         generators.append(f"x{i}*t{i} - 1")
-        if i not in active_dims:
+        if i not in active_dims and i > len(L):
             generators.extend([f"x{i} - 1", f"t{i} - 1"])
     generators.extend(clean_entries)
     m2_ideal_str = ", ".join(generators)
@@ -499,15 +499,40 @@ def compute_gsd_and_periodicity(stabilizer_matrix: List[List[str]], Lx: Any = No
         f"S = ZZ[{', '.join(vars_list)}, MonomialOrder => Lex]",
         f"I = ideal({m2_ideal_str})",
     ]
-    # Torus relations
-    torus_relations = [f"x{i}^{L[i-1]} - 1" for i in range(1, len(L) + 1)]
-    m2_script_parts.append(f"IGSD = I + ideal({', '.join(torus_relations)})")
+    # Transpose matrix for M2 representation
+    num_rows = len(translated_matrix)
+    num_cols = len(translated_matrix[0])
+    transposed = [[translated_matrix[r][c] for r in range(num_rows)] for c in range(num_cols)]
+    m2_matrix_rows = []
+    for r in transposed:
+        m2_matrix_rows.append("{" + ", ".join(r) + "}")
+    matrix_definition = "{" + ", ".join(m2_matrix_rows) + "}"
 
-    # GB for GSD
-    m2_script_parts.append('print "VALUE:START_GSD"')
-    m2_script_parts.append("GGSD = gens gb IGSD")
-    m2_script_parts.append("LGSDflat = flatten entries GGSD")
-    m2_script_parts.append('for felem in LGSDflat do (print ("VALUE:" | toString felem); print ("VALUE:" | toString leadTerm felem))')
+    # Symbolic cokernel size computation in Macaulay2 for each prime factor
+    factors_dict = get_prime_factors_with_exponents(qudit_dim)
+    for p, a in factors_dict.items():
+        ring_generators = [f"({p**a})"]
+        for j in range(1, d + 1):
+            ring_generators.append(f"x{j}*t{j} - 1")
+            if j not in active_dims and j > len(L):
+                ring_generators.extend([f"x{j} - 1", f"t{j} - 1"])
+            if j <= len(L):
+                ring_generators.append(f"x{j}^{L[j-1]} - 1")
+        ring_ideal_str = ", ".join(ring_generators)
+        m2_script_parts.append("use S")
+        m2_script_parts.append(f"IRT{p} = ideal({ring_ideal_str})")
+        m2_script_parts.append(f"R{p} = S / IRT{p}")
+        m2_script_parts.append(f"use R{p}")
+        m2_script_parts.append(f"M{p} = matrix(R{p}, {matrix_definition})")
+        m2_script_parts.append(f"C{p} = coker M{p}")
+        for j in range(a + 1):
+            val = p ** j
+            m2_script_parts.append(f"Csub{p}{j+1} = image ({val} * id_(C{p}))")
+        for j in range(a):
+            m2_script_parts.append(f"V{p}{j+1} = Csub{p}{j+1} / Csub{p}{j+2}")
+            m2_script_parts.append(f"print (\"VALUE:COKER_DIM:{p}:{j}:\" | toString (numgens (source (basis V{p}{j+1}))))")
+
+    m2_script_parts.append("use S")
 
     # GB for original ideal (to compute quotient size)
     m2_script_parts.append('print "VALUE:START_GB"')
@@ -543,10 +568,9 @@ def compute_gsd_and_periodicity(stabilizer_matrix: List[List[str]], Lx: Any = No
             pass
         return None
 
-    # Parse GSD and GB
+    # Parse the fusion-group GB
     try:
         idx_gb = lines.index("VALUE:START_GB")
-        idx_gsd = lines.index("VALUE:START_GSD")
     except ValueError as e:
         raise RuntimeError(f"Failed to find expected markers in Macaulay2 output: {e}. Output: {stdout}")
 
@@ -556,13 +580,12 @@ def compute_gsd_and_periodicity(stabilizer_matrix: List[List[str]], Lx: Any = No
             line = lines[i]
             if line.startswith("VALUE:"):
                 val = line[len("VALUE:"):].strip()
-                if val in ["START_GB", "START_GSD"] or val.startswith("PER_GEN_"):
+                if val == "START_GB" or val.startswith("PER_GEN_") or val.startswith("COKER_DIM:"):
                     break
                 res_list.append(val)
         return res_list
 
     gb_vals = collect_gb_lines(idx_gb)
-    gsd_vals = collect_gb_lines(idx_gsd)
 
     if len(gb_vals) % 2 != 0:
         raise RuntimeError(f"Expected even number of lines for GB, got {len(gb_vals)}")
@@ -573,16 +596,6 @@ def compute_gsd_and_periodicity(stabilizer_matrix: List[List[str]], Lx: Any = No
         lt = gb_vals[idx+1]
         coef, exponents = parse_leading_term(lt, vars_list)
         parsed_gb.append((coef, exponents))
-
-    if len(gsd_vals) % 2 != 0:
-        raise RuntimeError(f"Expected even number of lines for GSD GB, got {len(gsd_vals)}")
-    
-    parsed_gsd = []
-    for idx in range(0, len(gsd_vals), 2):
-        gen = gsd_vals[idx]
-        lt = gsd_vals[idx+1]
-        coef, exponents = parse_leading_term(lt, vars_list)
-        parsed_gsd.append((coef, exponents))
 
     # 5. Finiteness check and quotient sizing
     try:
@@ -595,8 +608,40 @@ def compute_gsd_and_periodicity(stabilizer_matrix: List[List[str]], Lx: Any = No
         else:
             raise
 
-    gsd_quotient_size = count_quotient_size(parsed_gsd, vars_list, qudit_dim, is_gsd=True)
-    gsd = gsd_quotient_size ** 2
+    # Parse cokernel dimensions from Macaulay2 output using re.search
+    coker_exponents = {}
+    for line in lines:
+        m = re.search(r'VALUE:COKER_DIM:(\d+):(\d+):(\d+)', line)
+        if m:
+            p = int(m.group(1))
+            j = int(m.group(2))
+            val = int(m.group(3))
+            coker_exponents.setdefault(p, {})[j] = val
+            
+    nrows = len(stabilizer_matrix)
+    ncols = len(stabilizer_matrix[0])
+    
+    T_active = 1
+    for j in range(1, d + 1):
+        if j <= len(L):
+            T_active *= L[j-1]
+            
+    Q = 1
+    for p, j_dict in coker_exponents.items():
+        sum_dims = sum(j_dict.values())
+        coker_size_p = p ** sum_dims
+        a = factors_dict.get(p, 1)
+        corr_p = - (ncols - nrows) * T_active * a
+        if corr_p >= 0:
+            Q_p = coker_size_p * (p ** corr_p)
+        else:
+            Q_p = coker_size_p // (p ** (-corr_p))
+        Q *= Q_p
+        
+    if nrows % 2 == 0:
+        gsd = Q
+    else:
+        gsd = Q ** 2
 
     # 6. Compute periodicities using Python-Side elimination-ideal method
     periods = []

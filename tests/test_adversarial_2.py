@@ -53,7 +53,7 @@ def test_grobner_quotient_size_bug():
     """
     stabilizer_matrix = [["2*x - 2", "0"]]
     result = compute_gsd_and_periodicity(stabilizer_matrix, Lx=2, Ly=2, qudit_dim=4)
-    assert result["gsd"] == 64
+    assert result["gsd"] == 4096
     assert result["fusion_rules"] == "infinite"
 
 

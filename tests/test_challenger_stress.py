@@ -27,16 +27,16 @@ def test_compute_gsd_and_periodicity_dimension_10():
     """Test compute_gsd_and_periodicity with a 10-dimensional torus to verify scalability."""
     stabilizer = [["x1 - 1", "x2 - 1"]]
     res = compute_gsd_and_periodicity(stabilizer, qudit_dim=2, L=[2]*10)
-    assert res["gsd"] == 4.0 or res["gsd"] == 4
+    assert res["gsd"] == 2 ** 512
     # All 10 periodicities should be populated
     for i in range(1, 11):
         assert f"l_{i}" in res["periodicities"]
     # Check values: x1 and x2 are active and constrained to period 1
     assert res["periodicities"]["l_x"] == 1
     assert res["periodicities"]["l_y"] == 1
-    # Check other inactive dimensions are constrained to period 1 by default relations (xi - 1)
+    # Check other inactive dimensions are infinite (0)
     for i in range(3, 11):
-        assert res["periodicities"][f"l_{i}"] == 1
+        assert res["periodicities"][f"l_{i}"] == 0
 
 # ==============================================================================
 # 2. Complex Z2Polynomial Parsing (R2)
@@ -111,30 +111,30 @@ def test_degenerate_infinite_periodicity():
     
     # x1 is active and unconstrained, so its periodicity is infinite (0)
     assert res["periodicities"]["l_x"] == 0
-    # x2 is inactive, so its default relation (x2 - 1) constraints it to period 1
-    assert res["periodicities"]["l_y"] == 1
+    # x2 is inactive, so it has infinite periodicity (0)
+    assert res["periodicities"]["l_y"] == 0
     
     # Since x1 is not constrained, the original quotient ring is infinite
     assert res["fusion_rules"] == "infinite"
     
     # However on torus L=[2,2], the torus relation x1^2 - 1 is added, making GSD finite
-    # S / IGSD has size 4 (basis 1, x1 in ZZ/2), so GSD = 4^2 = 16
-    assert res["gsd"] == 16.0 or res["gsd"] == 16
+    # S / IGSD has size 2^4 = 16 (basis 1, x1, x2, x1*x2 in ZZ/2), so GSD = 16^2 = 256
+    assert res["gsd"] == 256
 
 def test_large_periodicities():
     """Verify that large periodicity constraints are computed correctly without Macaulay2 crashes or timeouts."""
     # Ideal constraints periodicity of x1 to be 256
-    # GSD quotient size is 2**256, GSD is 2**512
+    # GSD quotient size is 2**(256*256), GSD is 2**131072
     stabilizer_256 = [["x1^256 - 1"]]
     res_256 = compute_gsd_and_periodicity(stabilizer_256, qudit_dim=2, L=[256, 256])
     assert res_256["periodicities"]["l_x"] == 256
-    assert res_256["periodicities"]["l_y"] == 1
-    assert res_256["gsd"] == 2 ** 512
+    assert res_256["periodicities"]["l_y"] == 0
+    assert res_256["gsd"] == 2 ** 131072
     
     # Ideal constraints periodicity of x1 to be 512
-    # GSD quotient size is 2**512, GSD is 2**1024
+    # GSD quotient size is 2**(512*512), GSD is 2**524288
     stabilizer_512 = [["x1^512 - 1"]]
     res_512 = compute_gsd_and_periodicity(stabilizer_512, qudit_dim=2, L=[512, 512])
     assert res_512["periodicities"]["l_x"] == 512
-    assert res_512["periodicities"]["l_y"] == 1
-    assert res_512["gsd"] == 2 ** 1024
+    assert res_512["periodicities"]["l_y"] == 0
+    assert res_512["gsd"] == 2 ** 524288

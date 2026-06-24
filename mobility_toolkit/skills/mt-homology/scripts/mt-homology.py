@@ -19,7 +19,12 @@ if __name__ == "__main__":
     try:
         data = json.loads(sys.stdin.read())
         matrix = data.get("stabilizer_matrix")
-        result = compute_homology_and_mobility(matrix, data.get("qudit_dim"), data.get("p_ext", 0))
+        result = compute_homology_and_mobility(
+            matrix,
+            data.get("qudit_dim"),
+            data.get("p_ext", 0),
+            prime_bypass=data.get("prime_bypass", False)
+        )
         spatial_dim = data.get("spatial_dim") or _infer_spatial_dim(matrix)
         # attach the Layer 3 reading (mobility_class, order, is_fracton, ...)
         result.update(classify_mobility(result["krull_dimension"], spatial_dim))

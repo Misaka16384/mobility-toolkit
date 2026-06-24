@@ -152,6 +152,6 @@ def translate_stabilizers(stabilizer_matrix: List[List[str]], qudit_dim: int, pr
         "matrix_definition": matrix_definition
     }
 
-def translate_to_algebra(stabilizer_matrix: List[List[str]], qudit_dim: int, spatial_dim: int = None) -> Dict[str, Any]:
-    return translate_stabilizers(stabilizer_matrix, qudit_dim, prime_bypass=False, spatial_dim=spatial_dim)
+def translate_to_algebra(stabilizer_matrix: List[List[str]], qudit_dim: int, spatial_dim: int = None, prime_bypass: bool = False) -> Dict[str, Any]:
+    return translate_stabilizers(stabilizer_matrix, qudit_dim, prime_bypass=prime_bypass, spatial_dim=spatial_dim)
 

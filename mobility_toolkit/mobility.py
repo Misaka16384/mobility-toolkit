@@ -20,8 +20,14 @@ def safe_run_m2_script(script_content: str, timeout_seconds: float = 60.0):
     code, stdout, stderr = run_m2_script(script_content, timeout_seconds)
     stdout_clean = clean_wsl_garbage(stdout)
     stderr_clean = clean_wsl_garbage(stderr)
-    
-    if code != 0:
+
+    # Leniency heuristic: WSL can leave the launcher exit code non-zero on an
+    # otherwise successful M2 run, so a non-zero code with no "error" marker in
+    # the output is treated as success. Exit codes 124 (timeout) and 127 (no
+    # backend) are NEVER swallowed: their stderr carries no "error" substring,
+    # so swallowing them would let an empty/partial result fall through to the
+    # caller and be misread as a valid (and wrong) answer.
+    if code != 0 and code not in (124, 127):
         normalized_stderr = stderr_clean.lower()
         normalized_stdout = stdout_clean.lower()
         if "error" in normalized_stderr or "error:" in normalized_stdout or "syntax error" in normalized_stdout:

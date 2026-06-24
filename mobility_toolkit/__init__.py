@@ -6,6 +6,12 @@
 # statically at build time without importing the package.
 __version__ = "0.1.3"
 
+import sys
+if hasattr(sys, "set_int_max_str_digits"):
+    sys.set_int_max_str_digits(1000000)
+
+
+
 from mobility_toolkit.bridge import run_m2_script, run_macaulay2
 from mobility_toolkit.translate import translate_stabilizers, translate_to_algebra
 from mobility_toolkit.homology import compute_ext_krull, compute_homology_and_mobility

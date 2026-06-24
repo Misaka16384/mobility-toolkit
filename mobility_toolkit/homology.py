@@ -159,5 +159,6 @@ print toString(generators gb I)
 
     return result
 
-def compute_homology_and_mobility(stabilizer_matrix: List[List[str]], qudit_dim: int, p_ext: int) -> Dict[str, Any]:
-    return compute_ext_krull(stabilizer_matrix, qudit_dim, p_ext, prime_bypass=False)
+def compute_homology_and_mobility(stabilizer_matrix: List[List[str]], qudit_dim: int, p_ext: int, prime_bypass: bool = False) -> Dict[str, Any]:
+    return compute_ext_krull(stabilizer_matrix, qudit_dim, p_ext, prime_bypass=prime_bypass)
+

@@ -97,3 +97,18 @@ def test_mcp_compute_grobner_tool():
     res = compute_grobner(stabilizer, qudit_dim=2, L=[2, 3])
     assert res["periodicities"]["l_x"] == 2
     assert res["periodicities"]["l_y"] == 3
+
+
+def test_inactive_torus_dimension_gsd():
+    """Verify that inactive torus dimensions are not collapsed and yield correct GSD.
+    For a 2D toric code on a 3D torus where the 3rd dimension is inactive, the GSD
+    should be GSD(2D toric code)^L_z = 4^2 = 16 (for L_z=2)."""
+    stabilizer_2d = [
+        ["1 - x1", "1 - x2", "0", "0"],
+        ["0", "0", "1 - x2", "1 - x1"]
+    ]
+    # Torus size 2 in the inactive z-direction (x3)
+    res = compute_gsd_and_periodicity(stabilizer_2d, qudit_dim=2, L=[2, 2, 2])
+    assert res["gsd"] == 16
+    assert res["periodicities"]["l_3"] == 0  # Infinite periodicity since x3 is inactive
+
