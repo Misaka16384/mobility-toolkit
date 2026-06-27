@@ -155,3 +155,113 @@ def translate_stabilizers(stabilizer_matrix: List[List[str]], qudit_dim: int, pr
 def translate_to_algebra(stabilizer_matrix: List[List[str]], qudit_dim: int, spatial_dim: int = None, prime_bypass: bool = False) -> Dict[str, Any]:
     return translate_stabilizers(stabilizer_matrix, qudit_dim, prime_bypass=prime_bypass, spatial_dim=spatial_dim)
 
+def map_variables_to_legacy(elem: str) -> str:
+    elem = re.sub(r'\bx1\b', 'x', elem)
+    elem = re.sub(r'\bt1\b', 't', elem)
+    elem = re.sub(r'\bx2\b', 'y', elem)
+    elem = re.sub(r'\bt2\b', 'u', elem)
+    elem = re.sub(r'\bx3\b', 'z', elem)
+    elem = re.sub(r'\bt3\b', 'w', elem)
+    return elem
+
+def parse_monomial(term_str: str) -> tuple[int, Dict[int, int]]:
+    term_str = term_str.strip().replace(" ", "").replace("**", "^")
+    if not term_str:
+        return 0, {}
+    
+    coef_match = re.match(r'^([+-]?\d+)(?:\*(.*))?$', term_str)
+    if coef_match:
+        coef = int(coef_match.group(1))
+        rest = coef_match.group(2) or ""
+    else:
+        sign = 1
+        if term_str.startswith("-"):
+            sign = -1
+            term_str = term_str[1:]
+        elif term_str.startswith("+"):
+            term_str = term_str[1:]
+        coef = sign
+        rest = term_str
+
+    net_exps = {}
+    if rest:
+        factors = rest.split("*")
+        for factor in factors:
+            factor = factor.strip()
+            if not factor:
+                continue
+            m = re.match(r'^([xt])(\d+)(?:\^([+-]?\d+))?$', factor)
+            if not m:
+                if factor.isdigit():
+                    coef *= int(factor)
+                    continue
+                raise ValueError(f"Invalid factor: {factor}")
+            var_type = m.group(1)
+            var_idx = int(m.group(2))
+            exp = int(m.group(3)) if m.group(3) else 1
+            if var_type == 'x':
+                net_exps[var_idx] = net_exps.get(var_idx, 0) + exp
+            else:
+                net_exps[var_idx] = net_exps.get(var_idx, 0) - exp
+    return coef, net_exps
+
+def normalize_laurent_poly(poly_str: str) -> str:
+    """
+    Clears denominators and common monomial factors from a Laurent polynomial string.
+    e.g. "x1^2*t2 - x2 + 1" -> "x1^2 - x2^2 + x2" (using t2 = x2^-1)
+    """
+    is_legacy = bool(re.search(r'\b[xyztuw]\b', poly_str))
+    poly_trans = map_variables_to_unified(poly_str)
+    
+    # Split by + and - keeping signs
+    terms = re.findall(r'[+-]?[^+-]+', poly_trans)
+    
+    terms_data = []
+    max_idx = 0
+    for t in terms:
+        coef, net_exps = parse_monomial(t)
+        if coef != 0:
+            terms_data.append((coef, net_exps))
+            if net_exps:
+                max_idx = max(max_idx, max(net_exps.keys()))
+                
+    if not terms_data:
+        return "0"
+        
+    # Find minimum net exponent for each variable
+    min_exps = {}
+    for i in range(1, max_idx + 1):
+        min_exps[i] = min(net_exps.get(i, 0) for _, net_exps in terms_data)
+        
+    # Adjust exponents
+    new_terms = []
+    for idx, (coef, net_exps) in enumerate(terms_data):
+        term_parts = []
+        abs_coef = abs(coef)
+        has_vars = False
+        for i in range(1, max_idx + 1):
+            new_exp = net_exps.get(i, 0) - min_exps[i]
+            if new_exp > 0:
+                has_vars = True
+                term_parts.append(f"x{i}^{new_exp}" if new_exp > 1 else f"x{i}")
+                
+        if abs_coef != 1 or not has_vars:
+            term_parts.insert(0, str(abs_coef))
+            
+        term_str = "*".join(term_parts)
+        if coef < 0:
+            new_terms.append(f"- {term_str}")
+        else:
+            if idx == 0:
+                new_terms.append(term_str)
+            else:
+                new_terms.append(f"+ {term_str}")
+                
+    res = " ".join(new_terms)
+    res = re.sub(r'\s+', ' ', res).strip()
+    
+    if is_legacy:
+        res = map_variables_to_legacy(res)
+    return res
+
+

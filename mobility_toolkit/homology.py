@@ -23,6 +23,26 @@ def compute_ext_krull(stabilizer_matrix: List[List[str]], qudit_dim: int, p_ext:
     registry = ModelRegistry()
     cached = registry.get_cached_annihilator(stabilizer_matrix, qudit_dim, p_ext)
     if cached is not None:
+        if "sset_properties" not in cached and cached.get("annihilator_generators"):
+            try:
+                translation = translate_stabilizers(stabilizer_matrix, qudit_dim, prime_bypass=prime_bypass)
+                ring_def = translation["ring_definition"]
+                from mobility_toolkit.fusion import check_ideal_principal, solve_sset_fusion
+                from mobility_toolkit.translate import normalize_laurent_poly
+                is_p, gen = check_ideal_principal(ring_def, cached["annihilator_generators"])
+                if is_p:
+                    normalized_gen = normalize_laurent_poly(gen)
+                    sset_res = solve_sset_fusion(normalized_gen, "1", qudit_dim=qudit_dim, variables=translation["variables"], prime_bypass=prime_bypass)
+                    cached["sset_properties"] = {
+                        "is_principal": True,
+                        "normalized_generator": normalized_gen,
+                        "mobility_class": sset_res["mobility_class"],
+                        "characteristic_polynomial": sset_res["characteristic_polynomial"],
+                        "lfsr_period": sset_res["lfsr_period"],
+                        "fusion_rules": sset_res["fusion_rules"]
+                    }
+            except Exception:
+                pass
         return cached
 
     # 2. Call translate_stabilizers to get ring and matrix definitions
@@ -132,6 +152,25 @@ print toString(generators gb I)
         "annihilator_generators": generators_list
     }
 
+    if generators_list:
+        try:
+            from mobility_toolkit.fusion import check_ideal_principal, solve_sset_fusion
+            from mobility_toolkit.translate import normalize_laurent_poly
+            is_p, gen = check_ideal_principal(ring_def, generators_list)
+            if is_p:
+                normalized_gen = normalize_laurent_poly(gen)
+                sset_res = solve_sset_fusion(normalized_gen, "1", qudit_dim=qudit_dim, variables=translation["variables"], prime_bypass=prime_bypass)
+                result["sset_properties"] = {
+                    "is_principal": True,
+                    "normalized_generator": normalized_gen,
+                    "mobility_class": sset_res["mobility_class"],
+                    "characteristic_polynomial": sset_res["characteristic_polynomial"],
+                    "lfsr_period": sset_res["lfsr_period"],
+                    "fusion_rules": sset_res["fusion_rules"]
+                }
+        except Exception:
+            pass
+
     # Cache the result
     registry.cache_annihilator(
         stabilizer_matrix,
@@ -141,6 +180,7 @@ print toString(generators gb I)
         result["ext_modules"],
         result["annihilator_generators"]
     )
+
 
     # 7. Log Python run details
     log_python_run(

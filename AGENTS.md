@@ -92,3 +92,20 @@ Project-level skill dirs: Claude `.claude/skills/`; opencode `.opencode/skills/`
 Codex & Antigravity 2.0 share `.agents/skills/`. With `--mcp`, the matching MCP
 config is also written (`.mcp.json` / `opencode.json` / `.codex/config.toml` /
 `.agents/mcp_config.json`).
+
+<!-- mobility-toolkit:start -->
+## mobility_toolkit
+
+Homological-algebra toolkit for excitation-mobility properties of translation-invariant stabilizer codes (backed by Macaulay2).
+
+Skills are organized by three layers -- L1 model, L2 algebra, L3 physics -- each skill being an edge between two layers:
+- L1->L2: `mt-translate`, `mt-homology`
+- L2->L3: `mt-classify`, `mt-mobility`
+- L1->L3: `mt-gsd`, `mt-fusion`
+- store/infra: `mt-models`, `mt-doctor`
+Each skill bundles a script run directly, e.g. `python scripts/<name>.py < input.json`.
+
+Optionally also available as MCP server `mobility_toolkit` (install with `mobility-toolkit install --mcp`).
+
+Run `mobility-toolkit doctor` to verify the Macaulay2 backend; `mobility-toolkit self-update` to pull the latest version and refresh these skills.
+<!-- mobility-toolkit:end -->

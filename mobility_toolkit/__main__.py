@@ -9,6 +9,7 @@ from mobility_toolkit import (
     compute_gsd_and_periodicity,
     analyze_fusion_interference,
     solve_sset_fusion,
+    analyze_annihilator_fusion,
     search_koszul_models,
     query_vector_db,
     classify_mobility,
@@ -65,6 +66,14 @@ def main():
     parser_sf = subparsers.add_parser("sset-fusion", help="Solve SSET fusion rules and characteristic polynomials")
     parser_sf.add_argument("--poly-f", type=str, required=True, help="First polynomial")
     parser_sf.add_argument("--poly-g", type=str, required=True, help="Second polynomial")
+
+    # annihilator-fusion
+    parser_af = subparsers.add_parser("annihilator-fusion", help="Compute SSET mobility fusion from annihilator generators")
+    parser_af.add_argument("--generators", type=str, required=True, help="JSON list of strings representing annihilator generators")
+    parser_af.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
+    parser_af.add_argument("--variables", type=str, default=None, help="JSON list of strings representing active variables")
+    parser_af.add_argument("--prime-bypass", action="store_true", help="Bypass prime check for qudit dimension")
+
 
     # search
     parser_search = subparsers.add_parser("search", help="Search for Koszul models with target dimension")
@@ -127,6 +136,11 @@ def main():
             result = analyze_fusion_interference(stabilizer, args.qudit_dim, shifts)
         elif args.command == "sset-fusion":
             result = solve_sset_fusion(args.poly_f, args.poly_g)
+        elif args.command == "annihilator-fusion":
+            generators = json.loads(args.generators)
+            variables = json.loads(args.variables) if args.variables is not None else None
+            result = analyze_annihilator_fusion(generators, args.qudit_dim, variables, args.prime_bypass)
+
         elif args.command == "search":
             result = search_koszul_models(args.qudit_dim, args.target_dim, args.max_trials)
         elif args.command == "db":

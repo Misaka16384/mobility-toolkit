@@ -1,7 +1,7 @@
 import re
 import math
 import itertools
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fractions import Fraction
 from mobility_toolkit.bridge import run_m2_script, run_macaulay2
 from mobility_toolkit.translate import translate_to_algebra
@@ -368,17 +368,180 @@ def construct_monomial(shift: List[int], variables: List[str] = None) -> str:
         return "*".join(terms)
 
 
-def classify_divisor(g_terms: set[tuple[int, int]]) -> Dict[str, Any]:
-    g_terms = shift_poly(g_terms)
+def parse_poly_str_unified(poly_str: str, variables: List[str]) -> set[tuple[int, ...]]:
+    from mobility_toolkit.translate import map_variables_to_unified, parse_monomial
+    poly_trans = map_variables_to_unified(poly_str)
+    poly_trans = poly_trans.replace(" ", "")
+    if not poly_trans or poly_trans == "0":
+        return set()
+        
+    var_indices = []
+    for v in variables:
+        v_trans = map_variables_to_unified(v)
+        m = re.match(r'^[xt](\d+)$', v_trans)
+        var_indices.append(int(m.group(1)) if m else 1)
+        
+    terms = re.findall(r'[+-]?[^+-]+', poly_trans)
+    res = set()
+    for t in terms:
+        coef, net_exps = parse_monomial(t)
+        if coef != 0:
+            tup = tuple(net_exps.get(idx, 0) for idx in var_indices)
+            if tup in res:
+                res.remove(tup)
+            else:
+                res.add(tup)
+    return res
+
+def shift_poly_general(terms: set[tuple[int, ...]]) -> set[tuple[int, ...]]:
+    if not terms:
+        return set()
+    d = len(next(iter(terms)))
+    min_vals = tuple(min(t[i] for t in terms) for i in range(d))
+    return {tuple(t[i] - min_vals[i] for i in range(d)) for t in terms}
+
+def check_collinear_general(nonzero_exps: List[tuple[int, ...]]) -> tuple[bool, Optional[tuple[int, ...]]]:
+    if not nonzero_exps:
+        return True, None
+    d = len(nonzero_exps[0])
+    first = nonzero_exps[0]
+    g = math.gcd(*first)
+    if g == 0:
+        return True, tuple(0 for _ in range(d))
+    dir_vec = tuple(x // g for x in first)
     
-    if len(g_terms) == 1 and (0, 0) in g_terms:
+    for exp in nonzero_exps[1:]:
+        g_exp = math.gcd(*exp)
+        if g_exp == 0:
+            continue
+        exp_dir = tuple(x // g_exp for x in exp)
+        if exp_dir != dir_vec:
+            return False, None
+    return True, dir_vec
+
+def format_direction_general(dir_vec: tuple[int, ...], variables: List[str]) -> str:
+    parts = []
+    for idx, val in enumerate(dir_vec):
+        if val > 0:
+            var_name = variables[idx]
+            parts.append(f"{var_name}^{val}" if val > 1 else var_name)
+    return "*".join(parts) if parts else "1"
+
+def format_poly_general(terms: set[tuple[int, ...]], variables: List[str]) -> str:
+    if not terms:
+        return "0"
+    sorted_terms = sorted(list(terms), key=lambda t: (sum(t), t[::-1]))
+    formatted_parts = []
+    for t in sorted_terms:
+        parts = []
+        for idx, val in enumerate(t):
+            if val > 0:
+                var_name = variables[idx]
+                parts.append(f"{var_name}^{val}" if val > 1 else var_name)
+        term_str = "*".join(parts)
+        if not term_str:
+            term_str = "1"
+        formatted_parts.append(term_str)
+    return " + ".join(formatted_parts)
+
+def check_ideal_principal(ring_def: str, generators: List[str]) -> tuple[bool, Optional[str]]:
+    """
+    Runs Macaulay2 trim to verify if the ideal is principal and extract its generator.
+    """
+    from mobility_toolkit.translate import normalize_laurent_poly
+    normalized_gens = []
+    for g in generators:
+        norm = normalize_laurent_poly(g)
+        if norm != "0" and norm.strip() != "":
+            normalized_gens.append(norm)
+    seen = set()
+    dedup_gens = []
+    for g in normalized_gens:
+        if g not in seen:
+            seen.add(g)
+            dedup_gens.append(g)
+            
+    if not dedup_gens:
+        return True, "0"
+    if len(dedup_gens) == 1:
+        return True, dedup_gens[0]
+        
+    generators_str = ", ".join(dedup_gens)
+    script = f"""{ring_def}
+I = ideal({generators_str})
+J = trim I
+print "VALUE:NUMGENS"
+print (numgens J)
+print "VALUE:GENERATORS"
+print J
+"""
+    code, stdout, stderr = safe_run_m2_script(script)
+    if code != 0:
+        raise RuntimeError(f"Macaulay2 failed to check principal ideal: {stderr or stdout}")
+        
+    lines = [line.strip() for line in stdout.splitlines()]
+    try:
+        numgens_idx = lines.index("VALUE:NUMGENS")
+        gens_idx = lines.index("VALUE:GENERATORS")
+    except ValueError:
+        raise RuntimeError(f"Could not parse Macaulay2 output: {stdout}")
+        
+    numgens_val = None
+    for i in range(numgens_idx + 1, gens_idx):
+        line = lines[i].strip()
+        if not re.match(r'^[io]\d+\s*[:=]', line) and line != "":
+            numgens_val = line
+            break
+            
+    if numgens_val is None:
+        raise ValueError(f"Could not parse numgens from Macaulay2 output: {stdout}")
+    numgens = int(re.search(r'\d+', numgens_val).group(0))
+    
+    if numgens > 1:
+        return False, None
+    elif numgens == 0:
+        return True, "0"
+        
+    gen_lines = []
+    for i in range(gens_idx + 1, len(lines)):
+        line = lines[i].strip()
+        if not re.match(r'^[io]\d+\s*[:=]', line) and line != "":
+            gen_lines.append(line)
+            
+    gen_content = " ".join(gen_lines).strip()
+    match = re.search(r'ideal\s*\((.*?)\)', gen_content)
+    if match:
+        return True, match.group(1).strip()
+        
+    matrix_match = re.search(r'matrix\s*\{\{(.*?)\}\}', gen_content)
+    if matrix_match:
+        return True, matrix_match.group(1).strip()
+        
+    braces_match = re.search(r'\{\{(.*?)\}\}', gen_content)
+    if braces_match:
+        return True, braces_match.group(1).strip()
+        
+    bar_match = re.search(r'\|(.*?)\|', gen_content)
+    if bar_match:
+        return True, bar_match.group(1).strip()
+        
+    return True, gen_content
+
+def classify_divisor(g_terms: set[tuple[int, ...]], qudit_dim: int = 2, variables: Optional[List[str]] = None) -> Dict[str, Any]:
+    if variables is None:
+        variables = ['x', 'y']
+    d = len(variables)
+    
+    g_terms = shift_poly_general(g_terms)
+    
+    if len(g_terms) == 1 and all(x == 0 for x in next(iter(g_terms))):
         return {
             "mobility_class": "alpha",
             "lfsr_period": 1,
             "characteristic_polynomial": "1"
         }
         
-    nonzero_exps = [t for t in g_terms if t != (0, 0)]
+    nonzero_exps = [t for t in g_terms if any(x != 0 for x in t)]
     if not nonzero_exps:
         return {
             "mobility_class": "alpha",
@@ -386,32 +549,21 @@ def classify_divisor(g_terms: set[tuple[int, int]]) -> Dict[str, Any]:
             "characteristic_polynomial": "1"
         }
         
-    collinear = True
-    first_monomial = nonzero_exps[0]
-    u0, v0 = first_monomial
-    d0 = math.gcd(u0, v0)
-    p_u, p_v = u0 // d0, v0 // d0
+    is_collinear, dir_vec = check_collinear_general(nonzero_exps)
     
-    for monomial in nonzero_exps[1:]:
-        u, v = monomial
-        d = math.gcd(u, v)
-        if u // d != p_u or v // d != p_v:
-            collinear = False
-            break
-            
-    if not collinear:
+    if not is_collinear:
         return {
             "mobility_class": "gamma",
             "lfsr_period": None,
-            "characteristic_polynomial": format_poly(g_terms)
+            "characteristic_polynomial": format_poly_general(g_terms, variables)
         }
         
+    nonzero_idx = next(idx for idx, val in enumerate(dir_vec) if val > 0)
+    p_val = dir_vec[nonzero_idx]
+    
     t_terms = []
-    for tx, ty in g_terms:
-        if p_u > 0:
-            k = tx // p_u
-        else:
-            k = ty // p_v
+    for exp in g_terms:
+        k = exp[nonzero_idx] // p_val
         t_terms.append(k)
         
     t_expr_parts = []
@@ -424,12 +576,12 @@ def classify_divisor(g_terms: set[tuple[int, int]]) -> Dict[str, Any]:
             t_expr_parts.append(f"q^{k}")
     t_expr = " + ".join(t_expr_parts)
     
-    m2_script = f"""R = ZZ/2[q]
+    m2_script = f"""R = ZZ/{qudit_dim}[q]
 t_poly = promote(({t_expr}), R)
 F = factor t_poly
 for i from 0 to #F-1 do (
     P = F#i;
-    print ("UFACTOR:" | toString P#0 | ":" | toString P#1)
+    print ("UFACTOR:" | toString P#0 | ":" | toString P#1 | ":" | toString (degree P#0)#0)
 )
 """
     code, stdout, stderr = safe_run_m2_script(m2_script)
@@ -441,39 +593,64 @@ for i from 0 to #F-1 do (
         sline = line.strip()
         if sline.startswith("UFACTOR:"):
             factor_lines.append(sline[8:])
-                
+            
     periods = []
     for f_line in factor_lines:
-        parts = f_line.rsplit(":", 1)
-        if len(parts) == 2:
-            factor_str, mult_str = parts
+        parts = f_line.split(":")
+        if len(parts) == 3:
+            factor_str, mult_str, deg_str = parts
             mult = int(mult_str)
-            mod_poly = parse_gf2_poly(factor_str)
-            d = mod_poly.degree
-            if d > 30:
-                raise ValueError(f"Irreducible factor degree {d} is greater than 30")
-            M = (1 << d) - 1
+            deg = int(deg_str)
+            if deg > 25:
+                raise ValueError("Degree of factor is too high for periodicity calculation.")
+            
+            # Compute divisors of qudit_dim^deg - 1 in python
+            M = (qudit_dim ** deg) - 1
             divs = get_divisors(M)
+            
+            # Generate Macaulay2 script to find the order
+            check_lines = []
+            for k in divs:
+                check_lines.append(f"if qc^{k} == 1 then ( print \"ORDER:{k}\"; ) else")
+            check_lines.append("( print \"ORDER:None\"; )")
+            checks_str = " ".join(check_lines)
+            
+            order_script = f"""R = ZZ/{qudit_dim}[q]
+I = ideal(promote(({factor_str}), R))
+S = R/I
+qc = promote(q, S)
+{checks_str}
+"""
+            code_ord, stdout_ord, stderr_ord = safe_run_m2_script(order_script)
+            if code_ord != 0:
+                raise RuntimeError(f"Macaulay2 order check failed: {stderr_ord or stdout_ord}")
+                
             order = None
-            for k_div in divs:
-                if gf2_poly_powmod(GF2Poly(2), k_div, mod_poly) == GF2Poly(1):
-                    order = k_div
-                    break
+            for ord_line in stdout_ord.splitlines():
+                ord_line = ord_line.strip()
+                if ord_line.startswith("ORDER:"):
+                    ord_val = ord_line[6:]
+                    if ord_val != "None":
+                        order = int(ord_val)
+                        break
+                        
             if order is None:
                 order = M
-            scaled_period = order * (2 ** math.ceil(math.log2(mult)))
+                
+            scaled_period = order * (qudit_dim ** math.ceil(math.log(mult, qudit_dim)))
             periods.append(scaled_period)
             
     total_period = 1
     for p_val in periods:
         total_period = (total_period * p_val) // math.gcd(total_period, p_val)
         
-    dir_str = format_direction(p_u, p_v)
+    dir_str = format_direction_general(dir_vec, variables)
     return {
         "mobility_class": f"beta_{{{dir_str}, {total_period}}}",
         "lfsr_period": total_period,
-        "characteristic_polynomial": format_poly(g_terms)
+        "characteristic_polynomial": format_poly_general(g_terms, variables)
     }
+
 
 def analyze_fusion_interference(stabilizer_matrix: List[List[str]], qudit_dim: int, shifts: List[List[int]]) -> Dict[str, Any]:
     """Computes point excitation annihilator ideal dimension and determines if any shift causes a dimension drop.
@@ -590,31 +767,43 @@ def analyze_fusion_interference(stabilizer_matrix: List[List[str]], qudit_dim: i
     
     return result
 
-def solve_sset_fusion(poly_f: str, poly_g: str) -> Dict[str, Any]:
+def solve_sset_fusion(poly_f: str, poly_g: str, qudit_dim: int = 2, variables: Optional[List[str]] = None, prime_bypass: bool = False) -> Dict[str, Any]:
     """Solves SSET characteristic polynomial, LFSR periodicities, and fusion rules.
 
     Args:
         poly_f (str): First polynomial.
         poly_g (str): Second polynomial.
+        qudit_dim (int): Qudit dimension.
+        variables (list): Active variables list.
+        prime_bypass (bool): Bypass prime validation.
 
     Returns:
         Dict[str, Any]: SSET fusion properties and characteristic polynomials.
     """
-    utils.log_python_run("mobility_toolkit.fusion", "solve_sset_fusion", (poly_f, poly_g), {}, "PENDING")
+    utils.log_python_run("mobility_toolkit.fusion", "solve_sset_fusion", (poly_f, poly_g), {"qudit_dim": qudit_dim, "variables": variables, "prime_bypass": prime_bypass}, "PENDING")
     
     class_fusion_mode = any(cls in poly_g for cls in ["beta_", "alpha", "gamma"])
     
-    if not class_fusion_mode:
+    if variables is None:
+        variables = ['x', 'y']
+            
+    ring_vars = ", ".join(variables)
+    d = len(variables)
+    
+    if not class_fusion_mode and set(variables) == {'x', 'y'}:
         validate_variables_only_x_y(poly_f)
         validate_variables_only_x_y(poly_g)
         
     # Check for zero polynomials and separability in M2
     script_lines = [
-        "R = ZZ/2[x, y]",
+        f"R = ZZ/{qudit_dim}[{ring_vars}]",
         f"f = promote(({poly_f}), R)",
-        "fx = sub(f, {y => 0})",
-        "fy = sub(f, {x => 0})",
-        "isSeparable = (f == fx * fy)",
+        "isSeparable = true",
+        "F_fac = factor f",
+        "for i from 0 to #F_fac-1 do (",
+        "    P = F_fac#i;",
+        "    if #(support(P#0)) > 1 then isSeparable = false;",
+        ")",
         'print ("SEPARABLE:" | toString isSeparable)',
         'print ("F_VAL:" | toString f)'
     ]
@@ -652,7 +841,7 @@ def solve_sset_fusion(poly_f: str, poly_g: str) -> Dict[str, Any]:
         
     if class_fusion_mode:
         # Factor f using Macaulay2
-        factor_script = f"""R = ZZ/2[x, y]
+        factor_script = f"""R = ZZ/{qudit_dim}[{ring_vars}]
 f = promote(({poly_f}), R)
 F = factor f
 for i from 0 to #F-1 do (
@@ -671,11 +860,11 @@ for i from 0 to #F-1 do (
                 parts = sline[7:].rsplit(":", 1)
                 if len(parts) == 2:
                     factors_with_mult.append((parts[0], int(parts[1])))
-                        
+                    
         sorted_factors_info = []
         for factor_str, mult in factors_with_mult:
-            parsed_f = parse_poly_str(factor_str)
-            formatted_str = format_poly(parsed_f)
+            parsed_f = parse_poly_str_unified(factor_str, variables)
+            formatted_str = format_poly_general(parsed_f, variables)
             sorted_factors_info.append((formatted_str, factor_str, mult))
             
         sorted_factors_info.sort(key=lambda item: item[0])
@@ -684,7 +873,7 @@ for i from 0 to #F-1 do (
         exps_list = list(itertools.product(*ranges))
         
         # Expand all divisors in M2
-        div_script_lines = ["R = ZZ/2[x, y]"]
+        div_script_lines = [f"R = ZZ/{qudit_dim}[{ring_vars}]"]
         for idx, info in enumerate(sorted_factors_info):
             div_script_lines.append(f"p{idx} = ({info[1]})")
             
@@ -713,15 +902,15 @@ for i from 0 to #F-1 do (
                     t_str, poly_str = parts
                     K = tuple(int(x) for x in t_str.split(","))
                     divisors_map[K] = poly_str
-                        
+                    
         class_to_vectors = {}
         vector_to_class = {}
         vector_to_info = {}
         
         for K in exps_list:
             poly_str = divisors_map[K]
-            g_terms = parse_poly_str(poly_str)
-            info = classify_divisor(g_terms)
+            g_terms = parse_poly_str_unified(poly_str, variables)
+            info = classify_divisor(g_terms, qudit_dim, variables)
             c_name = info["mobility_class"]
             
             if c_name not in class_to_vectors:
@@ -761,7 +950,7 @@ for i from 0 to #F-1 do (
             
     else:
         # Single excitation case
-        gcd_script = f"""R = ZZ/2[x, y]
+        gcd_script = f"""R = ZZ/{qudit_dim}[{ring_vars}]
 f = promote(({poly_f}), R)
 m = promote(({poly_g}), R)
 g_cd = gcd(f, m)
@@ -778,9 +967,9 @@ print ("G_RESULT:" | toString g)
             if sline.startswith("G_RESULT:"):
                 g_str = sline[9:]
                 break
-                    
-        g_terms = parse_poly_str(g_str)
-        info = classify_divisor(g_terms)
+                
+        g_terms = parse_poly_str_unified(g_str, variables)
+        info = classify_divisor(g_terms, qudit_dim, variables)
         result = {
             "characteristic_polynomial": info["characteristic_polynomial"],
             "lfsr_period": info["lfsr_period"],
@@ -789,5 +978,34 @@ print ("G_RESULT:" | toString g)
         }
         
     utils.save_discovery("hoca_discovery", result)
-    utils.log_python_run("mobility_toolkit.fusion", "solve_sset_fusion", (poly_f, poly_g), {}, result)
+    utils.log_python_run("mobility_toolkit.fusion", "solve_sset_fusion", (poly_f, poly_g), {"qudit_dim": qudit_dim, "variables": variables, "prime_bypass": prime_bypass}, result)
     return result
+
+def analyze_annihilator_fusion(generators: List[str], qudit_dim: int, variables: Optional[List[str]] = None, prime_bypass: bool = False) -> Dict[str, Any]:
+    """
+    L2 -> L3: Direct computation of mobility fusion rules from annihilator generators.
+    """
+    from mobility_toolkit.translate import translate_stabilizers, normalize_laurent_poly
+    
+    # We can create a dummy stabilizer matrix to reuse translate_stabilizers variable mapping
+    dummy_matrix = [[g] for g in generators]
+    translation = translate_stabilizers(dummy_matrix, qudit_dim, prime_bypass=prime_bypass)
+    ring_def = translation["ring_definition"]
+    detected_vars = translation["variables"]
+    
+    is_principal, gen = check_ideal_principal(ring_def, generators)
+    if not is_principal:
+        raise ValueError("Annihilator ideal is not principal; SSET mobility fusion rules are only defined for principal annihilator ideals.")
+        
+    normalized_gen = normalize_laurent_poly(gen)
+    
+    result = solve_sset_fusion(normalized_gen, "1", qudit_dim=qudit_dim, variables=detected_vars, prime_bypass=prime_bypass)
+    return {
+        "is_principal": True,
+        "normalized_generator": normalized_gen,
+        "mobility_class": result["mobility_class"],
+        "characteristic_polynomial": result["characteristic_polynomial"],
+        "lfsr_period": result["lfsr_period"],
+        "fusion_rules": result["fusion_rules"]
+    }
+

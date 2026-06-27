@@ -16,6 +16,7 @@ from mobility_toolkit import (
     compute_gsd_and_periodicity,
     analyze_fusion_interference,
     solve_sset_fusion,
+    analyze_annihilator_fusion,
     search_koszul_models
 )
 
@@ -83,6 +84,19 @@ def search_models(qudit_dim: int, target_dim: int, max_trials: int = 100) -> Dic
         max_trials: Maximum search iterations.
     """
     return search_koszul_models(qudit_dim, target_dim, max_trials)
+
+@mcp.tool()
+def compute_annihilator_fusion(generators: List[str], qudit_dim: int, variables: Optional[List[str]] = None, prime_bypass: bool = False) -> Dict[str, Any]:
+    """
+    Directly compute SSET-style mobility fusion rules from an annihilator ideal's generators.
+    
+    Args:
+        generators: List of generator polynomials.
+        qudit_dim: Qudit dimension.
+        variables: Optional list of active variables.
+        prime_bypass: Set to True to bypass prime characteristic checks.
+    """
+    return analyze_annihilator_fusion(generators, qudit_dim, variables, prime_bypass)
 
 if __name__ == "__main__":
     mcp.run()
