@@ -38,6 +38,7 @@ SKILL_NAMES = [
     "mt-fusion",      # L1->L3  fusion interference under shifts
     "mt-models",      # L1<->L3 model/property registry
     "mt-doctor",      # infra   Macaulay2 backend diagnostic
+    "mt-boundary",    # L1->L3  boundary gauge operators
 ]
 
 # --- MCP server invocation -------------------------------------------------

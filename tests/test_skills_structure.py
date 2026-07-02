@@ -13,7 +13,7 @@ from mobility_toolkit.installer import SKILL_NAMES, SKILLS_SRC
 NAME_RE = re.compile(r"^mt-[a-z0-9-]+$")
 EXPECTED = {
     "mt-translate", "mt-homology", "mt-classify", "mt-mobility",
-    "mt-gsd", "mt-fusion", "mt-models", "mt-doctor",
+    "mt-gsd", "mt-fusion", "mt-models", "mt-doctor", "mt-boundary",
 }
 
 
@@ -33,7 +33,7 @@ def test_skill_names_match_disk():
     on_disk = {p.name for p in SKILLS_SRC.iterdir() if p.is_dir()}
     assert on_disk == EXPECTED
     assert set(SKILL_NAMES) == EXPECTED
-    assert len(SKILL_NAMES) == len(set(SKILL_NAMES)) == 8
+    assert len(SKILL_NAMES) == len(set(SKILL_NAMES)) == 9
 
 
 @pytest.mark.parametrize("name", sorted(EXPECTED))

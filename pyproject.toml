@@ -27,19 +27,20 @@ classifiers = [
 ]
 # Core is pure-stdlib Python; all algebra is delegated to an external
 # Macaulay2 binary via the engine. No third-party runtime deps.
-dependencies = []
+dependencies = ["numpy", "sympy"]
 
 [project.optional-dependencies]
 # MCP transport (used by `mobility-toolkit install` to wire agents that
 # prefer Model Context Protocol over native skill folders).
 mcp = ["fastmcp>=2.0"]
 dev = ["pytest>=7.0"]
+viz = ["matplotlib"]
 
 [project.scripts]
 mobility-toolkit = "mobility_toolkit.__main__:main"
 
 [tool.setuptools]
-packages = ["mobility_toolkit"]
+packages = { find = { include = ["mobility_toolkit*"] } }
 
 [tool.setuptools.dynamic]
 version = { attr = "mobility_toolkit.__version__" }

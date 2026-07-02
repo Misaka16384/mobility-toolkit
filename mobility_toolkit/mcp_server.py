@@ -19,6 +19,10 @@ from mobility_toolkit import (
     analyze_annihilator_fusion,
     search_koszul_models
 )
+from mobility_toolkit.boundary_gauge.boundary.pipeline import (
+    run_algorithm_1_boundary_ops_2d,
+    run_algorithm_1_boundary_ops_3d,
+)
 
 mcp = FastMCP("mobility-toolkit")
 
@@ -97,6 +101,75 @@ def compute_annihilator_fusion(generators: List[str], qudit_dim: int, variables:
         prime_bypass: Set to True to bypass prime characteristic checks.
     """
     return analyze_annihilator_fusion(generators, qudit_dim, variables, prime_bypass)
+
+@mcp.tool()
+def compute_boundary_gauge(
+    dim: int,
+    Lx: int,
+    Ly: int,
+    q: int,
+    d: int,
+    wx: int,
+    wy: int,
+    stabilizer_generators: List[List[Any]],
+    qudit_positions: List[List[float]],
+    boundary: str = "bottom",
+    Lz: Optional[int] = None,
+    wz: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Compute boundary gauge operators using Algorithm 1 pipeline.
+    
+    Args:
+        dim: Spatial dimension (2 or 3).
+        Lx: System size Lx.
+        Ly: System size Ly.
+        q: Number of qudits per site.
+        d: Qudit dimension.
+        wx: Patch width wx.
+        wy: Patch width wy.
+        stabilizer_generators: List of lists of generator terms.
+        qudit_positions: List of lists of floats representing qudit positions.
+        boundary: Boundary selection ('bottom' or 'top').
+        Lz: System size Lz (required for 3D).
+        wz: Patch width wz (required for 3D).
+    """
+    if dim == 2:
+        bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_2d(
+            Lx=Lx,
+            Ly=Ly,
+            q=q,
+            d=d,
+            wx=wx,
+            wy=wy,
+            stabilizer_generators=stabilizer_generators,
+            qudit_positions=qudit_positions,
+            boundary=boundary,
+        )
+    elif dim == 3:
+        if Lz is None or wz is None:
+            raise ValueError("Lz and wz are required for 3D")
+        bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_3d(
+            Lx=Lx,
+            Ly=Ly,
+            Lz=Lz,
+            q=q,
+            d=d,
+            wx=wx,
+            wy=wy,
+            wz=wz,
+            stabilizer_generators=stabilizer_generators,
+            qudit_positions=qudit_positions,
+            boundary=boundary,
+        )
+    else:
+        raise ValueError("dim must be 2 or 3")
+        
+    return {
+        "bulk_stabilizers": [{str(k): list(v) for k, v in stab.items()} for stab in bulk_stabilizers],
+        "boundary_ops": boundary_ops.tolist(),
+        "S_mat": S_mat.tolist()
+    }
 
 if __name__ == "__main__":
     mcp.run()

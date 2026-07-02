@@ -17,6 +17,10 @@ from mobility_toolkit import (
 from mobility_toolkit.installer import (
     run_install, run_uninstall, run_status, run_interactive, run_self_update, ALL_TARGETS
 )
+from mobility_toolkit.boundary_gauge.boundary.pipeline import (
+    run_algorithm_1_boundary_ops_2d,
+    run_algorithm_1_boundary_ops_3d,
+)
 
 class JSONArgumentParser(argparse.ArgumentParser):
     def error(self, message):
@@ -114,6 +118,21 @@ def main():
     parser_doctor = subparsers.add_parser("doctor", help="Diagnose the Macaulay2 backend on this platform")
     parser_doctor.add_argument("--no-smoke", action="store_true", help="Skip the live M2 '2+2' smoke test")
 
+    # boundary-gauge
+    parser_bg = subparsers.add_parser("boundary-gauge", help="Run boundary-gauge Algorithm 1 pipeline")
+    parser_bg.add_argument("--dim", type=int, required=True, choices=[2, 3], help="Spatial dimension (2 or 3)")
+    parser_bg.add_argument("--Lx", type=int, required=True, help="System size Lx")
+    parser_bg.add_argument("--Ly", type=int, required=True, help="System size Ly")
+    parser_bg.add_argument("--Lz", type=int, default=None, help="System size Lz (required for 3D)")
+    parser_bg.add_argument("--q", type=int, required=True, help="Qudits per site")
+    parser_bg.add_argument("--d", type=int, required=True, help="Qudit dimension")
+    parser_bg.add_argument("--wx", type=int, required=True, help="Patch width wx")
+    parser_bg.add_argument("--wy", type=int, required=True, help="Patch width wy")
+    parser_bg.add_argument("--wz", type=int, default=None, help="Patch width wz (required for 3D)")
+    parser_bg.add_argument("--stabilizer-generators", type=str, required=True, help="JSON stabilizer generators list of lists")
+    parser_bg.add_argument("--qudit-positions", type=str, required=True, help="JSON list of lists of floats for qudit positions")
+    parser_bg.add_argument("--boundary", type=str, choices=["bottom", "top"], default="bottom", help="Boundary boundary ('bottom' or 'top')")
+
     try:
         args = parser.parse_args()
 
@@ -140,6 +159,44 @@ def main():
             generators = json.loads(args.generators)
             variables = json.loads(args.variables) if args.variables is not None else None
             result = analyze_annihilator_fusion(generators, args.qudit_dim, variables, args.prime_bypass)
+        elif args.command == "boundary-gauge":
+            stabilizer_generators = json.loads(args.stabilizer_generators)
+            qudit_positions = json.loads(args.qudit_positions)
+            if args.dim == 2:
+                bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_2d(
+                    Lx=args.Lx,
+                    Ly=args.Ly,
+                    q=args.q,
+                    d=args.d,
+                    wx=args.wx,
+                    wy=args.wy,
+                    stabilizer_generators=stabilizer_generators,
+                    qudit_positions=qudit_positions,
+                    boundary=args.boundary,
+                )
+            elif args.dim == 3:
+                if args.Lz is None or args.wz is None:
+                    raise ValueError("Lz and wz are required for 3D")
+                bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_3d(
+                    Lx=args.Lx,
+                    Ly=args.Ly,
+                    Lz=args.Lz,
+                    q=args.q,
+                    d=args.d,
+                    wx=args.wx,
+                    wy=args.wy,
+                    wz=args.wz,
+                    stabilizer_generators=stabilizer_generators,
+                    qudit_positions=qudit_positions,
+                    boundary=args.boundary,
+                )
+            else:
+                raise ValueError("dim must be 2 or 3")
+            result = {
+                "bulk_stabilizers": [{str(k): list(v) for k, v in stab.items()} for stab in bulk_stabilizers],
+                "boundary_ops": boundary_ops.tolist(),
+                "S_mat": S_mat.tolist()
+            }
 
         elif args.command == "search":
             result = search_koszul_models(args.qudit_dim, args.target_dim, args.max_trials)
