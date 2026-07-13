@@ -108,8 +108,10 @@ def gf2_poly_powmod(base: GF2Poly, exp: int, mod: GF2Poly) -> GF2Poly:
     while exp > 0:
         if exp % 2 == 1:
             res = res.multiply(curr).rem(mod)
-        curr = curr.multiply(curr).rem(mod)
         exp //= 2
+        # ⚡ Bolt: Skip unnecessary multiply/rem on final exponentiation step.
+        if exp > 0:
+            curr = curr.multiply(curr).rem(mod)
     return res
 
 def get_divisors(n: int) -> list:
