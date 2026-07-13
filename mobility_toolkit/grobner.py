@@ -71,7 +71,9 @@ def poly_mul(p1: List[int], p2: List[int], N: int) -> List[int]:
         if c1 == 0:
             continue
         for j, c2 in enumerate(p2):
-            res[i + j] = (res[i + j] + c1 * c2) % N
+            res[i + j] += c1 * c2
+    # ⚡ Bolt: Defer modulo operation to the end to save time in inner loop.
+    res = [x % N for x in res]
     while len(res) > 0 and res[-1] == 0:
         res.pop()
     return res
@@ -107,9 +109,11 @@ def poly_powmod(base: List[int], exp: int, mod: List[int], N: int) -> List[int]:
         if exp % 2 == 1:
             prod = poly_mul(res, curr, N)
             _, res = poly_divmod(prod, mod, N)
-        prod = poly_mul(curr, curr, N)
-        _, curr = poly_divmod(prod, mod, N)
         exp //= 2
+        # ⚡ Bolt: Skip unnecessary multiply/divmod on final exponentiation step.
+        if exp > 0:
+            prod = poly_mul(curr, curr, N)
+            _, curr = poly_divmod(prod, mod, N)
     return res
 
 def extract_generators(gb_str: str) -> List[str]:
