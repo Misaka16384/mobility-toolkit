@@ -90,16 +90,23 @@ def poly_divmod(num: List[int], den: List[int], N: int) -> tuple[List[int], List
     lead_d = den[-1]
     lead_d_inv = 1 if lead_d == 1 else pow(lead_d, N - 2, N)
     quot = [0] * max(0, len(num) - len(den) + 1)
+
     while len(num) >= len(den):
         deg_n = len(num) - 1
-        lead_n = num[-1]
+        lead_n = num[-1] % N
         shift = deg_n - deg_d
         coeff = (lead_n * lead_d_inv) % N
         quot[shift] = coeff
-        for i in range(len(den)):
-            num[shift + i] = (num[shift + i] - coeff * den[i]) % N
-        while len(num) > 0 and num[-1] == 0:
+        if coeff != 0:
+            for i in range(len(den)):
+                num[shift + i] -= coeff * den[i]
+        num.pop() # The last element is going to be 0 anyway mod N
+        while len(num) > 0 and num[-1] % N == 0:
             num.pop()
+
+    num = [x % N for x in num]
+    while len(num) > 0 and num[-1] == 0:
+        num.pop()
     return quot, num
 
 def poly_powmod(base: List[int], exp: int, mod: List[int], N: int) -> List[int]:
