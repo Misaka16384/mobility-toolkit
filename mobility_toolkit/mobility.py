@@ -68,13 +68,15 @@ def solve_nullspace_fraction(V_matrix: List[List[int]], num_vars: int) -> List[L
         
         pivot_val = A[row][col]
         for c in range(col, C):
-            A[row][c] /= pivot_val
+            if A[row][c] != 0:
+                A[row][c] /= pivot_val
             
         for r in range(R):
             if r != row and A[r][col] != 0:
                 factor = A[r][col]
                 for c in range(col, C):
-                    A[r][c] -= factor * A[row][c]
+                    if A[row][c] != 0:
+                        A[r][c] -= factor * A[row][c]
                     
         pivot_cols.append(col)
         pivot_row_map[col] = row
@@ -95,11 +97,9 @@ def solve_nullspace_fraction(V_matrix: List[List[int]], num_vars: int) -> List[L
     processed_basis = []
     for v in basis:
         denoms = [x.denominator for x in v]
-        def lcm(a, b):
-            return abs(a * b) // math.gcd(a, b)
-        v_lcm = functools.reduce(lcm, denoms, 1)
+        v_lcm = math.lcm(*denoms)
         v_ints = [int(x * v_lcm) for x in v]
-        g = functools.reduce(math.gcd, v_ints, 0)
+        g = math.gcd(*v_ints)
         if g != 0:
             v_ints = [x // g for x in v_ints]
         first_nonzero = next((x for x in v_ints if x != 0), 0)
