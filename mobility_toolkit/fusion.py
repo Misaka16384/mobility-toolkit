@@ -643,8 +643,7 @@ qc = promote(q, S)
             periods.append(scaled_period)
             
     total_period = 1
-    for p_val in periods:
-        total_period = (total_period * p_val) // math.gcd(total_period, p_val)
+    total_period = math.lcm(*periods) if periods else 1
         
     dir_str = format_direction_general(dir_vec, variables)
     return {
