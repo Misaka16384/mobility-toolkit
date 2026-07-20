@@ -9,3 +9,7 @@
 ## 2024-05-24 - Deferring modulo in polynomial division
 **Learning:** In polynomial division (`poly_divmod`), modulo operations inside the inner subtraction loop (`num[shift + i] = (num[shift + i] - coeff * den[i]) % N`) are computationally expensive. Since Python handles arbitrarily large integers automatically, we can safely defer the `% N` modulo operation until the very end. This reduces modulo operations from O(deg_num * deg_den) to O(deg_num) and avoids significant overhead.
 **Action:** When implementing mathematical operations involving polynomial division or arrays in Python, defer the modulo operations outside tight inner loops unless dealing with a language with strict integer overflow limits.
+
+## 2025-02-12 - Replacing manual LCM/GCD with native math.lcm and math.gcd
+**Learning:** Python 3.9 introduced the ability for `math.lcm` and `math.gcd` to accept an arbitrary number of arguments natively. These functions are implemented in C and are significantly faster and more concise than chaining `functools.reduce` with manual GCD/LCM lambda definitions, or writing explicit Python loops to compute lowest common multiples across multiple factors.
+**Action:** When computing the GCD or LCM of a list of values, directly unpack the list into `math.gcd(*values)` or `math.lcm(*values)` instead of iterating manually or using `reduce`.

@@ -257,12 +257,11 @@ if g != 0 then (
             factor_orders.append(P_f)
             
         if factor_orders:
-            lcm_p = factor_orders[0]
-            for val in factor_orders[1:]:
-                if lcm_p == 0 or val == 0:
-                    lcm_p = 0
-                else:
-                    lcm_p = (lcm_p * val) // math.gcd(lcm_p, val)
+            # ⚡ Bolt: Use math.lcm which is faster and natively accepts multiple arguments
+            if 0 in factor_orders:
+                lcm_p = 0
+            else:
+                lcm_p = math.lcm(*factor_orders)
             
             # 2. Lift to p^a if a > 1 and m2_ideal_str is provided
             if lcm_p > 0 and a > 1 and m2_ideal_str and vars_list:
@@ -278,12 +277,11 @@ if g != 0 then (
         else:
             p_periodicities.append(1)
             
-    total_periodicity = p_periodicities[0]
-    for val in p_periodicities[1:]:
-        if total_periodicity == 0 or val == 0:
-            total_periodicity = 0
-        else:
-            total_periodicity = (total_periodicity * val) // math.gcd(total_periodicity, val)
+    # ⚡ Bolt: Use math.lcm which is faster and natively accepts multiple arguments
+    if 0 in p_periodicities:
+        total_periodicity = 0
+    else:
+        total_periodicity = math.lcm(*p_periodicities)
         
     return total_periodicity
 
