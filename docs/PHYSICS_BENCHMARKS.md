@@ -9,6 +9,10 @@ Evidence labels:
   complex and finite-coefficient homology;
 - `EXHAUSTIVE_SMALL`: checked against dense Hilbert-space or complete Pauli
   enumeration;
+- `DERIVED_GF2_RANK`: independently recomputed from a bit-packed binary
+  stabilizer matrix rather than the production FGA quotient;
+- `CELLULAR_NO_SOLUTION`: complete finite syndrome-image rank plus the signed
+  cellular `boundary^2=0` identity;
 - `COMPATIBILITY_ONLY`: legacy output retained only to detect accidental API
   drift and never used as a mathematical oracle.
 
@@ -82,7 +86,7 @@ to parity-twisted topological phases is contextualized by Chan, Teo, and Ryu,
 the numerical homology expectations in this repository are independently
 derived from the stored signed CW boundary maps.
 
-## Cheshire benchmarks reserved for Phase 4
+## Phase 4 static Cheshire benchmarks
 
 The first reference family is the 3+1D Z2 plaquette-qubit toric code:
 
@@ -93,6 +97,33 @@ The first reference family is the 3+1D Z2 plaquette-qubit toric code:
 - local stabilizers alone retain the defect logical qubit; adding the
   nonlocal charge-sector operator removes it.
 
-These are not marked passing until the explicit Phase 4 constructors and
-defect-local quotient are implemented. Static degeneracy/termination fields
-must remain separate from dynamic circuit-depth claims.
+The implemented reference uses `FOURIER_DUAL`: cube checks are X-type and edge
+checks are Z-type, exactly as in the cited model.
+
+| Fixture | Bulk K | Local-only K | Fixed-sector K | Evidence |
+|---|---:|---:|---:|---|
+| two-cube open segment in a ball | 1 | 2 | 1 | `LIT_DIRECT` operator rewrite; `DERIVED_GF2_RANK` finite GSD |
+| four-cube contractible closed loop in a ball | 1 | 2 | 1 | static closed extension; `DERIVED_GF2_RANK` |
+| two disjoint open segments on T3 | 8 | 16 | 8 | `DERIVED_GF2_RANK`; certified FGA agrees |
+| one noncontractible loop on T3 | 8 | 4 | not used as a sector-restoration gate | `DERIVED_GF2_RANK` adversarial guard |
+
+For two open T3 segments only one relative total-charge constraint is
+independent: adding the first `Q_gamma` changes 16 to 8 and the second is
+redundant. The noncontractible-loop row prevents any implementation from
+hard-coding a component-count-only degeneracy formula.
+
+Additional certified checks:
+
+- Eq. (8) product and commutation identities, including phase lift;
+- open segment has two endpoint strata; closed loop has none;
+- charge termination has a positive syndrome witness;
+- magnetic nontermination uses `CELLULAR_NO_SOLUTION`, not a failed probe;
+- direct line rewrite and deleted-tube cellular representation have identical
+  phase-aware generator sets after exact elimination of pinned condensate
+  plaquettes;
+- defect-local quotient retains the induced pairing radical;
+- length and support-window radius samples are exact finite points only.
+
+Static degeneracy, termination, and representation fields remain separate
+from circuit depth, finite-depth phase equivalence, dynamic deformation, and
+fusion claims.

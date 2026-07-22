@@ -46,11 +46,19 @@ the stated domain; it does not mean every operation is fast.
 | Oriented finite quotients | signed cell gluings with boundary-compatibility check | Production |
 | Periodic-to-finite compilation | explicit crossing/alias policies and full provenance | Production for explicit finite inputs |
 | Site/frame twists | phase-aware local Pauli automorphisms with inverse/path checks | Production |
+| Finite defect-local algebra | integer preimage intersections and paired quotient `(C∩W)/(S∩W)` | Production within dense budget |
+| Static Z2 Cheshire lines | phase-aware finite stabilizers, pinned elimination, deleted-tube compiler | Production for user-specified 3D cubical paths |
+| Finite charge termination | explicit syndrome witness | Production |
+| Finite magnetic nontermination | complete mod-2 cellular syndrome-image rank plus `boundary^2=0` | Production for the plaquette-qubit reference |
 | Boundary synthesis/enumeration | not yet implemented | Unsupported until Phase 5A |
 | Half-space symbolic boundary | not yet implemented | Unsupported until Phase 6 |
 
 The FLINT adapter refuses a single dense materialization above 2,000,000
 entries by default. See `docs/FINITE_BACKEND.md`.
+
+The Phase 4 Cheshire workflow is finite and static. It does not provide
+automatic condensation discovery, Cheshire-species enumeration, circuit
+depth, dynamic deformation/fusion, or thermodynamic phase equivalence.
 
 ## Selection rules
 
