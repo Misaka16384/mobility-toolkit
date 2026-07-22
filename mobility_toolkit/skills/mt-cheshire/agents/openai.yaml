@@ -1,0 +1,4 @@
+interface:
+  display_name: "MT Cheshire"
+  short_description: "Analyze finite static Cheshire strings exactly"
+  default_prompt: "Use $mt-cheshire to analyze a static open or closed Cheshire defect."

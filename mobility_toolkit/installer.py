@@ -39,6 +39,7 @@ SKILL_NAMES = [
     "mt-models",      # L1<->L3 model/property registry
     "mt-doctor",      # infra   Macaulay2 backend diagnostic
     "mt-boundary",    # L1->L3  boundary gauge operators
+    "mt-cheshire",    # L1->L3  finite static Cheshire defect analysis
 ]
 
 # --- MCP server invocation -------------------------------------------------
