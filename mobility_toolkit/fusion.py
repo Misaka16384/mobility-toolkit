@@ -172,8 +172,10 @@ class Z2Polynomial:
         while power > 0:
             if power % 2 == 1:
                 res = res * base
-            base = base * base
             power //= 2
+            # ⚡ Bolt: Skip unnecessary square on final exponentiation step.
+            if power > 0:
+                base = base * base
         return res
 
 def tokenize(s: str) -> List[str]:
