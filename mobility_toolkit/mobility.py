@@ -68,13 +68,15 @@ def solve_nullspace_fraction(V_matrix: List[List[int]], num_vars: int) -> List[L
         
         pivot_val = A[row][col]
         for c in range(col, C):
-            A[row][c] /= pivot_val
+            if A[row][c] != 0:
+                A[row][c] /= pivot_val
             
         for r in range(R):
             if r != row and A[r][col] != 0:
                 factor = A[r][col]
                 for c in range(col, C):
-                    A[r][c] -= factor * A[row][c]
+                    if A[row][c] != 0:
+                        A[r][c] -= factor * A[row][c]
                     
         pivot_cols.append(col)
         pivot_row_map[col] = row
