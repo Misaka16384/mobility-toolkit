@@ -198,6 +198,9 @@ class FiniteSubgroup:
             raise ArithmeticError("invalid subgroup determinant ratio")
         return relation_det // preimage_det
 
+    def invariant_factors(self, backend: FiniteIntegerBackend) -> Tuple[int, ...]:
+        return self.quotient_by(self.ambient.trivial_subgroup(backend), backend).invariant_factors
+
     def membership_witness(
         self, vector: Sequence[int], backend: FiniteIntegerBackend
     ) -> Optional[MembershipWitness]:
@@ -354,4 +357,3 @@ __all__ = [
     "FiniteSubgroup",
     "MembershipWitness",
 ]
-

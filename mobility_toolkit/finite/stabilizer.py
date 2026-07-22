@@ -10,10 +10,10 @@ from mobility_toolkit.core.pauli import PauliModule, PauliOperator
 from mobility_toolkit.finite.backend import FiniteIntegerBackend
 from mobility_toolkit.finite.groups import (
     FiniteAbelianGroup,
-    FiniteQuotient,
     FiniteSubgroup,
 )
 from mobility_toolkit.finite.pauli import FinitePauliCoordinates
+from mobility_toolkit.finite.pairing import PairedFiniteAbelianGroup, PairedFiniteQuotient
 
 
 class InvalidStabilizerGroup(ValueError):
@@ -70,9 +70,7 @@ class FiniteStabilizerAnalysis:
     validation: StabilizerValidation
     stabilizer: FiniteSubgroup
     centralizer: FiniteSubgroup
-    logical_module: FiniteQuotient
-    logical_presentation_representatives: SparseIntMatrix
-    logical_presentation_pairing_matrix: SparseIntMatrix
+    logical_module: PairedFiniteQuotient
     codespace_dimension: int
 
     SCHEMA_ID = "mobility_toolkit.finite_stabilizer_analysis.v1"
@@ -93,9 +91,7 @@ class FiniteStabilizerAnalysis:
             "coordinates": self.coordinates,
             "logical_invariant_factors": self.logical_invariant_factors,
             "logical_module": self.logical_module,
-            "logical_presentation_pairing_matrix": self.logical_presentation_pairing_matrix,
             "logical_projective_order": self.logical_projective_order,
-            "logical_presentation_representatives": self.logical_presentation_representatives,
             "module": self.module,
             "schema": self.SCHEMA_ID,
             "stabilizer": self.stabilizer,
@@ -176,23 +172,16 @@ def analyze_finite_stabilizer(
 
     stabilizer = ambient.subgroup(validation.generator_matrix, backend)
     modulus = module.phase_modulus
-    constraints = stabilizer.preimage_lattice_basis.transpose().matmul(
-        coordinates.pairing_matrix
+    paired_paulis = PairedFiniteAbelianGroup.create(
+        ambient,
+        modulus,
+        coordinates.pairing_matrix,
     )
-    constraint_kernel = backend.integer_kernel(
-        SparseIntMatrix.hstack(
-            constraints,
-            SparseIntMatrix.diagonal((modulus,) * coordinates.rank).negate(),
-        )
-    ).basis
-    centralizer_generators = constraint_kernel.select_rows(
-        tuple(range(coordinates.rank))
-    )
-    centralizer = ambient.subgroup(centralizer_generators, backend)
+    centralizer = paired_paulis.orthogonal_complement(stabilizer, backend)
     if not centralizer.contains_subgroup(stabilizer, backend):
         raise ArithmeticError("validated stabilizer is not contained in its centralizer")
 
-    logical = centralizer.quotient_by(stabilizer, backend)
+    logical = paired_paulis.quotient_pairing(centralizer, stabilizer, backend)
     stabilizer_order = stabilizer.order(backend)
     if module.hilbert_dimension % stabilizer_order:
         raise ArithmeticError("stabilizer order does not divide Hilbert dimension")
@@ -200,13 +189,6 @@ def analyze_finite_stabilizer(
     if logical.order != codespace_dimension * codespace_dimension:
         raise ArithmeticError("logical Pauli order does not equal K squared")
 
-    representatives = centralizer.preimage_lattice_basis
-    logical_pairing = _matrix_mod(
-        representatives.transpose()
-        .matmul(coordinates.pairing_matrix)
-        .matmul(representatives),
-        modulus,
-    )
     return FiniteStabilizerAnalysis(
         module,
         coordinates,
@@ -215,8 +197,6 @@ def analyze_finite_stabilizer(
         stabilizer,
         centralizer,
         logical,
-        representatives,
-        logical_pairing,
         codespace_dimension,
     )
 

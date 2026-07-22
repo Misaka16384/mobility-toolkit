@@ -16,6 +16,10 @@ class FiniteBackendUnavailable(RuntimeError):
     pass
 
 
+class DenseMaterializationRefused(MemoryError):
+    pass
+
+
 class NotInLattice(ValueError):
     pass
 
@@ -255,7 +259,15 @@ class FlintIntegerBackend:
 
     name = "python-flint"
 
-    def __init__(self) -> None:
+    DEFAULT_MAX_DENSE_ENTRIES = 2_000_000
+
+    def __init__(self, max_dense_entries: int = DEFAULT_MAX_DENSE_ENTRIES) -> None:
+        if (
+            isinstance(max_dense_entries, bool)
+            or not isinstance(max_dense_entries, int)
+            or max_dense_entries < 1
+        ):
+            raise ValueError("max_dense_entries must be a positive integer")
         try:
             import flint
             from flint import fmpz_mat
@@ -266,8 +278,15 @@ class FlintIntegerBackend:
         self._flint = flint
         self._matrix_type = fmpz_mat
         self.version = str(flint.__version__)
+        self.max_dense_entries = max_dense_entries
 
     def _to_flint(self, matrix: SparseIntMatrix):
+        dense_entries = matrix.nrows * matrix.ncols
+        if dense_entries > self.max_dense_entries:
+            raise DenseMaterializationRefused(
+                f"refusing to materialize {dense_entries} dense integer entries; "
+                f"backend limit is {self.max_dense_entries}"
+            )
         if matrix.nrows == 0 or matrix.ncols == 0:
             return self._matrix_type(matrix.nrows, matrix.ncols)
         return self._matrix_type([list(row) for row in matrix.to_rows()])
@@ -390,6 +409,7 @@ __all__ = [
     "ColumnLatticeCertificate",
     "ColumnLatticeResult",
     "FiniteBackendUnavailable",
+    "DenseMaterializationRefused",
     "FiniteIntegerBackend",
     "FlintIntegerBackend",
     "IntegerKernelResult",

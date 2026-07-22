@@ -6,6 +6,7 @@ flint = pytest.importorskip("flint")
 
 from mobility_toolkit.core import SparseIntMatrix
 from mobility_toolkit.finite import (
+    DenseMaterializationRefused,
     FlintIntegerBackend,
     IntegerKernelResult,
     KernelCertificate,
@@ -117,3 +118,10 @@ def test_backend_uses_arbitrary_precision_integers(backend):
     matrix = SparseIntMatrix.from_rows(((huge, 0), (0, huge * 3)))
     assert backend.determinant(matrix) == huge * huge * 3
     assert backend.smith_invariants(matrix).diagonal == (huge, huge * 3)
+
+
+def test_dense_materialization_budget_is_enforced():
+    backend = FlintIntegerBackend(max_dense_entries=8)
+    oversized = SparseIntMatrix(3, 3, ((0, 0, 1),))
+    with pytest.raises(DenseMaterializationRefused, match="backend limit is 8"):
+        backend.integer_kernel(oversized)
