@@ -5,11 +5,17 @@ from __future__ import annotations
 import itertools
 import math
 from dataclasses import dataclass
+from enum import Enum
 from typing import Iterable, Sequence, Tuple
 
 from mobility_toolkit.core.codes import StabilizerCodeSpec
 from mobility_toolkit.core.integer import SparseIntMatrix
-from mobility_toolkit.core.pauli import LocalPauliTerm, LocalSystem, PauliModule
+from mobility_toolkit.core.pauli import (
+    LocalPauliTerm,
+    LocalSystem,
+    PauliModule,
+    PauliOperator,
+)
 from mobility_toolkit.finite.backend import FiniteIntegerBackend
 from mobility_toolkit.finite.groups import (
     FiniteAbelianGroup,
@@ -667,6 +673,8 @@ class CellularCode:
     qudit_degree: int
     coefficient_modulus: int
     code: StabilizerCodeSpec
+    convention: "CellularPauliConvention"
+    check_records: Tuple["CellularCheck", ...]
     x_check_cell_ids: Tuple[str, ...]
     z_check_cell_ids: Tuple[str, ...]
 
@@ -677,6 +685,8 @@ class CellularCode:
             "chain_complex": self.chain_complex,
             "code": self.code,
             "coefficient_modulus": self.coefficient_modulus,
+            "convention": self.convention,
+            "check_records": self.check_records,
             "qudit_degree": self.qudit_degree,
             "schema": self.SCHEMA_ID,
             "x_check_cell_ids": self.x_check_cell_ids,
@@ -684,10 +694,37 @@ class CellularCode:
         }
 
 
+class CellularPauliConvention(str, Enum):
+    PRIMAL = "primal_x_lower_z_upper"
+    FOURIER_DUAL = "fourier_dual_z_lower_x_upper"
+
+
+@dataclass(frozen=True)
+class CellularCheck:
+    cell_id: str
+    pauli_kind: str
+    operator: PauliOperator
+
+    SCHEMA_ID = "mobility_toolkit.cellular_check.v1"
+
+    def __post_init__(self) -> None:
+        if self.pauli_kind not in {"x", "z"}:
+            raise ValueError("cellular check kind must be x or z")
+
+    def to_canonical_dict(self) -> dict:
+        return {
+            "cell_id": self.cell_id,
+            "operator": self.operator,
+            "pauli_kind": self.pauli_kind,
+            "schema": self.SCHEMA_ID,
+        }
+
+
 def cellular_stabilizer_code(
     complex_: FiniteCellComplex,
     qudit_degree: int,
     coefficient_modulus: int,
+    convention: CellularPauliConvention = CellularPauliConvention.PRIMAL,
 ) -> CellularCode:
     if qudit_degree < 1 or qudit_degree > complex_.dimension:
         raise ValueError("cellular code qudits require degree 1 through top dimension")
@@ -695,31 +732,45 @@ def cellular_stabilizer_code(
     module = PauliModule(
         tuple(LocalSystem.cyclic(site_id, coefficient_modulus) for site_id in site_ids)
     )
-    generators = []
-    x_ids = complex_.cell_ids_by_dimension[qudit_degree - 1]
+    if not isinstance(convention, CellularPauliConvention):
+        raise TypeError("cellular Pauli convention must be explicit enum value")
+    records = []
+    lower_ids = complex_.cell_ids_by_dimension[qudit_degree - 1]
     lower_rows = complex_.boundary_maps[qudit_degree].to_rows()
-    for check_id, row in zip(x_ids, lower_rows):
+    lower_kind = "x" if convention == CellularPauliConvention.PRIMAL else "z"
+    for check_id, row in zip(lower_ids, lower_rows):
         terms = tuple(
-            LocalPauliTerm.cyclic(site_id, x=coefficient)
+            LocalPauliTerm.cyclic(
+                site_id,
+                x=coefficient if lower_kind == "x" else 0,
+                z=coefficient if lower_kind == "z" else 0,
+            )
             for site_id, coefficient in zip(site_ids, row)
             if coefficient
         )
-        generators.append(module.operator(terms))
+        records.append(CellularCheck(check_id, lower_kind, module.operator(terms)))
     if qudit_degree < complex_.dimension:
-        z_ids = complex_.cell_ids_by_dimension[qudit_degree + 1]
+        upper_ids = complex_.cell_ids_by_dimension[qudit_degree + 1]
         upper_rows = complex_.boundary_maps[qudit_degree + 1].to_rows()
-        for column, check_id in enumerate(z_ids):
+        upper_kind = "z" if convention == CellularPauliConvention.PRIMAL else "x"
+        for column, check_id in enumerate(upper_ids):
             terms = tuple(
-                LocalPauliTerm.cyclic(site_id, z=upper_rows[row][column])
+                LocalPauliTerm.cyclic(
+                    site_id,
+                    x=upper_rows[row][column] if upper_kind == "x" else 0,
+                    z=upper_rows[row][column] if upper_kind == "z" else 0,
+                )
                 for row, site_id in enumerate(site_ids)
                 if upper_rows[row][column]
             )
-            generators.append(module.operator(terms))
+            records.append(CellularCheck(check_id, upper_kind, module.operator(terms)))
     else:
-        z_ids = ()
+        upper_ids = ()
+        upper_kind = "z" if convention == CellularPauliConvention.PRIMAL else "x"
+    generators = tuple(record.operator for record in records)
     code = StabilizerCodeSpec(
         module,
-        tuple(generators),
+        generators,
         (
             "cellular generalized Pauli code from signed integer incidence maps",
         ),
@@ -729,8 +780,10 @@ def cellular_stabilizer_code(
         qudit_degree,
         coefficient_modulus,
         code,
-        tuple(x_ids),
-        tuple(z_ids),
+        convention,
+        tuple(records),
+        tuple(record.cell_id for record in records if record.pauli_kind == "x"),
+        tuple(record.cell_id for record in records if record.pauli_kind == "z"),
     )
 
 
@@ -738,6 +791,8 @@ __all__ = [
     "BoundaryGluing",
     "CellGluing",
     "CellularCode",
+    "CellularCheck",
+    "CellularPauliConvention",
     "CubicalCell",
     "CubicalComplex",
     "FiniteCellComplex",

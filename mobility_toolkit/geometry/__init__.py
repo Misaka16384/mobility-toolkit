@@ -7,6 +7,8 @@ from mobility_toolkit.geometry.frame import (
 )
 from mobility_toolkit.geometry.cell_complex import (
     CellularCode,
+    CellularCheck,
+    CellularPauliConvention,
     BoundaryGluing,
     CellGluing,
     CubicalCell,
@@ -71,6 +73,8 @@ __all__ = [
     "BoundaryGluing",
     "CellGluing",
     "CellularCode",
+    "CellularCheck",
+    "CellularPauliConvention",
     "CompilationCertificate",
     "CompiledGenerator",
     "CompiledTarget",

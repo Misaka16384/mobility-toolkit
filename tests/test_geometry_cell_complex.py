@@ -6,6 +6,7 @@ from mobility_toolkit.core import SparseIntMatrix
 from mobility_toolkit.finite import FlintIntegerBackend, analyze_finite_stabilizer
 from mobility_toolkit.geometry import (
     FiniteCellComplex,
+    CellularPauliConvention,
     boundary_subcomplex,
     cellular_homology,
     cellular_stabilizer_code,
@@ -92,6 +93,22 @@ def test_3d_edge_and_plaquette_conventions_distinguish_h1_and_h2(backend):
             )
             assert homology.order == expected
             assert result.codespace_dimension == expected
+
+
+def test_fourier_dual_plaquette_code_has_cube_x_and_edge_z_checks():
+    ball = rectangular_cubical_complex((1, 1, 1))
+    code = cellular_stabilizer_code(
+        ball.chain_complex,
+        2,
+        2,
+        convention=CellularPauliConvention.FOURIER_DUAL,
+    )
+    assert len(code.x_check_cell_ids) == 1
+    assert len(code.z_check_cell_ids) == 12
+    cube_check = next(record for record in code.check_records if record.pauli_kind == "x")
+    edge_check = next(record for record in code.check_records if record.pauli_kind == "z")
+    assert all(term.x_exponents == (1,) for term in cube_check.operator.terms)
+    assert all(term.z_exponents == (1,) for term in edge_check.operator.terms)
 
 
 @pytest.mark.parametrize("modulus", (2, 3))
