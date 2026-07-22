@@ -1,6 +1,6 @@
 ---
 name: mt-gsd
-description: "Layer 1->3 (model -> physics). Compute ground-state degeneracy (GSD) and anyon periodicities on an Lx x Ly torus for a 2D stabilizer code, via Groebner bases. Works for any qudit dimension N (prime or composite). Use to get the GSD / topological order of a 2D code directly from its stabilizers. Needs Macaulay2."
+description: "Use when you need finite-torus ground-state degeneracy (GSD), periodicities, and the fusion-rule group of a 2D stabilizer presentation. Supports prime or composite N and needs Macaulay2."
 ---
 
 # mt-gsd — GSD + anyon periodicities on a torus (Layer 1→3)
@@ -19,7 +19,7 @@ path, this works for **any N** (the Z_N toric code gives GSD = N²).
 ## Input
 ```json
 {
-  "stabilizer_matrix": [["1 - x", "1 - y", "0", "0"], ["0", "0", "1 - y", "1 - x"]],
+  "stabilizer_matrix": [["1 - t", "1 - u", "0", "0"], ["0", "0", "y - 1", "1 - x"]],
   "Lx": 3, "Ly": 3, "qudit_dim": 2
 }
 ```
@@ -35,7 +35,7 @@ path, this works for **any N** (the Z_N toric code gives GSD = N²).
 ## Examples
 ```bash
 # Z_2 toric code on a 3x3 torus: GSD = N^2 = 4
-echo '{"stabilizer_matrix": [["1 - x","1 - y","0","0"],["0","0","1 - y","1 - x"]], "Lx": 3, "Ly": 3, "qudit_dim": 2}' \
+echo '{"stabilizer_matrix": [["1 - t","1 - u","0","0"],["0","0","y - 1","1 - x"]], "Lx": 3, "Ly": 3, "qudit_dim": 2}' \
   | python scripts/mt-gsd.py
 
 # WCF bivariate-bicycle code (N=12) on a 2x2 torus: GSD = 144
@@ -45,3 +45,6 @@ echo '{"stabilizer_matrix": [["t - 5","u - 5","0","0"],["0","0","y - 5","5 - x"]
 
 ## Backend
 Needs Macaulay2. If a run errors, check it with the **mt-doctor** skill first.
+
+A finite-size GSD value alone does not prove topological order; use it together
+with a justified model family and thermodynamic/phase assumptions.

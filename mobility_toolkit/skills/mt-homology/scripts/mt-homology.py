@@ -1,33 +1,40 @@
 import sys
 import json
-from mobility_toolkit.homology import compute_homology_and_mobility
+from mobility_toolkit.homology import compute_ext_krull
 from mobility_toolkit.physics import classify_mobility
-
-# spatial axes: a dimension is "present" if its forward OR inverse variable appears.
-_AXES = (("x", "t"), ("y", "u"), ("z", "w"))
-
-
-def _infer_spatial_dim(matrix):
-    present = 0
-    for pos, inv in _AXES:
-        if any(pos in entry or inv in entry for row in matrix for entry in row):
-            present += 1
-    return max(present, 1)
 
 
 if __name__ == "__main__":
     try:
         data = json.loads(sys.stdin.read())
         matrix = data.get("stabilizer_matrix")
-        result = compute_homology_and_mobility(
+        assumptions = dict(data.get("assumptions") or {})
+        if data.get("saturated") is not None:
+            if (
+                "saturated" in assumptions
+                and assumptions["saturated"] != data["saturated"]
+            ):
+                raise ValueError(
+                    "top-level saturated and assumptions.saturated disagree"
+                )
+            assumptions.setdefault("saturated", data["saturated"])
+        result = compute_ext_krull(
             matrix,
             data.get("qudit_dim"),
             data.get("p_ext", 0),
-            prime_bypass=data.get("prime_bypass", False)
+            prime_bypass=data.get("prime_bypass", False),
+            spatial_dim=data.get("spatial_dim"),
+            validate_stabilizer=data.get("validate_stabilizer", True),
+            saturated=data.get("saturated"),
         )
-        spatial_dim = data.get("spatial_dim") or _infer_spatial_dim(matrix)
-        # attach the Layer 3 reading (mobility_class, order, is_fracton, ...)
-        result.update(classify_mobility(result["krull_dimension"], spatial_dim))
+        # Attach only the theorem-safe Layer 3 reading.  The resolved spatial
+        # dimension comes from the actual Laurent ring used by homology.
+        result.update(classify_mobility(
+            result["krull_dimension"],
+            result["spatial_dim"],
+            p_ext=data.get("p_ext", 0),
+            assumptions=assumptions,
+        ))
         result["status"] = "success"
         print(json.dumps(result))
     except Exception as e:

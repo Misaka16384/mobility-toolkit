@@ -70,33 +70,14 @@ def safe_run_m2_script(script_content: str, timeout_seconds: float = 60.0):
     stdout_clean = clean_wsl_garbage(stdout)
     stderr_clean = clean_wsl_garbage(stderr)
 
-    # See safe_run_macaulay2 below: never swallow 124 (timeout) / 127 (no
-    # backend); their stderr has no "error" marker, so swallowing them would
-    # let empty output fall through and be misread as a valid result.
-    if code != 0 and code not in (124, 127):
-        normalized_stderr = stderr_clean.lower()
-        normalized_stdout = stdout_clean.lower()
-        if "error" in normalized_stderr or "error:" in normalized_stdout or "syntax error" in normalized_stdout:
-            pass
-        else:
-            code = 0
     return code, stdout_clean, stderr_clean
 
 def safe_run_macaulay2(script: str, timeout: int = 30):
     res = run_macaulay2(script, timeout)
     stdout_clean = clean_wsl_garbage(res["stdout"])
     stderr_clean = clean_wsl_garbage(res["stderr"])
-    exit_code = res["exit_code"]
-    
-    if exit_code != 0 and exit_code not in (124, 127):
-        normalized_stderr = stderr_clean.lower()
-        normalized_stdout = stdout_clean.lower()
-        if "error" in normalized_stderr or "error:" in normalized_stdout or "syntax error" in normalized_stdout:
-            pass
-        else:
-            exit_code = 0
     return {
-        "exit_code": exit_code,
+        "exit_code": res["exit_code"],
         "stdout": stdout_clean,
         "stderr": stderr_clean,
         "timeout": res["timeout"]
@@ -684,7 +665,8 @@ def analyze_fusion_interference(stabilizer_matrix: List[List[str]], qudit_dim: i
     shift_dim = max(len(s) for s in shifts) if shifts else 0
     translation = translate_to_algebra(stabilizer_matrix, qudit_dim, spatial_dim=shift_dim)
     ring_def = translation["ring_definition"]
-    matrix_def = translation["matrix_definition"]
+    # Use the same barred presentation as the corrected Ruba--Yang Q^0 path.
+    matrix_def = translation["antipode_matrix_definition"]
     variables = translation["variables"]
 
     # 2. Determine saturation product (product of active positive variables)
@@ -762,7 +744,9 @@ def analyze_fusion_interference(stabilizer_matrix: List[List[str]], qudit_dim: i
 
     result = {
         "annihilator_dimension": original_dim,
-        "dimension_drop": dimension_drop
+        "dimension_drop": dimension_drop,
+        "definition": "shift-colon dimension test on Ann Ext^1_R(bar(P/L), R)",
+        "provenance": "independent fusion-interference helper; not Ruba--Yang Cech braiding",
     }
     
     utils.save_discovery("fusion_interference_discovery", result)
@@ -992,7 +976,14 @@ def analyze_annihilator_fusion(generators: List[str], qudit_dim: int, variables:
     
     # We can create a dummy stabilizer matrix to reuse translate_stabilizers variable mapping
     dummy_matrix = [[g] for g in generators]
-    translation = translate_stabilizers(dummy_matrix, qudit_dim, prime_bypass=prime_bypass)
+    # This synthetic one-row matrix is only a convenient way to reuse Laurent
+    # variable/ring translation.  It is not a physical Pauli stabilizer map.
+    translation = translate_stabilizers(
+        dummy_matrix,
+        qudit_dim,
+        prime_bypass=prime_bypass,
+        validate_stabilizer=False,
+    )
     ring_def = translation["ring_definition"]
     detected_vars = translation["variables"]
     
@@ -1011,4 +1002,3 @@ def analyze_annihilator_fusion(generators: List[str], qudit_dim: int, variables:
         "lfsr_period": result["lfsr_period"],
         "fusion_rules": result["fusion_rules"]
     }
-

@@ -2,16 +2,17 @@ import pytest
 import json
 from unittest.mock import patch
 from mobility_toolkit.__main__ import main
+from mobility_toolkit.reference_models import TORIC_CODE_2D
 
 def test_cli_homology():
     test_args = [
         "__main__.py",
         "homology",
         "--stabilizer",
-        '[["1 - x", "1 - y"]]',
+        json.dumps(TORIC_CODE_2D),
         "--qudit-dim",
         "2",
-        "--prime-bypass"
+        "--spatial-dim", "2"
     ]
     with patch("sys.argv", test_args), patch("sys.stdout") as mock_stdout:
         with pytest.raises(SystemExit) as exc_info:
@@ -62,7 +63,7 @@ def test_cli_fusion_interference():
         "__main__.py",
         "fusion-interference",
         "--stabilizer",
-        '[["1 - x", "1 - y"]]',
+        '[["1 - x", "0*y"]]',
         "--qudit-dim",
         "2",
         "--shifts",

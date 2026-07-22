@@ -9,7 +9,10 @@ from mobility_toolkit.grobner import compute_gsd_and_periodicity
 
 def test_extreme_ring_promotion_10():
     """Test dynamic ring promotion with dimension 10 explicitly specified."""
-    res = translate_to_algebra([["x - 1", "y - 1"]], qudit_dim=2, spatial_dim=10)
+    res = translate_to_algebra(
+        [["x - 1", "y - 1"]], qudit_dim=2, spatial_dim=10,
+        validate_stabilizer=False,
+    )
     assert len(res["variables"]) == 20  # x1..x10, t1..t10
     assert "x10" in res["variables"]
     assert "t10" in res["variables"]

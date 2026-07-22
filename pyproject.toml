@@ -7,7 +7,7 @@ name = "mobility-toolkit"
 # Version is the single source of truth in mobility_toolkit/__init__.py
 # (`__version__`); bump it with `python tools/release.py`.
 dynamic = ["version"]
-description = "Homological-algebra toolkit for computing excitation mobility properties of translation-invariant stabilizer codes, backed by Macaulay2."
+description = "Validated homological charge-module invariants for translation-invariant stabilizer codes, backed by Macaulay2."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [{ name = "Misaka16384" }]
@@ -25,8 +25,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
-# Core is pure-stdlib Python; all algebra is delegated to an external
-# Macaulay2 binary via the engine. No third-party runtime deps.
+# The finite-lattice and boundary helpers use NumPy/SymPy; homological algebra
+# is delegated to an external Macaulay2 binary via the engine.
 dependencies = ["numpy", "sympy"]
 
 [project.optional-dependencies]

@@ -8,19 +8,24 @@ description: "Compute point excitation mobility fusion rules and interference. U
 This skill handles the computation of excitation mobility fusion rules and spatial interference properties. It supports three distinct workflows:
 
 ## Workflow 1: Fusion Interference under Shifts (L1→3)
-Checks whether relative translation **shift** vectors cause the Point Excitation annihilator ideal dimension (`Ext^1`) to drop — a Layer 3 signature that the composite excitation at that shift is more constrained (rigid-to-flexible fusion).
+Checks whether relative translation **shift** vectors cause the annihilator
+dimension of `Ext^1_R(bar(P/L),R)` to drop. This is an algebraic diagnostic; it
+is not by itself a theorem-level planon/lineon/fracton classification.
 
 ### Input
 ```json
 {
-  "stabilizer_matrix": [["1 - x", "1 - y", "0", "0"], ["0", "0", "1 - y", "1 - x"]],
+  "stabilizer_matrix": [["1 - t", "1 - u", "0", "0"], ["0", "0", "y - 1", "1 - x"]],
   "qudit_dim": 2,
   "shifts": [[1, -1, 0]]
 }
 ```
+
+This is an independently sourced dimension-drop/fusion helper. It is not the
+Cech-cocycle braiding construction in Ruba--Yang.
 ### Examples
 ```bash
-echo '{"stabilizer_matrix": [["1 - x","1 - y","0","0"],["0","0","1 - y","1 - x"]], "qudit_dim": 2, "shifts": [[1,-1,0]]}' \
+echo '{"stabilizer_matrix": [["1 - t","1 - u","0","0"],["0","0","y - 1","1 - x"]], "qudit_dim": 2, "shifts": [[1,-1]]}' \
   | python scripts/mt-fusion.py
 ```
 

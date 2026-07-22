@@ -1,15 +1,20 @@
 # mobility_toolkit
 
-A homological-algebra toolkit for computing **excitation-mobility properties of
-translation-invariant stabilizer codes** — point/lineon/planon/fracton mobility,
-ground-state degeneracy (GSD), anyon periodicities, and fusion interference — packaged
+A homological-algebra toolkit for computing **charge-module invariants of
+translation-invariant stabilizer codes**, plus separately sourced ground-state
+degeneracy (GSD), periodicity, fusion, and boundary tools — packaged
 as a **cross-platform agent skill set** for Claude Code, OpenAI Codex, opencode, and
 Google Antigravity.
 
-Stabilizer models are mapped to modules over a Laurent polynomial ring; `Ext` modules,
-Krull dimensions, Gröbner bases, and saturations (computed by **Macaulay2**) do the
-classification. The Python core is pure-stdlib and shells out to an external Macaulay2
-binary.
+Stabilizer models are mapped to modules over a Laurent polynomial ring. The corrected
+homology path computes Ruba--Yang's
+`Q^p = Ext_R^(p+1)(bar(P/L), R)`, including the Laurent antipode and a strict
+commutation check. Macaulay2 evaluates Ext, Krull dimensions, and Gröbner bases;
+NumPy/SymPy support the finite-lattice and translation-lattice helpers.
+
+The toolkit deliberately does **not** infer planon/lineon/fracton labels from a
+Krull dimension. See [the exact theorem scope](docs/THEORY_SCOPE.md) before giving
+a physical interpretation to a result.
 
 ## Requirements
 
@@ -121,14 +126,14 @@ so you pick a skill by "what I have → what I want":
 
 - **L1 Model** — the Pauli stabilizer matrix over `ZZ/N[x,y,z,…]`.
 - **L2 Algebra** — `Ext^{p+1}` charge module, annihilator ideal, Gröbner basis, Krull dim.
-- **L3 Physics** — mobility class (fully-mobile / planon / lineon / fracton), GSD, fusion.
+- **L3 Physics** — theorem-scoped mobility conclusions, GSD, and independent fusion tools.
 
 | Skill | Edge | What it does |
 |---|---|---|
 | `mt-translate` | L1→L2 | Stabilizer matrix → ring, variables, M2 matrix (pure) |
-| `mt-homology` | L1→L2 | `Ext^{p+1}` + Krull dim + annihilator, with the mobility class attached |
-| `mt-classify` | L2→L3 | Krull dimension → mobility class (pure) |
-| `mt-mobility` | L2→L3 | Annihilator generators → true mobility dimension |
+| `mt-homology` | L1→L2 | Validated `Ext^{p+1}(bar(P/L),R)` + Krull dim + annihilator |
+| `mt-classify` | L2→L3 | The theorem-safe conclusion supported by a Krull dimension |
+| `mt-mobility` | L2→L3 | Exact translation lattice for Laurent-binomial annihilators |
 | `mt-gsd` | L1→L3 | GSD + anyon periodicities on an Lx×Ly torus (any N) |
 | `mt-fusion` | L1→L3 | Dimension drops under relative shift vectors |
 | `mt-models` | L1↔L3 | SQLite registry of models ↔ physical properties |
@@ -157,20 +162,25 @@ Run `mobility-toolkit doctor` to see what was resolved.
 ## CLI examples
 
 ```bash
-# Toric code point excitations: Krull dimension 0 (fully mobile anyons)
+# Toric code Q^0: Krull dimension 0; all local point charges are fully mobile
 mobility-toolkit homology \
-  --stabilizer '[["1 - x","1 - y","0","0"],["0","0","1 - y","1 - x"]]' --qudit-dim 2 --p-ext 0
+  --stabilizer '[["1-t","1-u","0","0"],["0","0","y-1","1-x"]]' \
+  --qudit-dim 2 --p-ext 0 --spatial-dim 2
 
-# X-Cube point excitations: Krull dimension 2 (fractons)
+# Interpret Q^0 without over-classifying individual excitations
+mobility-toolkit classify --krull-dim 1 --spatial-dim 3 --p-ext 0
+
+# Exact rank-one diagonal translation lattice H=< (1,1) >
+mobility-toolkit mobility --generators '["x*y-1"]' --qudit-dim 2 \
+  --all-vars '["x","y"]'
+
+# Use --algebra-only only for a non-stabilizer module presentation
 mobility-toolkit homology \
-  --stabilizer '[["1 - x","1 - y","1 - z","0"],["0","1 - y","1 - z","1 - x"]]' --qudit-dim 2 --p-ext 0
-
-# Interpret a Krull dimension as a mobility class (Layer 2 -> Layer 3)
-mobility-toolkit classify --krull-dim 2 --spatial-dim 3     # -> lineon (fracton order)
+  --stabilizer '[["x-2","0"]]' --qudit-dim 5 --p-ext 0 --algebra-only
 
 # Ground-state degeneracy of the Z_2 toric code on a 3x3 torus (= 4)
 mobility-toolkit grobner \
-  --stabilizer '[["1 - x","1 - y","0","0"],["0","0","1 - y","1 - x"]]' --Lx 3 --Ly 3 --qudit-dim 2
+  --stabilizer '[["1-t","1-u","0","0"],["0","0","y-1","1-x"]]' --Lx 3 --Ly 3 --qudit-dim 2
 
 # Seed + query the bundled model registry
 mobility-toolkit db init
@@ -179,10 +189,17 @@ mobility-toolkit db query --query-str "SELECT name, gsd_val FROM models WHERE qu
 
 ## Input conventions
 
-- **`qudit_dim` must be prime** (ring is `ZZ/N`); for composite `N` pass `--prime-bypass`.
+- Each stabilizer row is one generator in `[X_1,...,X_q,Z_1,...,Z_q]`
+  coordinates. Homology validates even Pauli rank and
+  `sigma^dagger lambda sigma=0` by default.
+- The current **Ext backend** requires uniform prime `qudit_dim`. The paper also
+  supports composite/nonuniform qudits; that remains an implementation gap.
+  `prime_bypass` is useful to translation and other paths, not composite Ext.
 - **No parentheses** in polynomials — fully expand (`y + z + x*y + x*z`, not `(1+x)*(y+z)`).
 - Variables: spatial `x, y, z`; Laurent inverses `t, u, w` (`x*t = y*u = z*w = 1`).
   Write inverses as `x^-1` / `x**-1`; they are rewritten to `t`/`u`/`w`.
+- Set `spatial_dim` explicitly when an ambient axis does not occur in the
+  coefficients. Otherwise the smallest ring containing the variables is used.
 
 ## Development
 

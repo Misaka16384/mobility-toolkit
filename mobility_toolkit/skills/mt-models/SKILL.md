@@ -1,13 +1,18 @@
 ---
 name: mt-models
-description: "Knowledge base linking models (Layer 1) to their physical properties (Layer 3). Seed standard models, sync discoveries, and run SQL queries over a SQLite registry of translation-invariant stabilizer codes (mobility, GSD, periodicities). Use to look up known models/results or to persist what you compute. No Macaulay2 backend needed."
+description: "Use when you need to seed, query, or sync the SQLite registry of stabilizer models, literature metadata, computed invariants, GSD, and periodicities."
 ---
 
-# mt-models — model ↔ physics registry (Layer 1 ↔ Layer 3 store)
+# mt-models — model and invariant registry
 
-A SQLite registry (`mobility_models.db`) that connects **Layer 1** models to their
-**Layer 3** properties (mobility class, GSD, periodicities, `is_topological`). Use it to
-seed standard models, sync new discoveries from your runs, and query results with SQL.
+A SQLite registry (`mobility_models.db`) for models, literature-backed metadata,
+and computed invariants. Seed values are reference metadata, not a proof that
+Krull dimension alone establishes a phase label.
+
+The X-Cube seed is the full `6 x 3` map of Ruba--Yang Eq. (98): `d0=1` and
+`d1=-1` (indeed `Q^i=0` for every `i>0`). Homology cache entries are isolated by
+ambient dimension, validation mode, matrix convention, and invariant version,
+so legacy raw-cokernel results cannot satisfy the corrected charge-module key.
 
 ## Actions
 

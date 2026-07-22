@@ -1,49 +1,100 @@
 ---
 name: mt-mobility
-description: "Layer 2->3 (algebra -> physics). Compute the TRUE physical mobility dimension of an excitation from its annihilator-ideal generators, resolving the Krull-vs-mobility gap for Type-II fractons. Use when you have annihilator generators (e.g. from mt-homology) and need the exact number of free directions, not just the coarse class. Needs Macaulay2."
+description: "Use when an individual charge has a Laurent-binomial annihilator and you need the exact lattice H of charge-preserving translations. General non-binomial ideals are reported as inconclusive."
 ---
 
-# mt-mobility — annihilator generators → true mobility dimension (Layer 2→3)
+# mt-mobility — annihilator → charge-preserving translation lattice
 
-Computes the **exact** number of free directions of an excitation from the **Layer 2**
-annihilator-ideal generators, via prime divisors and valuations. This is the precise
-counterpart to **mt-classify**: where Krull dimension gives a generic upper bound,
-this gives the true mobility — which is strictly lower for **Type-II fractons**.
+For a charge `q` with annihilator ideal `J = Ann(q)`, this skill computes
 
-## Conventions
+```text
+H = {a in Z^D | x^a - 1 belongs to J}.
+```
 
-- **`qudit_dim` must be prime.**
-- `generators` are the annihilator-ideal generators (strings), e.g. the
-  `annihilator_generators` field returned by **mt-homology**.
-- Variables are single lowercase letters; pass `all_vars` to fix the ring explicitly
-  (otherwise the variables are inferred from the generators).
+Indeed, translation by `a` preserves the charge sector exactly when
+`(x^a - 1)q = 0`. The physical mobility dimension returned here is `rank_Z H`.
+
+## Exact scope
+
+The implementation is exact when every nonzero generator is a **Laurent
+binomial**. Dividing a binomial by a Laurent monomial gives a relation
+`x^a = rho`. The algorithm computes the kernel lattice of this partial
+character, including finite-index effects from `rho != 1`.
+
+The preferred Python API is `compute_translation_lattice`. The older
+`compute_true_mobility_dimension` name remains as a deprecated compatibility
+alias, because it overstated the scope of the implementation.
+
+It does **not** claim an exact answer for a general polynomial annihilator.
+If any generator has three or more Laurent monomials after simplification, the
+result has `status: "inconclusive"`, `conclusive: false`, and
+`mobility_dimension: null`. In particular, this skill does not currently
+decide Type-II examples whose annihilator is presented by non-binomial
+polynomials.
+
+## Laurent variables
+
+- Legacy axes are `x,y,z`, with inverses `t,u,w`.
+- Unified axes are `x1,x2,...`, with inverses `t1,t2,...`.
+- An inverse variable is not an independent direction: `t = x^-1`,
+  `u = y^-1`, etc. The result reports the reconstructed Laurent relations.
+- Pass `all_vars` to declare spatial axes absent from the generators. Both
+  `all_vars: ["x", "y"]` and `all_vars: ["x", "t", "y", "u"]`
+  describe two spatial directions.
+- Do not mix legacy and unified notation. Fully expand inputs; parentheses and
+  division are unsupported.
+- `qudit_dim` must be prime.
 
 ## Input
+
 ```json
 {
-  "generators": ["x*y - 1", "x^2 - 1"],
-  "qudit_dim": 2,
-  "all_vars": ["x", "y"]
+  "generators": ["x*y - 1"],
+  "qudit_dim": 5,
+  "all_vars": ["x", "t", "y", "u"]
 }
 ```
-`all_vars` is optional.
 
-## Output
+## Conclusive output
+
 ```json
-{ "status": "success",
+{
+  "status": "success",
+  "conclusive": true,
+  "guarantee": "exact_for_laurent_binomial_generators",
   "mobility_dimension": 1,
-  "valuation_matrix": [[...]],
-  "divisors": ["..."],
-  "kernel_basis": [[...]],
-  "variables": ["x", "y"] }
+  "translation_lattice_rank": 1,
+  "translation_lattice_basis": [[1, 1]],
+  "kernel_basis": [[1, 1]],
+  "variables": ["x", "y"],
+  "laurent_relations": ["x*t - 1", "y*u - 1"]
+}
 ```
-`mobility_dimension` is the true number of free directions (0 = immobile fracton).
+
+Here `xy-1` permits the diagonal lattice `{(a,a) | a in Z}`; it does not
+permit independent `x` and `y` translations. `kernel_basis` is retained as a
+compatibility alias for `translation_lattice_basis`; it is no longer a
+valuation-matrix nullspace.
+
+## Inconclusive output
+
+```json
+{
+  "status": "inconclusive",
+  "conclusive": false,
+  "mobility_dimension": null,
+  "translation_lattice_basis": null,
+  "reason": "At least one generator is not a Laurent binomial..."
+}
+```
+
+An inconclusive result is not evidence of zero mobility.
 
 ## Example
+
 ```bash
-# Typically: run mt-homology, take its annihilator_generators, then:
-echo '{"generators": ["x - 1", "y - 1"], "qudit_dim": 2}' | python scripts/mt-mobility.py
+echo '{"generators":["x*y - 1"],"qudit_dim":5,"all_vars":["x","y"]}' | python scripts/mt-mobility.py
 ```
 
-## Backend
-Needs Macaulay2. If a run errors, check it with the **mt-doctor** skill first.
+The supported binomial computation is pure Python/SymPy and does not invoke
+Macaulay2.

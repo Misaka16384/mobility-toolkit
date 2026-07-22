@@ -5,7 +5,7 @@ import os
 from mobility_toolkit import (
     __version__,
     compute_ext_krull,
-    compute_true_mobility_dimension,
+    compute_translation_lattice,
     compute_gsd_and_periodicity,
     analyze_fusion_interference,
     solve_sset_fusion,
@@ -39,10 +39,13 @@ def main():
     parser_homology.add_argument("--stabilizer", type=str, required=True, help="JSON list of lists of strings")
     parser_homology.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
     parser_homology.add_argument("--p-ext", type=int, default=0, help="Ext parameter p_ext")
-    parser_homology.add_argument("--prime-bypass", action="store_true", help="Bypass prime check for qudit dimension")
+    parser_homology.add_argument("--spatial-dim", type=int, default=None, help="Ambient lattice dimension; include axes absent from coefficients")
+    parser_homology.add_argument("--algebra-only", action="store_true", help="Treat the matrix as an arbitrary presentation and skip stabilizer commutation validation")
+    parser_homology.add_argument("--saturated", action="store_true", default=None, help="Assert that L is saturated and check the stronger Proposition 25 bound")
+    parser_homology.add_argument("--prime-bypass", action="store_true", help="Accepted for API compatibility; composite-coefficient Ext is not implemented")
 
     # mobility
-    parser_mobility = subparsers.add_parser("mobility", help="Compute true mobility dimension")
+    parser_mobility = subparsers.add_parser("mobility", help="Compute a charge's translation lattice for Laurent-binomial annihilators")
     parser_mobility.add_argument("--generators", type=str, required=True, help="JSON list of strings")
     parser_mobility.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
     parser_mobility.add_argument("--all-vars", type=str, default=None, help="JSON list of strings")
@@ -51,6 +54,10 @@ def main():
     parser_classify = subparsers.add_parser("classify", help="Classify mobility from a Krull dimension")
     parser_classify.add_argument("--krull-dim", type=int, required=True, help="Krull dimension of the charge module")
     parser_classify.add_argument("--spatial-dim", type=int, default=3, help="Number of spatial dimensions (default 3)")
+    parser_classify.add_argument("--p-ext", type=int, default=0, help="Charge-module degree p (the proven mobility theorem applies only to p=0)")
+    parser_classify.add_argument("--lagrangian", action="store_true", help="Assert the Lagrangian hypothesis for a phase-level reading")
+    parser_classify.add_argument("--saturated", action="store_true", help="Assert saturation for a phase-level reading")
+    parser_classify.add_argument("--no-ssb", action="store_true", help="Assert absence of spontaneous symmetry breaking")
 
     # grobner
     parser_grobner = subparsers.add_parser("grobner", help="Compute GSD and periodicity via Grobner bases")
@@ -138,13 +145,34 @@ def main():
 
         if args.command == "homology":
             stabilizer = json.loads(args.stabilizer)
-            result = compute_ext_krull(stabilizer, args.qudit_dim, args.p_ext, args.prime_bypass)
+            result = compute_ext_krull(
+                stabilizer,
+                args.qudit_dim,
+                p_ext=args.p_ext,
+                prime_bypass=args.prime_bypass,
+                spatial_dim=args.spatial_dim,
+                validate_stabilizer=not args.algebra_only,
+                saturated=args.saturated,
+            )
         elif args.command == "mobility":
             generators = json.loads(args.generators)
             all_vars = json.loads(args.all_vars) if args.all_vars is not None else None
-            result = compute_true_mobility_dimension(generators, args.qudit_dim, all_vars)
+            result = compute_translation_lattice(generators, args.qudit_dim, all_vars)
         elif args.command == "classify":
-            result = classify_mobility(args.krull_dim, args.spatial_dim)
+            result = classify_mobility(
+                args.krull_dim,
+                args.spatial_dim,
+                p_ext=args.p_ext,
+                assumptions={
+                    name: True
+                    for name, supplied in (
+                        ("lagrangian", args.lagrangian),
+                        ("saturated", args.saturated),
+                        ("no_ssb", args.no_ssb),
+                    )
+                    if supplied
+                },
+            )
         elif args.command == "grobner":
             stabilizer = json.loads(args.stabilizer)
             L = json.loads(args.L) if args.L is not None else None

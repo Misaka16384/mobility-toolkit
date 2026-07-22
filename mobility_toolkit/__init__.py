@@ -15,7 +15,10 @@ if hasattr(sys, "set_int_max_str_digits"):
 from mobility_toolkit.bridge import run_m2_script, run_macaulay2
 from mobility_toolkit.translate import translate_stabilizers, translate_to_algebra
 from mobility_toolkit.homology import compute_ext_krull, compute_homology_and_mobility
-from mobility_toolkit.mobility import compute_true_mobility_dimension
+from mobility_toolkit.mobility import (
+    compute_translation_lattice,
+    compute_true_mobility_dimension,
+)
 from mobility_toolkit.fusion import analyze_fusion_interference, solve_sset_fusion, analyze_annihilator_fusion
 from mobility_toolkit.grobner import compute_gsd_and_periodicity
 from mobility_toolkit.search import search_koszul_models
@@ -30,6 +33,7 @@ __all__ = [
     "translate_to_algebra",
     "compute_ext_krull",
     "compute_homology_and_mobility",
+    "compute_translation_lattice",
     "compute_true_mobility_dimension",
     "analyze_fusion_interference",
     "solve_sset_fusion",

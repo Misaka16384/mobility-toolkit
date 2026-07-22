@@ -5,15 +5,14 @@ Google Antigravity) working in or with this repository.
 
 ## What this is
 
-`mobility_toolkit` computes **excitation-mobility properties of translation-invariant
-stabilizer codes** using homological algebra. A Pauli stabilizer model is mapped to a
-module over a Laurent polynomial ring; `Ext` modules, Krull dimensions, Gröbner bases,
-and saturations (computed by **Macaulay2**) then classify how excitations move
-(point / lineon / planon / fracton), ground-state degeneracy (GSD), and fusion
-interference.
+`mobility_toolkit` computes **charge-module invariants of translation-invariant
+stabilizer codes** using homological algebra. The corrected homology path evaluates
+Ruba--Yang's `Q^p = Ext_R^(p+1)(bar(P/L),R)` and validates the stabilizer map.
+Krull dimension alone is not mapped to planon/lineon/fracton labels. GSD,
+finite-torus periodicity, fusion, and boundary algorithms are separate features.
 
-The math backend is an external **Macaulay2** binary. The Python core is pure-stdlib
-and only orchestrates M2 scripts and parses their output.
+The homological backend is an external **Macaulay2** binary. NumPy/SymPy support
+other finite-lattice and translation-lattice calculations.
 
 ## Capabilities
 
@@ -29,17 +28,17 @@ Skills are named `mt-*` and organized as **edges between three layers** — pick
 "what I have → what I want":
 
 - **L1 Model** — the Pauli stabilizer matrix over `ZZ/N[x,y,z,…]`.
-- **L2 Algebra** — ring/matrix, `Ext^{p+1}` charge module, annihilator ideal, Gröbner
+- **L2 Algebra** — ring/matrix, `Ext^{p+1}(bar(P/L),R)` charge module, annihilator ideal, Gröbner
   basis, Krull dimension.
-- **L3 Physics** — mobility class (fully-mobile / planon / lineon / fracton; topological
-  vs fracton), GSD, anyon periodicities, fusion interference.
+- **L3 Physics** — theorem-scoped mobility conclusions, GSD, periodicities, and
+  independently sourced fusion results.
 
 | Skill | Edge | CLI | Purpose |
 |---|---|---|---|
 | `mt-translate` | L1→L2 | — | Stabilizer matrix → Laurent ring + variables + M2 matrix |
-| `mt-homology` | L1→L2 | `homology` | `Ext^{p+1}` module + Krull dim + annihilator (class attached) |
-| `mt-classify` | L2→L3 | `classify` | Krull dimension → mobility class (pure, no backend) |
-| `mt-mobility` | L2→L3 | `mobility` | Annihilator generators → true mobility dimension |
+| `mt-homology` | L1→L2 | `homology` | Validated `Ext^{p+1}(bar(P/L),R)` + Krull dim + annihilator |
+| `mt-classify` | L2→L3 | `classify` | The theorem-safe conclusion supported by Krull dimension |
+| `mt-mobility` | L2→L3 | `mobility` | Exact translation lattice for Laurent-binomial annihilators |
 | `mt-gsd` | L1→L3 | `grobner` | GSD + anyon periodicities on an Lx×Ly torus (any N) |
 | `mt-fusion` | L1→L3 | `fusion-interference` | Dimension drops under relative shift vectors |
 | `mt-models` | L1↔L3 | `db` | SQLite model/property registry (init / seed / sync / query) |
@@ -49,14 +48,16 @@ CLI-only (no skill): `sset-fusion`, `search`, `install`, `self-update`.
 
 ## Input conventions (IMPORTANT — these cause most errors)
 
-- **`qudit_dim` must be prime** (the ring is `ZZ/N`). For composite `N` (e.g. 12),
-  pass `prime_bypass=True` / `--prime-bypass`.
+- The current Ext backend requires a uniform prime **`qudit_dim`**. The paper is
+  more general; `prime_bypass` does not add composite Ext support.
 - **No parentheses in polynomials.** Inputs are validated against a strict character
   whitelist. Fully expand everything: use `y + z + x*y + x*z`, never `(1+x)*(y+z)`.
 - **Variables**: spatial `x, y, z`; their Laurent inverses are `t, u, w`
   (`x*t = y*u = z*w = 1`). Use `x^-1` / `x**-1` in input; it is rewritten to `t`.
-- A stabilizer matrix is a list of rows (lists of polynomial strings). All rows must
-  have equal length.
+- A stabilizer matrix is a list of equal-length rows. Each row is one generator
+  in `[X_1,...,X_q,Z_1,...,Z_q]` coordinates, so its length must be even.
+  Homology checks `sigma^dagger lambda sigma=0` by default.
+- Supply `spatial_dim` when the ambient ring has axes absent from the coefficients.
 
 ## Backend / environment
 
@@ -96,7 +97,7 @@ config is also written (`.mcp.json` / `opencode.json` / `.codex/config.toml` /
 <!-- mobility-toolkit:start -->
 ## mobility_toolkit
 
-Homological-algebra toolkit for excitation-mobility properties of translation-invariant stabilizer codes (backed by Macaulay2).
+Homological-algebra toolkit for validated Ruba--Yang charge-module invariants of translation-invariant stabilizer codes (backed by Macaulay2). Krull dimension is interpreted only within the theorem's stated scope.
 
 Skills are organized by three layers -- L1 model, L2 algebra, L3 physics -- each skill being an edge between two layers:
 - L1->L2: `mt-translate`, `mt-homology`

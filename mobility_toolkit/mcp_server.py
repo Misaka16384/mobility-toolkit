@@ -12,7 +12,7 @@ from typing import List, Dict, Any, Optional
 
 from mobility_toolkit import (
     compute_ext_krull,
-    compute_true_mobility_dimension,
+    compute_translation_lattice,
     compute_gsd_and_periodicity,
     analyze_fusion_interference,
     solve_sset_fusion,
@@ -27,7 +27,15 @@ from mobility_toolkit.boundary_gauge.boundary.pipeline import (
 mcp = FastMCP("mobility-toolkit")
 
 @mcp.tool()
-def compute_homology(stabilizer_matrix: List[List[str]], qudit_dim: int, p_ext: int = 0, prime_bypass: bool = False) -> Dict[str, Any]:
+def compute_homology(
+    stabilizer_matrix: List[List[str]],
+    qudit_dim: int,
+    p_ext: int = 0,
+    prime_bypass: bool = False,
+    spatial_dim: Optional[int] = None,
+    validate_stabilizer: bool = True,
+    saturated: Optional[bool] = None,
+) -> Dict[str, Any]:
     """
     Compute the homology Ext modules, Krull dimension, and annihilator generators.
     
@@ -35,21 +43,33 @@ def compute_homology(stabilizer_matrix: List[List[str]], qudit_dim: int, p_ext: 
         stabilizer_matrix: Pauli stabilizer matrix as a list of lists of strings.
         qudit_dim: Qudit dimension (characteristic N).
         p_ext: Ext module index (0 for point, 1 for loop excitations).
-        prime_bypass: Set to True to bypass prime characteristic checks (e.g. for composite N=12).
+        prime_bypass: Compatibility option; composite-coefficient Ext is not implemented.
+        spatial_dim: Ambient lattice dimension, including axes absent from coefficients.
+        validate_stabilizer: Verify even Pauli rank and sigma^dagger lambda sigma = 0.
+        saturated: Optional caller-supplied saturation hypothesis for Proposition 25.
     """
-    return compute_ext_krull(stabilizer_matrix, qudit_dim, p_ext, prime_bypass)
+    return compute_ext_krull(
+        stabilizer_matrix,
+        qudit_dim,
+        p_ext=p_ext,
+        prime_bypass=prime_bypass,
+        spatial_dim=spatial_dim,
+        validate_stabilizer=validate_stabilizer,
+        saturated=saturated,
+    )
 
 @mcp.tool()
 def compute_mobility(generators: List[str], qudit_dim: int, variables: Optional[List[str]] = None) -> Dict[str, Any]:
     """
-    Compute the physical mobility dimension of a given annihilator ideal.
+    Compute the exact translation lattice of a Laurent-binomial annihilator.
     
     Args:
         generators: List of generator polynomials.
         qudit_dim: Qudit dimension.
-        variables: Optional list of active variables (defaults to x, t, y, u, z, w).
+        variables: Optional variables fixing the ambient Laurent ring.  Inverse
+            pairs such as x/t are treated as one spatial axis.
     """
-    return compute_true_mobility_dimension(generators, qudit_dim, variables)
+    return compute_translation_lattice(generators, qudit_dim, variables)
 
 @mcp.tool()
 def compute_grobner(stabilizer_matrix: List[List[str]], qudit_dim: int, Lx: Optional[int] = None, Ly: Optional[int] = None, L: Optional[List[int]] = None) -> Dict[str, Any]:

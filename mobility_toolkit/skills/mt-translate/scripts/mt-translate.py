@@ -9,7 +9,8 @@ if __name__ == "__main__":
             data.get("stabilizer_matrix"),
             data.get("qudit_dim"),
             spatial_dim=data.get("spatial_dim"),
-            prime_bypass=data.get("prime_bypass", False)
+            prime_bypass=data.get("prime_bypass", False),
+            validate_stabilizer=data.get("validate_stabilizer", True),
         )
         result["status"] = "success"
         print(json.dumps(result))

@@ -1,49 +1,98 @@
-"""Layer-3 interpreter: classify_mobility. Pure Python, no Macaulay2 backend."""
+"""Theorem-safe Layer-3 interpretation; pure Python, no M2 backend."""
 import pytest
 
 from mobility_toolkit.physics import classify_mobility
 
 
-def test_krull_zero_is_topological():
-    r = classify_mobility(0, spatial_dim=2)
-    assert r["order"] == "topological"
-    assert r["is_topological"] and not r["is_fracton"]
-    assert r["mobility_class"] == "fully-mobile (anyon)"
-    assert r["generic_mobility_dimension"] == 2
+def test_q0_krull_zero_proves_full_mobility_but_not_topological_order():
+    result = classify_mobility(0, spatial_dim=2)
+
+    assert result["theorem_status"] == "proven"
+    assert result["mobility_conclusion"] == "all_local_point_charges_fully_mobile"
+    assert result["mobility_class"] == "fully-mobile-local-point-charges"
+    assert result["topological_order"] is None
+    assert result["order"] is None
+    assert result["is_topological"] is None
+    assert result["is_fracton"] is None
+    assert result["generic_mobility_dimension"] is None
+    assert result["evidence"]["reference"] == "Ruba--Yang, Corollary 37"
 
 
-@pytest.mark.parametrize("krull,d,klass,gen_dim", [
-    (1, 3, "planon", 2),
-    (2, 3, "lineon", 1),
-    (3, 3, "fracton (immobile)", 0),
-    (5, 3, "fracton (immobile)", 0),   # over-restricted clamps to 0
-])
-def test_positive_krull_is_fracton(krull, d, klass, gen_dim):
-    r = classify_mobility(krull, spatial_dim=d)
-    assert r["order"] == "fracton"
-    assert r["is_fracton"] and not r["is_topological"]
-    assert r["mobility_class"] == klass
-    assert r["generic_mobility_dimension"] == gen_dim
+def test_topological_order_label_requires_explicit_extra_assumptions():
+    incomplete = classify_mobility(
+        0,
+        spatial_dim=2,
+        assumptions={"lagrangian": True, "saturated": True},
+    )
+    assert incomplete["topological_order"] is None
+
+    qualified = classify_mobility(
+        0,
+        spatial_dim=2,
+        assumptions={"lagrangian": True, "saturated": True, "no_ssb": True},
+    )
+    assert qualified["topological_order"] is True
+    assert qualified["order"] == "topological"
+    assert qualified["is_topological"] is True
 
 
-def test_negative_krull_is_trivial():
-    r = classify_mobility(-1)
-    assert r["order"] == "trivial"
-    assert not r["is_topological"] and not r["is_fracton"]
-    assert r["generic_mobility_dimension"] is None
+@pytest.mark.parametrize("krull_dim", [1, 2, 3, 5])
+def test_positive_q0_dimension_only_proves_not_all_charges_are_fully_mobile(krull_dim):
+    result = classify_mobility(krull_dim, spatial_dim=3)
+
+    assert result["theorem_status"] == "proven"
+    assert result["mobility_conclusion"] == "not_all_local_point_charges_fully_mobile"
+    assert result["mobility_class"] == "not-fully-mobile-as-a-whole"
+    assert result["generic_mobility_dimension"] is None
+    assert result["is_fracton"] is None
+    assert result["topological_order"] is None
+    assert all(
+        label not in result["note"].lower()
+        for label in ("is a planon", "is a lineon", "is a fracton")
+    )
+
+
+def test_zero_charge_module_does_not_make_the_code_trivial():
+    result = classify_mobility(-1)
+
+    assert result["charge_module_status"] == "zero"
+    assert result["mobility_conclusion"] == "no_charge_in_this_degree"
+    assert result["theorem_status"] == "not_applicable"
+    assert result["order"] is None
+    assert result["topological_order"] is None
+    assert "whole stabilizer code is trivial" in result["evidence"]["statement"]
+
+
+@pytest.mark.parametrize("krull_dim", [0, 1, 2])
+def test_higher_charge_degree_mobility_is_reported_as_conjectural(krull_dim):
+    result = classify_mobility(krull_dim, spatial_dim=3, charge_degree=1)
+
+    assert result["charge_degree"] == 1
+    assert result["theorem_status"] == "conjectural"
+    assert result["mobility_conclusion"] == "undetermined_for_higher_charge_degree"
+    assert result["mobility_class"] == "undetermined"
+    assert result["generic_mobility_dimension"] is None
+
+
+def test_p_ext_alias_and_conflict_detection():
+    result = classify_mobility(0, p_ext=2)
+    assert result["charge_degree"] == 2
+    assert result["theorem_status"] == "conjectural"
+
+    with pytest.raises(ValueError, match="disagree"):
+        classify_mobility(0, charge_degree=1, p_ext=2)
 
 
 def test_validation():
     with pytest.raises(TypeError):
-        classify_mobility(True)            # bool is not an int here
+        classify_mobility(True)
     with pytest.raises(TypeError):
         classify_mobility(1.5)
     with pytest.raises(ValueError):
         classify_mobility(0, spatial_dim=0)
-
-
-def test_matches_validated_models():
-    """Mirrors docs/VALIDATION.md: toric (Krull 0) mobile; X-Cube (2) & Chamon (1) fracton."""
-    assert classify_mobility(0, 2)["is_topological"] is True     # toric code
-    assert classify_mobility(2, 3)["is_fracton"] is True         # X-Cube
-    assert classify_mobility(1, 3)["is_fracton"] is True         # Chamon
+    with pytest.raises(ValueError):
+        classify_mobility(0, charge_degree=-1)
+    with pytest.raises(TypeError):
+        classify_mobility(0, assumptions=[])
+    with pytest.raises(TypeError):
+        classify_mobility(0, assumptions={"lagrangian": "yes"})

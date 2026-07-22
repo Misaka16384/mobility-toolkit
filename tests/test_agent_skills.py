@@ -17,6 +17,7 @@ from mobility_toolkit.translate import translate_to_algebra
 from mobility_toolkit.homology import compute_homology_and_mobility
 from mobility_toolkit.fusion import analyze_fusion_interference
 from mobility_toolkit.registry import query_vector_db, DB_PATH
+from mobility_toolkit.reference_models import TORIC_CODE_2D, XCUBE_EQ98
 
 @pytest.fixture(autouse=True)
 def clean_db():
@@ -42,7 +43,7 @@ def test_translate_to_algebra_basic():
         ["1 - x^-1", "1 - y**-2", "0", "0"],
         ["0", "0", "1 - y", "1 - x"]
     ]
-    res = translate_to_algebra(stabilizer_matrix, qudit_dim=2)
+    res = translate_to_algebra(stabilizer_matrix, qudit_dim=2, validate_stabilizer=False)
     assert res["variables"] == ["x", "t", "y", "u"]
     assert "ZZ/2" in res["ring_definition"]
     assert "ideal(x*t - 1, y*u - 1)" in res["ring_definition"]
@@ -55,7 +56,7 @@ def test_translate_to_algebra_3d():
     stabilizer_matrix = [
         ["1 - x", "1 - y", "1 - z**-3", "0"]
     ]
-    res = translate_to_algebra(stabilizer_matrix, qudit_dim=3)
+    res = translate_to_algebra(stabilizer_matrix, qudit_dim=3, validate_stabilizer=False)
     assert res["variables"] == ["x", "t", "y", "u", "z", "w"]
     assert "ideal(x*t - 1, y*u - 1, z*w - 1)" in res["ring_definition"]
     assert res["matrix_definition"] == "{{1 - x}, {1 - y}, {1 - w^3}, {0}}"
@@ -77,22 +78,14 @@ def test_translate_to_algebra_validation():
 
 def test_compute_homology_and_mobility_toric():
     """Verify Krull dimension is 0 for Toric Code point excitations (p_ext=0)."""
-    stabilizer_matrix = [
-        ["1 - x", "1 - y", "0", "0"],
-        ["0", "0", "1 - y", "1 - x"]
-    ]
-    res = compute_homology_and_mobility(stabilizer_matrix, qudit_dim=2, p_ext=0)
+    res = compute_homology_and_mobility(TORIC_CODE_2D, qudit_dim=2, p_ext=0)
     assert res["krull_dimension"] == 0
     assert "cokernel" in res["ext_modules"][0]
 
 def test_compute_homology_and_mobility_xcube():
-    """Verify Krull dimension is 2 for X-Cube point excitations (p_ext=0)."""
-    stabilizer_matrix = [
-        ["1 - x", "1 - y", "1 - z", "0"],
-        ["0", "1 - y", "1 - z", "1 - x"]
-    ]
-    res = compute_homology_and_mobility(stabilizer_matrix, qudit_dim=2, p_ext=0)
-    assert res["krull_dimension"] == 2
+    """Verify the full Eq. (98) X-Cube point-charge module has dimension 1."""
+    res = compute_homology_and_mobility(XCUBE_EQ98, qudit_dim=2, p_ext=0)
+    assert res["krull_dimension"] == 1
 
 # ==============================================================================
 # 3. Tests for analyze_fusion_interference
@@ -208,7 +201,10 @@ def test_translate_to_algebra_prime_bypass():
         translate_to_algebra([["1 - x"]], qudit_dim=4)
         
     # If prime_bypass=True, it succeeds
-    res = translate_to_algebra([["1 - x"]], qudit_dim=4, prime_bypass=True)
+    res = translate_to_algebra(
+        [["1 - x"]], qudit_dim=4, prime_bypass=True,
+        validate_stabilizer=False,
+    )
     assert "variables" in res
     assert "ZZ/4" in res["ring_definition"]
 
@@ -216,12 +212,13 @@ def test_compute_homology_prime_bypass():
     """Verify compute_homology_and_mobility behavior with composite qudit_dim and prime_bypass."""
     # If prime_bypass=False (default) and qudit_dim is composite, it raises ValueError
     with pytest.raises(ValueError, match="must be prime"):
-        compute_homology_and_mobility([["1 - x", "1 - y", "0", "0"], ["0", "0", "1 - y", "1 - x"]], qudit_dim=4, p_ext=0)
+        compute_homology_and_mobility(TORIC_CODE_2D, qudit_dim=4, p_ext=0)
         
-    # If prime_bypass=True, it succeeds in bypassing the prime check but Macaulay2 fails with RuntimeError
-    with pytest.raises(RuntimeError, match="Macaulay2 execution failed"):
+    # The paper supports composite coefficients, but this backend fails early
+    # with an explicit implementation-scope error instead of a deep M2 failure.
+    with pytest.raises(NotImplementedError, match="backend currently implements Ext only"):
         compute_homology_and_mobility(
-            [["1 - x", "1 - y", "0", "0"], ["0", "0", "1 - y", "1 - x"]],
+            TORIC_CODE_2D,
             qudit_dim=4,
             p_ext=0,
             prime_bypass=True
@@ -258,7 +255,8 @@ def test_skill_translate_forwarding():
         "stabilizer_matrix": [["1 - x", "1 - y"]],
         "qudit_dim": 4,
         "prime_bypass": True,
-        "spatial_dim": 3
+        "spatial_dim": 3,
+        "validate_stabilizer": False
     }
     proc = subprocess.Popen(
         [sys.executable, script_path],
@@ -283,8 +281,7 @@ def test_skill_homology_forwarding():
     # 1. prime_bypass=False should fail with ValueError
     input_data_fail = {
         "stabilizer_matrix": [
-            ["1 - x", "1 - y", "0", "0"],
-            ["0", "0", "1 - y", "1 - x"]
+            *TORIC_CODE_2D
         ],
         "qudit_dim": 4,
         "p_ext": 0,
@@ -304,11 +301,10 @@ def test_skill_homology_forwarding():
     assert res["status"] == "error"
     assert "ValueError" in res["error"]
 
-    # 2. prime_bypass=True should bypass the prime check but fail during M2 execution (RuntimeError)
+    # 2. prime_bypass=True still reports the explicit backend limitation.
     input_data_bypass = {
         "stabilizer_matrix": [
-            ["1 - x", "1 - y", "0", "0"],
-            ["0", "0", "1 - y", "1 - x"]
+            *TORIC_CODE_2D
         ],
         "qudit_dim": 4,
         "p_ext": 0,
@@ -326,6 +322,5 @@ def test_skill_homology_forwarding():
     assert proc.returncode == 1
     res = json.loads(stdout)
     assert res["status"] == "error"
-    assert "RuntimeError" in res["error"]
-
+    assert "NotImplementedError" in res["error"]
 

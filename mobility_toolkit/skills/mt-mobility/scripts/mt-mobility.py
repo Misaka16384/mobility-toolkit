@@ -8,7 +8,8 @@ if __name__ == "__main__":
         result = compute_true_mobility_dimension(
             data.get("generators"), data.get("qudit_dim"), data.get("all_vars")
         )
-        result["status"] = "success"
+        # Preserve structured inconclusive/trivial outcomes from the core.
+        result.setdefault("status", "success")
         print(json.dumps(result))
     except Exception as e:
         print(json.dumps({"status": "error", "error": f"{type(e).__name__}: {str(e)}"}))

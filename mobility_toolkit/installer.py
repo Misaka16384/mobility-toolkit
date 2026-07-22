@@ -31,9 +31,9 @@ SKILLS_SRC = PACKAGE_DIR / "skills"                    # skills ship inside the 
 #   L1 model -> L2 algebra -> L3 physics.
 SKILL_NAMES = [
     "mt-translate",   # L1->L2  stabilizer model -> ring/matrix/variables
-    "mt-homology",    # L1->L2  Ext module + Krull dim (+ attached L3 class)
-    "mt-classify",    # L2->L3  Krull dim -> mobility class (pure)
-    "mt-mobility",    # L2->L3  annihilator generators -> true mobility dimension
+    "mt-homology",    # L1->L2  validated barred Ext module + Krull dim
+    "mt-classify",    # L2->L3  theorem-scoped Krull interpretation (pure)
+    "mt-mobility",    # L2->L3  Laurent-binomial annihilator -> translation lattice
     "mt-gsd",         # L1->L3  GSD + periodicities on a torus
     "mt-fusion",      # L1->L3  fusion interference under shifts
     "mt-models",      # L1<->L3 model/property registry
@@ -188,8 +188,10 @@ def _agents_block() -> str:
     return (
         f"{AGENTS_BLOCK_START}\n"
         "## mobility_toolkit\n\n"
-        "Homological-algebra toolkit for excitation-mobility properties of "
-        "translation-invariant stabilizer codes (backed by Macaulay2).\n\n"
+        "Homological-algebra toolkit for validated Ruba--Yang charge-module "
+        "invariants of translation-invariant stabilizer codes (backed by "
+        "Macaulay2). Krull dimension is interpreted only within the theorem's "
+        "stated scope.\n\n"
         "Skills are organized by three layers -- L1 model, L2 algebra, L3 physics -- "
         "each skill being an edge between two layers:\n"
         "- L1->L2: `mt-translate`, `mt-homology`\n"

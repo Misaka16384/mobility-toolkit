@@ -1,62 +1,70 @@
 ---
 name: mt-homology
-description: "Layer 1->2 (model -> algebra), with the Layer 3 reading attached. Compute the Ext^{p_ext+1} charge module, its Krull dimension, and the annihilator generators for a stabilizer code, then label the physical mobility class. Use to decide whether a code is topological or fracton straight from its stabilizers. Needs Macaulay2."
+description: "Use when you have stabilizer generator rows and need Ruba--Yang's Q^p = Ext_R^{p+1}(bar(P/L),R), its Krull dimension, annihilator, and validation metadata. Needs Macaulay2."
 ---
 
-# mt-homology — Ext module + Krull dimension + class (Layer 1→2, with L3 label)
+# mt-homology — validated stabilizer → Ruba--Yang charge module
 
-Computes the **Layer 2** algebraic invariant — the `Ext^{p_ext+1}(coker M, R)` charge
-module, its **Krull dimension**, and the **annihilator generators** — and attaches the
-**Layer 3** mobility class (`classify_mobility`). This is the one-shot "stabilizers →
-mobility classification."
+Computes
 
-> **Criterion** (validated, see `docs/VALIDATION.md`): Krull dimension **0 ⟺ mobile**
-> (topological order); **> 0 ⟺ restricted** (fracton order).
+```text
+Q^p = Ext_R^(p+1)(bar(P/L), R)
+```
 
-## Conventions (read first — these cause most errors)
+over a Laurent ring, including the antipode in `bar(P/L)`. It returns the Ext
+presentation, annihilator, Krull dimension, ambient-ring metadata, stabilizer
+validation, and Proposition 25 consistency checks.
 
-- **`qudit_dim` must be prime** (ring is `ZZ/N`; Ext needs a field). For composite N the
-  homology path is unavailable — use **mt-gsd** instead (see VALIDATION Finding 2).
-- **No parentheses** — fully expand: `y + z + x*y + x*z`, never `(1+x)*(y+z)`.
-- Variables: spatial `x, y, z`; Laurent inverses `t, u, w` (`x*t = y*u = z*w = 1`).
-- **`p_ext`**: use `0` for point (0-dimensional) charges; higher `p` for higher-form charges.
+## Input convention
 
-## Input
+- Each input row is one stabilizer generator.
+- Coordinates are `[X_1,...,X_q,Z_1,...,Z_q]` and therefore have even length.
+- The default validates `sigma^dagger lambda sigma = 0`, where dagger includes
+  Laurent inversion.
+- Use `validate_stabilizer=false` only for an arbitrary algebraic presentation;
+  that result is not certified as a stabilizer-code invariant.
+- Set `spatial_dim` whenever the ambient lattice has axes absent from the matrix.
+- `qudit_dim` must currently be prime. The paper supports composite and
+  nonuniform qudits; the current Ext backend does not.
+- `p_ext=0` computes local point charges. Higher `p_ext` has no theorem-proven
+  direct mobility classification in the paper.
+
+## Example
+
 ```json
 {
-  "stabilizer_matrix": [["1 - x", "1 - y", "1 - z", "0"], ["0", "1 - y", "1 - z", "1 - x"]],
+  "stabilizer_matrix": [
+    ["1-t", "1-u", "0", "0"],
+    ["0", "0", "y-1", "1-x"]
+  ],
   "qudit_dim": 2,
   "p_ext": 0,
-  "spatial_dim": 3         // optional; inferred from the variables present if omitted
+  "spatial_dim": 2
 }
 ```
 
-## Output
-```json
-{ "status": "success",
-  "krull_dimension": 2,
-  "ext_modules": ["cokernel | ... |"],
-  "annihilator_generators": ["...", "..."],
-  "order": "fracton", "mobility_class": "lineon",
-  "is_topological": false, "is_fracton": true,
-  "generic_mobility_dimension": 1, "spatial_dim": 3, "note": "..." }
-```
+Run:
 
-## Examples
 ```bash
-# Toric code: Krull 0 -> fully-mobile anyons (topological)
-echo '{"stabilizer_matrix": [["1 - x","1 - y","0","0"],["0","0","1 - y","1 - x"]], "qudit_dim": 2, "p_ext": 0}' \
-  | python scripts/mt-homology.py
-
-# X-Cube: Krull 2 -> restricted (fracton order)
-echo '{"stabilizer_matrix": [["1 - x","1 - y","1 - z","0"],["0","1 - y","1 - z","1 - x"]], "qudit_dim": 2, "p_ext": 0}' \
-  | python scripts/mt-homology.py
+python scripts/mt-homology.py < input.json
 ```
 
-## Next
-- Pass `krull_dimension` to **mt-classify** to re-interpret under a different `spatial_dim`.
-- Pass `annihilator_generators` to **mt-mobility** for the *exact* free-direction count
-  (needed for Type-II fractons, where Krull overestimates mobility).
+## Reading the result
 
-## Backend
-Needs Macaulay2. If a run errors, check it with the **mt-doctor** skill first.
+- `krull_dimension=-1` means this charge module is zero, not that the entire
+  code or phase is trivial.
+- For `Q^0`, dimension zero is equivalent to every local point-charge class
+  being mobile in all noncompact directions. Positive dimension only says that
+  not all such classes are fully mobile.
+- Krull dimension alone does not distinguish planons, lineons, or fractons and
+  does not prove topological order.
+- Pass `saturated=true` only if saturation is known independently; this enables
+  the stronger Proposition 25 bound check.
+
+The returned ideal is `Ann(Q^p)`, the annihilator of the whole charge module.
+Passing it with the full `variables` list to **mt-mobility** computes only the
+translations acting trivially on every class in that module. To study an
+individual charge, first obtain that element's own `Ann(q)`; do not substitute
+`Ann(Q^p)` and label the result as individual mobility.
+
+If the backend fails, run **mt-doctor** first.
