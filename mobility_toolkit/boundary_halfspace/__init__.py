@@ -27,6 +27,13 @@ from mobility_toolkit.boundary_halfspace.search import (
     SearchTermination,
     halfspace_capability_report,
 )
+from mobility_toolkit.boundary_halfspace.presentation import (
+    OneSidedClearing,
+    TangentDepthPolynomial,
+    TangentDepthTerm,
+    adapt_laurent_polynomial,
+    clear_negative_depth,
+)
 
 __all__ = [
     "AncillaBound",
@@ -46,4 +53,9 @@ __all__ = [
     "UnimodularBasisChange",
     "compare_orientations",
     "halfspace_capability_report",
+    "OneSidedClearing",
+    "TangentDepthPolynomial",
+    "TangentDepthTerm",
+    "adapt_laurent_polynomial",
+    "clear_negative_depth",
 ]
