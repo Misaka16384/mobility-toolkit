@@ -14,15 +14,27 @@ from mobility_toolkit.finite.backend import (
     verify_integer_kernel,
     verify_smith_invariants,
 )
+from mobility_toolkit.finite.groups import (
+    FiniteAbelianGroup,
+    FiniteGroupHomomorphism,
+    FiniteQuotient,
+    FiniteSubgroup,
+    MembershipWitness,
+)
 
 __all__ = [
     "ColumnLatticeCertificate",
     "ColumnLatticeResult",
     "FiniteBackendUnavailable",
+    "FiniteAbelianGroup",
+    "FiniteGroupHomomorphism",
     "FiniteIntegerBackend",
+    "FiniteQuotient",
+    "FiniteSubgroup",
     "FlintIntegerBackend",
     "IntegerKernelResult",
     "KernelCertificate",
+    "MembershipWitness",
     "NotInLattice",
     "SmithInvariantResult",
     "verify_column_lattice",

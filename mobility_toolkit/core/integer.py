@@ -103,6 +103,79 @@ class SparseIntMatrix:
             tuple((column, row, value) for row, column, value in self.entries),
         )
 
+    def negate(self) -> "SparseIntMatrix":
+        return SparseIntMatrix(
+            self.nrows,
+            self.ncols,
+            tuple((row, column, -value) for row, column, value in self.entries),
+        )
+
+    @classmethod
+    def hstack(cls, *matrices: "SparseIntMatrix") -> "SparseIntMatrix":
+        if not matrices:
+            return cls.zero(0, 0)
+        nrows = matrices[0].nrows
+        if any(matrix.nrows != nrows for matrix in matrices):
+            raise ValueError("horizontal stack requires equal row counts")
+        entries = []
+        column_offset = 0
+        for matrix in matrices:
+            entries.extend(
+                (row, column + column_offset, value)
+                for row, column, value in matrix.entries
+            )
+            column_offset += matrix.ncols
+        return cls(nrows, column_offset, tuple(entries))
+
+    @classmethod
+    def vstack(cls, *matrices: "SparseIntMatrix") -> "SparseIntMatrix":
+        if not matrices:
+            return cls.zero(0, 0)
+        ncols = matrices[0].ncols
+        if any(matrix.ncols != ncols for matrix in matrices):
+            raise ValueError("vertical stack requires equal column counts")
+        entries = []
+        row_offset = 0
+        for matrix in matrices:
+            entries.extend(
+                (row + row_offset, column, value)
+                for row, column, value in matrix.entries
+            )
+            row_offset += matrix.nrows
+        return cls(row_offset, ncols, tuple(entries))
+
+    def select_rows(self, rows: Sequence[int]) -> "SparseIntMatrix":
+        rows = tuple(_require_plain_int(row, "row") for row in rows)
+        if len(set(rows)) != len(rows) or any(row < 0 or row >= self.nrows for row in rows):
+            raise ValueError("selected rows must be unique valid indices")
+        row_map = {old: new for new, old in enumerate(rows)}
+        return SparseIntMatrix(
+            len(rows),
+            self.ncols,
+            tuple(
+                (row_map[row], column, value)
+                for row, column, value in self.entries
+                if row in row_map
+            ),
+        )
+
+    def select_columns(self, columns: Sequence[int]) -> "SparseIntMatrix":
+        columns = tuple(_require_plain_int(column, "column") for column in columns)
+        if len(set(columns)) != len(columns) or any(
+            column < 0 or column >= self.ncols for column in columns
+        ):
+            raise ValueError("selected columns must be unique valid indices")
+        column_map = {old: new for new, old in enumerate(columns)}
+        return SparseIntMatrix(
+            self.nrows,
+            len(columns),
+            tuple(
+                (row, column_map[column], value)
+                for row, column, value in self.entries
+                if column in column_map
+            ),
+        )
+
     def matmul(self, other: "SparseIntMatrix") -> "SparseIntMatrix":
         if self.ncols != other.nrows:
             raise ValueError(
