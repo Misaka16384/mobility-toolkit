@@ -121,10 +121,11 @@ class SubsystemCodeSpec:
 
 @dataclass(frozen=True, order=True)
 class OperatorTerm:
-    offset: Tuple[int, ...]
+    free_offset: Tuple[int, ...]
     species_id: str
     x_exponents: Tuple[int, ...]
     z_exponents: Tuple[int, ...]
+    torsion_offset: Tuple[int, ...] = ()
 
     SCHEMA_ID = "mobility_toolkit.operator_term.v1"
 
@@ -132,7 +133,14 @@ class OperatorTerm:
         if not isinstance(self.species_id, str) or not self.species_id:
             raise ValueError("species_id must be a nonempty string")
         object.__setattr__(
-            self, "offset", tuple(_integer(value, "offset") for value in self.offset)
+            self,
+            "free_offset",
+            tuple(_integer(value, "free offset") for value in self.free_offset),
+        )
+        object.__setattr__(
+            self,
+            "torsion_offset",
+            tuple(_integer(value, "torsion offset") for value in self.torsion_offset),
         )
         object.__setattr__(
             self,
@@ -152,14 +160,16 @@ class OperatorTerm:
         species_id: str,
         x: int = 0,
         z: int = 0,
+        torsion_offset: Sequence[int] = (),
     ) -> "OperatorTerm":
-        return cls(tuple(offset), species_id, (x,), (z,))
+        return cls(tuple(offset), species_id, (x,), (z,), tuple(torsion_offset))
 
     def to_canonical_dict(self) -> dict:
         return {
-            "offset": self.offset,
+            "free_offset": self.free_offset,
             "schema": self.SCHEMA_ID,
             "species_id": self.species_id,
+            "torsion_offset": self.torsion_offset,
             "x_exponents": self.x_exponents,
             "z_exponents": self.z_exponents,
         }
@@ -191,8 +201,10 @@ def _normalize_template(
 ) -> OperatorTemplate:
     accumulated = {}
     for term in template.terms:
-        if len(term.offset) != group.free_rank:
-            raise ValueError("operator offset rank does not match the translation group")
+        if len(term.free_offset) != group.free_rank:
+            raise ValueError("operator free-offset rank does not match the translation group")
+        if len(term.torsion_offset) != len(group.torsion_invariants):
+            raise ValueError("operator torsion-offset rank does not match the translation group")
         if term.species_id not in species:
             raise ValueError(f"unknown operator species: {term.species_id}")
         local = species[term.species_id]
@@ -200,7 +212,11 @@ def _normalize_template(
             raise ValueError("operator X exponent count does not match species")
         if len(term.z_exponents) != len(local.invariant_factors):
             raise ValueError("operator Z exponent count does not match species")
-        key = (term.offset, term.species_id)
+        torsion_offset = tuple(
+            value % order
+            for value, order in zip(term.torsion_offset, group.torsion_invariants)
+        )
+        key = (term.free_offset, torsion_offset, term.species_id)
         if key not in accumulated:
             accumulated[key] = (
                 [0] * len(local.invariant_factors),
@@ -211,10 +227,18 @@ def _normalize_template(
             x_values[index] = (x_values[index] + term.x_exponents[index]) % factor
             z_values[index] = (z_values[index] + term.z_exponents[index]) % factor
     normalized = []
-    for (offset, species_id), (x_values, z_values) in sorted(accumulated.items()):
+    for (free_offset, torsion_offset, species_id), (x_values, z_values) in sorted(
+        accumulated.items()
+    ):
         if any(x_values) or any(z_values):
             normalized.append(
-                OperatorTerm(offset, species_id, tuple(x_values), tuple(z_values))
+                OperatorTerm(
+                    free_offset,
+                    species_id,
+                    tuple(x_values),
+                    tuple(z_values),
+                    torsion_offset,
+                )
             )
     return OperatorTemplate(template.phase % phase_modulus, tuple(normalized))
 

@@ -139,3 +139,21 @@ def test_periodic_code_rejects_wrong_offset_or_species_shape():
             species,
             (OperatorTemplate(0, (OperatorTerm.cyclic((0, 0), "missing", x=1),)),),
         )
+
+
+def test_periodic_operator_terms_include_torsion_offsets():
+    group = TranslationGroup(1, (3,))
+    species = (LocalSystem.cyclic("q", 2),)
+    code = PeriodicCode(
+        group,
+        species,
+        (
+            OperatorTemplate(
+                0,
+                (OperatorTerm.cyclic((0,), "q", x=1, torsion_offset=(4,)),),
+            ),
+        ),
+    )
+    term = code.stabilizer_templates[0].terms[0]
+    assert term.free_offset == (0,)
+    assert term.torsion_offset == (1,)

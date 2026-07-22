@@ -68,6 +68,8 @@ class FiniteAbelianGroup:
         if any(value <= 1 for value in orders):
             raise ValueError("coordinate orders must be greater than one")
         relations = SparseIntMatrix.diagonal(orders)
+        if not orders:
+            return cls(relations, (), tuple(coordinate_labels))
         smith = backend.smith_invariants(relations)
         return cls(relations, smith.torsion_invariants, tuple(coordinate_labels))
 
