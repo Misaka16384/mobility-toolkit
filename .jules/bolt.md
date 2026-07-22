@@ -9,3 +9,6 @@
 ## 2024-05-24 - Deferring modulo in polynomial division
 **Learning:** In polynomial division (`poly_divmod`), modulo operations inside the inner subtraction loop (`num[shift + i] = (num[shift + i] - coeff * den[i]) % N`) are computationally expensive. Since Python handles arbitrarily large integers automatically, we can safely defer the `% N` modulo operation until the very end. This reduces modulo operations from O(deg_num * deg_den) to O(deg_num) and avoids significant overhead.
 **Action:** When implementing mathematical operations involving polynomial division or arrays in Python, defer the modulo operations outside tight inner loops unless dealing with a language with strict integer overflow limits.
+## 2024-07-17 - [C-Level Optimization For Multi-Argument Math Methods]
+**Learning:** Manual list loops and `functools.reduce` over math functions like `lcm` or `gcd` are unexpectedly heavy bottlenecks in purely algorithmic workflows like the Grobner basis solver, despite being common Python idioms. `math.gcd` and `math.lcm` (since Python 3.9) accept *args directly and process natively in C.
+**Action:** Always scan numeric arrays for loop-based mathematical reductions (LCM, GCD, Sum) and map them to their Python 3.9+ C-optimized native multi-argument counterparts.

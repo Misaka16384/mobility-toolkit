@@ -95,11 +95,10 @@ def solve_nullspace_fraction(V_matrix: List[List[int]], num_vars: int) -> List[L
     processed_basis = []
     for v in basis:
         denoms = [x.denominator for x in v]
-        def lcm(a, b):
-            return abs(a * b) // math.gcd(a, b)
-        v_lcm = functools.reduce(lcm, denoms, 1)
+        # Bolt: replaced functools.reduce + manual lcm/gcd with C-optimized math.lcm and math.gcd
+        v_lcm = math.lcm(*denoms)
         v_ints = [int(x * v_lcm) for x in v]
-        g = functools.reduce(math.gcd, v_ints, 0)
+        g = math.gcd(*v_ints)
         if g != 0:
             v_ints = [x // g for x in v_ints]
         first_nonzero = next((x for x in v_ints if x != 0), 0)

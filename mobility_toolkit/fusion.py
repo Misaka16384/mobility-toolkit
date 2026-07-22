@@ -644,9 +644,8 @@ qc = promote(q, S)
             scaled_period = order * (qudit_dim ** math.ceil(math.log(mult, qudit_dim)))
             periods.append(scaled_period)
             
-    total_period = 1
-    for p_val in periods:
-        total_period = (total_period * p_val) // math.gcd(total_period, p_val)
+    # Bolt: replaced manual lcm calculation with C-optimized math.lcm
+    total_period = math.lcm(*periods) if periods else 1
         
     dir_str = format_direction_general(dir_vec, variables)
     return {
