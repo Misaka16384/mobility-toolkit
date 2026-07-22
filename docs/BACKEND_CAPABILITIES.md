@@ -32,6 +32,26 @@ the stated domain; it does not mean every operation is fast.
 | Bounded periodic enumeration E2 | FGA + translation action | independent rerun | finite search-domain certificate |
 | Symbolic 3D enumeration E3 | Laurent/half-space research backend | E1/E2 exhaustion | Experimental unless module completeness is proved |
 
+## Implemented production capabilities after Phase 3
+
+| Capability | Backend/representation | Status |
+|---|---|---|
+| Integer kernel and column lattice | python-flint HNF transform + independent verifier | Production within dense budget |
+| SNF invariant factors | python-flint + SymPy cross-check | Production within dense budget |
+| Howell form over `Z/n` | certified integer preimage HNF | Production |
+| CRT primary decomposition | exact idempotent projectors + subgroup/order checks | Production |
+| Prime-field kernel | modular RREF; bit-packed GF(2) fast path | Production |
+| Mixed finite Pauli stabilizers | phase-aware FGA centralizer/logical quotient | Production |
+| Finite cell complexes | signed integer incidence with `boundary^2=0` validation | Production |
+| Oriented finite quotients | signed cell gluings with boundary-compatibility check | Production |
+| Periodic-to-finite compilation | explicit crossing/alias policies and full provenance | Production for explicit finite inputs |
+| Site/frame twists | phase-aware local Pauli automorphisms with inverse/path checks | Production |
+| Boundary synthesis/enumeration | not yet implemented | Unsupported until Phase 5A |
+| Half-space symbolic boundary | not yet implemented | Unsupported until Phase 6 |
+
+The FLINT adapter refuses a single dense materialization above 2,000,000
+entries by default. See `docs/FINITE_BACKEND.md`.
+
 ## Selection rules
 
 1. The caller requests an operation and exactness level, not a preferred matrix
