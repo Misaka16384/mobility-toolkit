@@ -29,6 +29,10 @@ from mobility_toolkit.defects.projection import (
     PinnedSubsystemProjection,
     project_pinned_z_subsystems,
 )
+from mobility_toolkit.defects.tube import (
+    TubularDeletedRepresentation,
+    compile_deleted_tube_representation,
+)
 from mobility_toolkit.finite.backend import FiniteIntegerBackend
 from mobility_toolkit.finite.stabilizer import (
     FiniteStabilizerAnalysis,
@@ -69,6 +73,8 @@ class LineDefect:
     def __post_init__(self) -> None:
         if not isinstance(self.defect_id, str) or not self.defect_id:
             raise ValueError("defect_id must be a nonempty string")
+        if not isinstance(self.topology, LineTopology):
+            raise TypeError("line topology must be an explicit LineTopology")
         cubes = tuple(self.cube_cell_ids)
         plaquettes = tuple(self.condensate_plaquette_ids)
         endpoints = tuple(self.endpoint_cube_ids)
@@ -124,10 +130,13 @@ def _incident_plaquettes_by_cube(complex_: CubicalComplex) -> dict:
     boundary = complex_.chain_complex.boundary_maps[3]
     face_ids = complex_.chain_complex.cell_ids_by_dimension[2]
     cube_ids = complex_.chain_complex.cell_ids_by_dimension[3]
-    rows = boundary.to_rows()
+    incident = {cube_id: [] for cube_id in cube_ids}
+    for row, column, coefficient in boundary.entries:
+        if coefficient % 2:
+            incident[cube_ids[column]].append(face_ids[row])
     return {
-        cube_id: tuple(face_ids[row] for row in range(len(face_ids)) if rows[row][column])
-        for column, cube_id in enumerate(cube_ids)
+        cube_id: tuple(sorted(face_cell_ids))
+        for cube_id, face_cell_ids in incident.items()
     }
 
 
@@ -230,6 +239,7 @@ class TubularDefect:
     radius_lattice_steps: int
     tube_cube_cell_ids: Tuple[str, ...]
     tube_site_ids: Tuple[str, ...]
+    tube_wall_site_ids: Tuple[str, ...]
 
     SCHEMA_ID = "mobility_toolkit.tubular_defect.v1"
 
@@ -237,7 +247,7 @@ class TubularDefect:
     def strata(self) -> "DefectStrata":
         return DefectStrata(
             self.core_line.cube_cell_ids,
-            self.tube_site_ids,
+            self.tube_wall_site_ids,
             self.core_line.endpoint_cube_ids,
         )
 
@@ -252,6 +262,8 @@ class TubularDefect:
             raise ValueError("tube cube window must contain the core line")
         if not self.tube_site_ids:
             raise ValueError("tube window must contain at least one Pauli site")
+        if not set(self.tube_wall_site_ids).issubset(self.tube_site_ids):
+            raise ValueError("tube wall sites must belong to the tube support window")
 
     @classmethod
     def around_line(
@@ -278,7 +290,23 @@ class TubularDefect:
             cubes.update(frontier)
         incident = _incident_plaquettes_by_cube(complex_)
         sites = {face_id for cube_id in cubes for face_id in incident[cube_id]}
-        return cls(line, radius_lattice_steps, tuple(sorted(cubes)), tuple(sorted(sites)))
+        face_to_cubes = {}
+        for cube_id, face_ids in incident.items():
+            for face_id in face_ids:
+                face_to_cubes.setdefault(face_id, []).append(cube_id)
+        wall = {
+            face_id
+            for face_id in sites
+            if any(cube_id not in cubes for cube_id in face_to_cubes[face_id])
+            or len(face_to_cubes[face_id]) == 1
+        }
+        return cls(
+            line,
+            radius_lattice_steps,
+            tuple(sorted(cubes)),
+            tuple(sorted(sites)),
+            tuple(sorted(wall)),
+        )
 
     def to_canonical_dict(self) -> dict:
         return {
@@ -288,6 +316,7 @@ class TubularDefect:
             "strata": self.strata,
             "tube_cube_cell_ids": self.tube_cube_cell_ids,
             "tube_site_ids": self.tube_site_ids,
+            "tube_wall_site_ids": self.tube_wall_site_ids,
         }
 
 
@@ -320,7 +349,12 @@ class HamiltonianTerm:
     def __post_init__(self) -> None:
         if not self.term_id or not self.family:
             raise ValueError("Hamiltonian term ID and family must be nonempty")
-        object.__setattr__(self, "source_cell_ids", tuple(self.source_cell_ids))
+        if not isinstance(self.operator, PauliOperator):
+            raise TypeError("Hamiltonian term operator must be a PauliOperator")
+        sources = tuple(self.source_cell_ids)
+        if any(not isinstance(cell_id, str) or not cell_id for cell_id in sources):
+            raise ValueError("Hamiltonian source cell IDs must be nonempty strings")
+        object.__setattr__(self, "source_cell_ids", sources)
 
     def to_canonical_dict(self) -> dict:
         return {
@@ -349,6 +383,23 @@ class SyndromeEntry:
     phase_modulus: int
 
     SCHEMA_ID = "mobility_toolkit.syndrome_entry.v1"
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.term_id, str) or not self.term_id:
+            raise ValueError("syndrome term ID must be a nonempty string")
+        if (
+            isinstance(self.phase_modulus, bool)
+            or not isinstance(self.phase_modulus, int)
+            or self.phase_modulus <= 1
+        ):
+            raise ValueError("syndrome phase modulus must be an integer greater than one")
+        if isinstance(self.phase_exponent, bool) or not isinstance(
+            self.phase_exponent, int
+        ):
+            raise TypeError("syndrome phase exponent must be an integer")
+        object.__setattr__(
+            self, "phase_exponent", self.phase_exponent % self.phase_modulus
+        )
 
     @property
     def violated(self) -> bool:
@@ -567,7 +618,14 @@ class RationalFactor:
     SCHEMA_ID = "mobility_toolkit.rational_factor.v1"
 
     def __post_init__(self) -> None:
-        if self.numerator < 1 or self.denominator < 1:
+        if (
+            isinstance(self.numerator, bool)
+            or not isinstance(self.numerator, int)
+            or isinstance(self.denominator, bool)
+            or not isinstance(self.denominator, int)
+            or self.numerator < 1
+            or self.denominator < 1
+        ):
             raise ValueError("rational factor entries must be positive")
         divisor = math.gcd(self.numerator, self.denominator)
         object.__setattr__(self, "numerator", self.numerator // divisor)
@@ -582,17 +640,17 @@ class RationalFactor:
 
 
 @dataclass(frozen=True)
-class CheshireRepresentationCertificate:
+class PinnedCondensateEliminationCertificate:
     deleted_site_ids: Tuple[str, ...]
     direct_representation: str
-    deletion_representation: str
+    pinned_elimination_representation: str
     local_logical_invariants_match: bool
     fixed_sector_logical_invariants_match: bool
     local_codespace_dimension_matches: bool
     fixed_sector_codespace_dimension_matches: bool
     equivalence_scope: str
 
-    SCHEMA_ID = "mobility_toolkit.cheshire_representation_certificate.v1"
+    SCHEMA_ID = "mobility_toolkit.pinned_condensate_elimination_certificate.v1"
 
     @property
     def verified(self) -> bool:
@@ -606,7 +664,7 @@ class CheshireRepresentationCertificate:
     def to_canonical_dict(self) -> dict:
         return {
             "deleted_site_ids": self.deleted_site_ids,
-            "deletion_representation": self.deletion_representation,
+            "pinned_elimination_representation": self.pinned_elimination_representation,
             "direct_representation": self.direct_representation,
             "equivalence_scope": self.equivalence_scope,
             "fixed_sector_codespace_dimension_matches": self.fixed_sector_codespace_dimension_matches,
@@ -627,9 +685,10 @@ class CheshireStaticAnalysis:
     bulk_analysis: FiniteStabilizerAnalysis
     local_analysis: FiniteStabilizerAnalysis
     fixed_sector_analysis: FiniteStabilizerAnalysis
-    local_tube_deletion: PinnedSubsystemProjection
-    fixed_sector_tube_deletion: PinnedSubsystemProjection
-    representation_certificate: CheshireRepresentationCertificate
+    local_pinned_elimination: PinnedSubsystemProjection
+    fixed_sector_pinned_elimination: PinnedSubsystemProjection
+    pinned_elimination_certificate: PinnedCondensateEliminationCertificate
+    tubular_deleted_representation: TubularDeletedRepresentation
     defect_reports: Tuple[CheshireDefectReport, ...]
     local_gsd_factor: RationalFactor
     fixed_sector_gsd_factor: RationalFactor
@@ -640,6 +699,20 @@ class CheshireStaticAnalysis:
     backend_provenance: BackendProvenance
 
     SCHEMA_ID = "mobility_toolkit.cheshire_static_analysis.v1"
+
+    def __post_init__(self) -> None:
+        assumptions = tuple(sorted(set(self.assumptions)))
+        if not self.pinned_elimination_certificate.verified:
+            raise ValueError("pinned-condensate elimination certificate is not verified")
+        if not self.tubular_deleted_representation.certificate.verified:
+            raise ValueError("line/tube representation certificate is not verified")
+        if any(
+            not report.transformation_certificate.product_identity_verified
+            or not report.transformation_certificate.local_commutation_verified
+            for report in self.defect_reports
+        ):
+            raise ValueError("one or more Cheshire construction checks are not verified")
+        object.__setattr__(self, "assumptions", assumptions)
 
     def to_canonical_dict(self) -> dict:
         return {
@@ -655,9 +728,10 @@ class CheshireStaticAnalysis:
             "fixed_sector_gsd_factor": self.fixed_sector_gsd_factor,
             "fixed_sector_terms": self.fixed_sector_terms,
             "local_analysis": self.local_analysis,
-            "local_tube_deletion": self.local_tube_deletion,
-            "fixed_sector_tube_deletion": self.fixed_sector_tube_deletion,
-            "representation_certificate": self.representation_certificate,
+            "local_pinned_elimination": self.local_pinned_elimination,
+            "fixed_sector_pinned_elimination": self.fixed_sector_pinned_elimination,
+            "pinned_elimination_certificate": self.pinned_elimination_certificate,
+            "tubular_deleted_representation": self.tubular_deleted_representation,
             "local_gsd_factor": self.local_gsd_factor,
             "local_terms": self.local_terms,
             "schema": self.SCHEMA_ID,
@@ -849,6 +923,28 @@ def analyze_toric_cheshire(
         raise ValueError("at least one Cheshire line must be supplied")
     if len({line.defect_id for line in lines}) != len(lines):
         raise ValueError("Cheshire defect IDs must be unique")
+    incident_geometry = _incident_plaquettes_by_cube(complex_)
+    for line in lines:
+        missing_path_cubes = tuple(
+            cube_id for cube_id in line.cube_cell_ids if cube_id not in incident_geometry
+        )
+        if missing_path_cubes:
+            raise ValueError(
+                "line path cubes are absent from the supplied complex: "
+                + ", ".join(missing_path_cubes)
+            )
+        pairs = list(zip(line.cube_cell_ids, line.cube_cell_ids[1:]))
+        if line.topology == LineTopology.CLOSED_LOOP:
+            pairs.append((line.cube_cell_ids[-1], line.cube_cell_ids[0]))
+        expected_plaquettes = tuple(
+            _shared_plaquette(left, right, incident_geometry)
+            for left, right in pairs
+        )
+        if expected_plaquettes != line.condensate_plaquette_ids:
+            raise ValueError(
+                "condensate plaquettes do not match the ordered line links for defect "
+                + line.defect_id
+            )
     all_cubes = tuple(cube for line in lines for cube in line.cube_cell_ids)
     all_faces = tuple(face for line in lines for face in line.condensate_plaquette_ids)
     if len(set(all_cubes)) != len(all_cubes) or len(set(all_faces)) != len(all_faces):
@@ -973,25 +1069,29 @@ def analyze_toric_cheshire(
         backend,
         fixed_analysis,
     )
-    representation_certificate = CheshireRepresentationCertificate(
+    pinned_elimination_certificate = PinnedCondensateEliminationCertificate(
         tuple(sorted(all_faces)),
         "direct line-local stabilizer rewrite with explicit single-plaquette Z pins",
-        "thin tubular-neighborhood deletion after exact projection to the pinned Z=+1 sector",
+        "exact elimination of the explicitly pinned condensate plaquettes in the Z=+1 sector",
         local_analysis.logical_invariant_factors
-        == local_projection.projected_invariants.logical_invariant_factors,
+        == local_projection.projected_analysis.logical_invariant_factors,
         fixed_analysis.logical_invariant_factors
-        == fixed_projection.projected_invariants.logical_invariant_factors,
+        == fixed_projection.projected_analysis.logical_invariant_factors,
         local_analysis.codespace_dimension
-        == local_projection.projected_invariants.codespace_dimension,
+        == local_projection.projected_analysis.codespace_dimension,
         fixed_analysis.codespace_dimension
-        == fixed_projection.projected_invariants.codespace_dimension,
-        "Exact stabilizer isomorphism for deletion of the explicitly pinned condensate "
-        "plaquettes only; it is not an arbitrary-radius tube-shrinking or phase-equivalence claim.",
+        == fixed_projection.projected_analysis.codespace_dimension,
+        "Exact stabilizer isomorphism for elimination of explicitly pinned condensate "
+        "plaquettes only; this is not the separate tubular-neighborhood representation, "
+        "an arbitrary-radius tube shrinking, or a phase-equivalence claim.",
     )
-    if not representation_certificate.verified:
-        raise ArithmeticError("direct and pinned-tube-deletion representations disagree")
+    if not pinned_elimination_certificate.verified:
+        raise ArithmeticError("direct code and pinned-condensate elimination disagree")
+    tubular_representation = compile_deleted_tube_representation(
+        complex_, lines, local_projection, fixed_projection
+    )
     sector_by_defect = dict(zip((line.defect_id for line in lines), sector_terms))
-    incident = _incident_plaquettes_by_cube(complex_)
+    incident = incident_geometry
     defect_reports = []
     for line in lines:
         tube = TubularDefect.around_line(
@@ -1066,12 +1166,13 @@ def analyze_toric_cheshire(
         fixed_analysis,
         local_projection,
         fixed_projection,
-        representation_certificate,
+        pinned_elimination_certificate,
+        tubular_representation,
         tuple(defect_reports),
         RationalFactor(local_analysis.codespace_dimension, bulk_analysis.codespace_dimension),
         RationalFactor(fixed_analysis.codespace_dimension, bulk_analysis.codespace_dimension),
         Exactness.CERTIFIED_EXACT,
-        CertificateLevel.FULL,
+        CertificateLevel.STANDARD,
         STATIC_THEOREM_SCOPE,
         (
             "3+1D Z2 toric code on plaquette qubits",
@@ -1138,7 +1239,7 @@ __all__ = [
     "CheshireDefectReport",
     "CheshireScalingSample",
     "CheshireStaticAnalysis",
-    "CheshireRepresentationCertificate",
+    "PinnedCondensateEliminationCertificate",
     "ClosedLoop",
     "EndpointAlgebraReport",
     "Eq8TransformationCertificate",

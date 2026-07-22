@@ -9,7 +9,7 @@ from mobility_toolkit.defects.cheshire import (
     CheshireDefectReport,
     CheshireScalingSample,
     CheshireStaticAnalysis,
-    CheshireRepresentationCertificate,
+    PinnedCondensateEliminationCertificate,
     ClosedLoop,
     EndpointAlgebraReport,
     Eq8TransformationCertificate,
@@ -32,8 +32,12 @@ from mobility_toolkit.defects.projection import (
     PinnedSubsystemProjection,
     PinnedSubsystemProjectionCertificate,
     ProjectedTerm,
-    ProjectedStabilizerInvariants,
     project_pinned_z_subsystems,
+)
+from mobility_toolkit.defects.tube import (
+    LineTubeRepresentationCertificate,
+    TubularDeletedRepresentation,
+    compile_deleted_tube_representation,
 )
 
 __all__ = [
@@ -43,7 +47,7 @@ __all__ = [
     "CheshireDefectReport",
     "CheshireScalingSample",
     "CheshireStaticAnalysis",
-    "CheshireRepresentationCertificate",
+    "PinnedCondensateEliminationCertificate",
     "ClosedLoop",
     "EndpointAlgebraReport",
     "Eq8TransformationCertificate",
@@ -64,6 +68,8 @@ __all__ = [
     "PinnedSubsystemProjection",
     "PinnedSubsystemProjectionCertificate",
     "ProjectedTerm",
-    "ProjectedStabilizerInvariants",
     "project_pinned_z_subsystems",
+    "LineTubeRepresentationCertificate",
+    "TubularDeletedRepresentation",
+    "compile_deleted_tube_representation",
 ]

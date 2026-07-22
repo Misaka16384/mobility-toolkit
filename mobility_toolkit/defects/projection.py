@@ -14,6 +14,7 @@ from mobility_toolkit.finite.groups import FiniteAbelianGroup
 from mobility_toolkit.finite.stabilizer import (
     FiniteStabilizerAnalysis,
     analyze_finite_stabilizer,
+    validate_stabilizer_generators,
 )
 
 
@@ -80,7 +81,7 @@ class PinnedSubsystemProjection:
     direct_analysis: FiniteStabilizerAnalysis
     projected_code: StabilizerCodeSpec
     projected_terms: Tuple[ProjectedTerm, ...]
-    projected_invariants: "ProjectedStabilizerInvariants"
+    projected_analysis: FiniteStabilizerAnalysis
     certificate: PinnedSubsystemProjectionCertificate
 
     SCHEMA_ID = "mobility_toolkit.pinned_subsystem_projection.v1"
@@ -90,27 +91,8 @@ class PinnedSubsystemProjection:
             "certificate": self.certificate,
             "direct_analysis": self.direct_analysis,
             "projected_code": self.projected_code,
-            "projected_invariants": self.projected_invariants,
+            "projected_analysis": self.projected_analysis,
             "projected_terms": self.projected_terms,
-            "schema": self.SCHEMA_ID,
-        }
-
-
-@dataclass(frozen=True)
-class ProjectedStabilizerInvariants:
-    codespace_dimension: int
-    logical_invariant_factors: Tuple[int, ...]
-    logical_projective_order: int
-    derivation: str
-
-    SCHEMA_ID = "mobility_toolkit.projected_stabilizer_invariants.v1"
-
-    def to_canonical_dict(self) -> dict:
-        return {
-            "codespace_dimension": self.codespace_dimension,
-            "derivation": self.derivation,
-            "logical_invariant_factors": self.logical_invariant_factors,
-            "logical_projective_order": self.logical_projective_order,
             "schema": self.SCHEMA_ID,
         }
 
@@ -131,7 +113,16 @@ def _project_operator(
         kept_terms.append(
             LocalPauliTerm(term.site_id, term.x_exponents, term.z_exponents)
         )
-    return projected_module.operator(kept_terms, phase=operator.phase)
+    old_modulus = operator.module.phase_modulus
+    new_modulus = projected_module.phase_modulus
+    scaled_phase = operator.phase * new_modulus
+    if scaled_phase % old_modulus:
+        raise ValueError(
+            "operator phase is not representable after deleting local subsystems"
+        )
+    return projected_module.operator(
+        kept_terms, phase=scaled_phase // old_modulus
+    )
 
 
 def project_pinned_z_subsystems(
@@ -218,16 +209,25 @@ def project_pinned_z_subsystems(
     validation_errors = projected_code.basic_validation_errors()
     if validation_errors:
         raise ValueError("projected stabilizer code is invalid: " + "; ".join(validation_errors))
+    named_operators_tuple = tuple(operator for _term_id, operator in named)
+    named_validation = validate_stabilizer_generators(
+        module, named_operators_tuple, backend
+    )
+    if not named_validation.valid:
+        raise ValueError(
+            "named direct Hamiltonian is not a valid phase-aware stabilizer group: "
+            + "; ".join(named_validation.errors)
+        )
     if direct_analysis is None:
         direct_analysis = analyze_finite_stabilizer(
-            module, tuple(operator for _term_id, operator in named), backend
+            module, named_operators_tuple, backend
         )
     elif direct_analysis.module != module:
         raise ValueError("supplied direct analysis belongs to a different Pauli module")
     else:
         supplied_group = direct_analysis.ambient_projective_paulis.subgroup(
             direct_analysis.coordinates.generator_matrix(
-                tuple(operator for _term_id, operator in named)
+                named_operators_tuple
             ),
             backend,
         )
@@ -236,27 +236,25 @@ def project_pinned_z_subsystems(
             and direct_analysis.stabilizer.contains_subgroup(supplied_group, backend)
         ):
             raise ValueError("supplied direct analysis does not match the named stabilizer group")
+    projected_analysis = analyze_finite_stabilizer(
+        projected_module, projected_code.generators, backend
+    )
     direct_order = direct_analysis.stabilizer.order(backend)
     deleted_hilbert = math.prod(
         module.system(site_id).hilbert_dimension for site_id in deleted_ids
     )
     if direct_order % deleted_hilbert:
         raise ArithmeticError("direct stabilizer order is incompatible with pinned deletion")
-    projected_order = direct_order // deleted_hilbert
-    projected_invariants = ProjectedStabilizerInvariants(
-        direct_analysis.codespace_dimension,
-        direct_analysis.logical_invariant_factors,
-        direct_analysis.logical_projective_order,
-        "exact stabilizer isomorphism after deleting a fully Z-pinned tensor factor",
-    )
+    projected_order = projected_analysis.stabilizer.order(backend)
     certificate = PinnedSubsystemProjectionCertificate(
         deleted_ids,
         pin_ids,
         tuple(sorted(identity_ids)),
         True,
         pinned_sites == deleted,
-        True,
-        True,
+        direct_analysis.codespace_dimension == projected_analysis.codespace_dimension,
+        direct_analysis.logical_invariant_factors
+        == projected_analysis.logical_invariant_factors,
         direct_order,
         projected_order,
         deleted_hilbert,
@@ -267,7 +265,7 @@ def project_pinned_z_subsystems(
         direct_analysis,
         projected_code,
         tuple(projected_terms),
-        projected_invariants,
+        projected_analysis,
         certificate,
     )
 
@@ -276,6 +274,5 @@ __all__ = [
     "PinnedSubsystemProjection",
     "PinnedSubsystemProjectionCertificate",
     "ProjectedTerm",
-    "ProjectedStabilizerInvariants",
     "project_pinned_z_subsystems",
 ]
