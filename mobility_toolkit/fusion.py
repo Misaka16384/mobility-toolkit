@@ -175,7 +175,9 @@ class Z2Polynomial:
             power //= 2
             # ⚡ Bolt: Skip unnecessary square on final exponentiation step.
             if power > 0:
-                base = base * base
+                # ⚡ Bolt: Over GF(2), (A+B)^2 = A^2 + B^2 (Freshman's Dream)
+                # This avoids O(N^2) multiplication when squaring.
+                base = Z2Polynomial({(ax * 2, ay * 2) for ax, ay in base.terms})
         return res
 
 def tokenize(s: str) -> List[str]:

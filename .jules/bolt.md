@@ -12,3 +12,7 @@
 ## 2024-07-17 - [C-Level Optimization For Multi-Argument Math Methods]
 **Learning:** Manual list loops and `functools.reduce` over math functions like `lcm` or `gcd` are unexpectedly heavy bottlenecks in purely algorithmic workflows like the Grobner basis solver, despite being common Python idioms. `math.gcd` and `math.lcm` (since Python 3.9) accept *args directly and process natively in C.
 **Action:** Always scan numeric arrays for loop-based mathematical reductions (LCM, GCD, Sum) and map them to their Python 3.9+ C-optimized native multi-argument counterparts.
+## 2023-10-27 - GF(2) Polynomial Exponentiation Optimization
+
+**Learning:** When dealing with polynomial arithmetic over GF(2) (characteristic 2), the "Freshman's Dream" identity \((A+B)^2 = A^2 + B^2\) allows polynomial squaring to be performed in \(O(N)\) time by simply doubling the exponents of all terms, instead of performing a full \(O(N^2)\) polynomial multiplication.
+**Action:** Always look for algebraic identities that simplify operations in finite fields, especially characteristic 2 (GF(2) or binary), which can reduce time complexity from quadratic to linear.
