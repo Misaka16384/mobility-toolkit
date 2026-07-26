@@ -1,9 +1,8 @@
-"""Exact lattice geometry and bounded-search contracts for half-spaces.
+"""Exact geometry, one-sided modules, and bounded-search contracts.
 
-This package deliberately contains no symbolic boundary-module computation.
-In particular, constructing a :class:`HalfSpaceSemigroup` does not claim that
-``L_H``, ``P_boundary``, a relative Ext module, or a quasi-symplectic boundary
-module has been computed.
+The uniform-prime module path computes ``L_H = L cap P_H`` by an exact
+normal-variable saturation.  It still does not claim to construct
+``P_boundary``, a relative Ext module, or a quasi-symplectic boundary module.
 """
 
 from mobility_toolkit.boundary_halfspace.geometry import (
@@ -34,6 +33,13 @@ from mobility_toolkit.boundary_halfspace.presentation import (
     adapt_laurent_polynomial,
     clear_negative_depth,
 )
+from mobility_toolkit.boundary_halfspace.module_contraction import (
+    HalfSpaceContractionCertificate,
+    LaurentHalfSpaceSubmodule,
+    OneSidedSubmodule,
+    clear_submodule_columns,
+    contract_laurent_submodule,
+)
 
 __all__ = [
     "AncillaBound",
@@ -58,4 +64,9 @@ __all__ = [
     "TangentDepthTerm",
     "adapt_laurent_polynomial",
     "clear_negative_depth",
+    "HalfSpaceContractionCertificate",
+    "LaurentHalfSpaceSubmodule",
+    "OneSidedSubmodule",
+    "clear_submodule_columns",
+    "contract_laurent_submodule",
 ]
