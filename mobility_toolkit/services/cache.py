@@ -30,6 +30,10 @@ class InMemoryServiceCache:
             raise ValueError("cannot cache a result for a different operation")
         if result.canonical_input_hash != request.canonical_input_hash:
             raise ValueError("cannot cache a result for different input data")
+        if result.schema_version != request.schema_version:
+            raise ValueError("cannot cache a result for a different schema version")
+        if set(result.assumptions) != set(request.assumptions):
+            raise ValueError("cannot cache a result with different assumptions")
         self._values[request.cache_key] = result
 
     def clear(self) -> None:

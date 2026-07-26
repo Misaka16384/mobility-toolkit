@@ -4,27 +4,28 @@ import argparse
 import os
 from mobility_toolkit import (
     __version__,
-    compute_ext_krull,
-    compute_translation_lattice,
-    compute_gsd_and_periodicity,
-    analyze_fusion_interference,
-    solve_sset_fusion,
-    analyze_annihilator_fusion,
-    search_koszul_models,
     query_vector_db,
-    classify_mobility,
 )
 from mobility_toolkit.installer import (
     run_install, run_uninstall, run_status, run_interactive, run_self_update, ALL_TARGETS
 )
-from mobility_toolkit.boundary_gauge.boundary.pipeline import (
-    run_algorithm_1_boundary_ops_2d,
-    run_algorithm_1_boundary_ops_3d,
+from mobility_toolkit.services import (
+    default_service_catalog,
+    execute_service_payload,
 )
 
 class JSONArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         raise ValueError(message)
+
+
+def _service_execution(operation, input_data):
+    """Run a convenience command and preserve the full canonical envelope."""
+
+    return execute_service_payload(
+        {"operation": operation, "input_data": input_data}
+    )
+
 
 def main():
     parser = JSONArgumentParser(description="Mobility Fusion Generalization Toolkit CLI")
@@ -34,6 +35,21 @@ def main():
     )
     subparsers = parser.add_subparsers(dest="command", required=True, help="Subcommands")
 
+    parser_service = subparsers.add_parser(
+        "service",
+        help="Execute one canonical versioned service request (JSON in / JSON out)",
+    )
+    parser_service.add_argument(
+        "--request",
+        type=str,
+        required=True,
+        help="ServiceRequest JSON object, or '-' to read it from stdin",
+    )
+    subparsers.add_parser(
+        "service-catalog",
+        help="Print the canonical machine-readable service operation catalog",
+    )
+
     # homology
     parser_homology = subparsers.add_parser("homology", help="Compute homology Ext modules and Krull dimension")
     parser_homology.add_argument("--stabilizer", type=str, required=True, help="JSON list of lists of strings")
@@ -42,7 +58,6 @@ def main():
     parser_homology.add_argument("--spatial-dim", type=int, default=None, help="Ambient lattice dimension; include axes absent from coefficients")
     parser_homology.add_argument("--algebra-only", action="store_true", help="Treat the matrix as an arbitrary presentation and skip stabilizer commutation validation")
     parser_homology.add_argument("--saturated", action="store_true", default=None, help="Assert that L is saturated and check the stronger Proposition 25 bound")
-    parser_homology.add_argument("--prime-bypass", action="store_true", help="Accepted for API compatibility; composite-coefficient Ext is not implemented")
 
     # mobility
     parser_mobility = subparsers.add_parser("mobility", help="Compute a charge's translation lattice for Laurent-binomial annihilators")
@@ -83,7 +98,6 @@ def main():
     parser_af.add_argument("--generators", type=str, required=True, help="JSON list of strings representing annihilator generators")
     parser_af.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
     parser_af.add_argument("--variables", type=str, default=None, help="JSON list of strings representing active variables")
-    parser_af.add_argument("--prime-bypass", action="store_true", help="Bypass prime check for qudit dimension")
 
 
     # search
@@ -143,91 +157,125 @@ def main():
     try:
         args = parser.parse_args()
 
-        if args.command == "homology":
-            stabilizer = json.loads(args.stabilizer)
-            result = compute_ext_krull(
-                stabilizer,
-                args.qudit_dim,
-                p_ext=args.p_ext,
-                prime_bypass=args.prime_bypass,
-                spatial_dim=args.spatial_dim,
-                validate_stabilizer=not args.algebra_only,
-                saturated=args.saturated,
+        if args.command == "service":
+            encoded_request = (
+                sys.stdin.read() if args.request == "-" else args.request
+            )
+            result = execute_service_payload(json.loads(encoded_request))
+        elif args.command == "service-catalog":
+            result = default_service_catalog()
+        elif args.command == "homology":
+            result = _service_execution(
+                "homology.ext",
+                {
+                    "stabilizer": json.loads(args.stabilizer),
+                    "qudit_dim": args.qudit_dim,
+                    "p_ext": args.p_ext,
+                    "spatial_dim": args.spatial_dim,
+                    "validate_stabilizer": not args.algebra_only,
+                    "saturated": args.saturated,
+                },
             )
         elif args.command == "mobility":
-            generators = json.loads(args.generators)
-            all_vars = json.loads(args.all_vars) if args.all_vars is not None else None
-            result = compute_translation_lattice(generators, args.qudit_dim, all_vars)
+            result = _service_execution(
+                "mobility.translation_lattice",
+                {
+                    "generators": json.loads(args.generators),
+                    "qudit_dim": args.qudit_dim,
+                    "variables": (
+                        json.loads(args.all_vars)
+                        if args.all_vars is not None
+                        else None
+                    ),
+                },
+            )
         elif args.command == "classify":
-            result = classify_mobility(
-                args.krull_dim,
-                args.spatial_dim,
-                p_ext=args.p_ext,
-                assumptions={
-                    name: True
-                    for name, supplied in (
-                        ("lagrangian", args.lagrangian),
-                        ("saturated", args.saturated),
-                        ("no_ssb", args.no_ssb),
-                    )
-                    if supplied
+            result = _service_execution(
+                "mobility.classify",
+                {
+                    "krull_dim": args.krull_dim,
+                    "spatial_dim": args.spatial_dim,
+                    "p_ext": args.p_ext,
+                    "physics_assumptions": {
+                        name: True
+                        for name, supplied in (
+                            ("lagrangian", args.lagrangian),
+                            ("saturated", args.saturated),
+                            ("no_ssb", args.no_ssb),
+                        )
+                        if supplied
+                    },
                 },
             )
         elif args.command == "grobner":
-            stabilizer = json.loads(args.stabilizer)
-            L = json.loads(args.L) if args.L is not None else None
-            result = compute_gsd_and_periodicity(stabilizer, args.Lx, args.Ly, args.qudit_dim, L)
+            result = _service_execution(
+                "periodic.gsd",
+                {
+                    "stabilizer": json.loads(args.stabilizer),
+                    "Lx": args.Lx,
+                    "Ly": args.Ly,
+                    "L": json.loads(args.L) if args.L is not None else None,
+                    "qudit_dim": args.qudit_dim,
+                },
+            )
         elif args.command == "fusion-interference":
-            stabilizer = json.loads(args.stabilizer)
-            shifts = json.loads(args.shifts)
-            result = analyze_fusion_interference(stabilizer, args.qudit_dim, shifts)
+            result = _service_execution(
+                "fusion.interference",
+                {
+                    "stabilizer": json.loads(args.stabilizer),
+                    "qudit_dim": args.qudit_dim,
+                    "shifts": json.loads(args.shifts),
+                },
+            )
         elif args.command == "sset-fusion":
-            result = solve_sset_fusion(args.poly_f, args.poly_g)
+            result = _service_execution(
+                "fusion.sset",
+                {"poly_f": args.poly_f, "poly_g": args.poly_g},
+            )
         elif args.command == "annihilator-fusion":
-            generators = json.loads(args.generators)
-            variables = json.loads(args.variables) if args.variables is not None else None
-            result = analyze_annihilator_fusion(generators, args.qudit_dim, variables, args.prime_bypass)
+            result = _service_execution(
+                "fusion.annihilator",
+                {
+                    "generators": json.loads(args.generators),
+                    "qudit_dim": args.qudit_dim,
+                    "variables": (
+                        json.loads(args.variables)
+                        if args.variables is not None
+                        else None
+                    ),
+                },
+            )
         elif args.command == "boundary-gauge":
-            stabilizer_generators = json.loads(args.stabilizer_generators)
-            qudit_positions = json.loads(args.qudit_positions)
-            if args.dim == 2:
-                bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_2d(
-                    Lx=args.Lx,
-                    Ly=args.Ly,
-                    q=args.q,
-                    d=args.d,
-                    wx=args.wx,
-                    wy=args.wy,
-                    stabilizer_generators=stabilizer_generators,
-                    qudit_positions=qudit_positions,
-                    boundary=args.boundary,
-                )
-            elif args.dim == 3:
-                if args.Lz is None or args.wz is None:
-                    raise ValueError("Lz and wz are required for 3D")
-                bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_3d(
-                    Lx=args.Lx,
-                    Ly=args.Ly,
-                    Lz=args.Lz,
-                    q=args.q,
-                    d=args.d,
-                    wx=args.wx,
-                    wy=args.wy,
-                    wz=args.wz,
-                    stabilizer_generators=stabilizer_generators,
-                    qudit_positions=qudit_positions,
-                    boundary=args.boundary,
-                )
-            else:
-                raise ValueError("dim must be 2 or 3")
-            result = {
-                "bulk_stabilizers": [{str(k): list(v) for k, v in stab.items()} for stab in bulk_stabilizers],
-                "boundary_ops": boundary_ops.tolist(),
-                "S_mat": S_mat.tolist()
+            input_data = {
+                "dim": args.dim,
+                "Lx": args.Lx,
+                "Ly": args.Ly,
+                "Lz": args.Lz,
+                "q": args.q,
+                "d": args.d,
+                "wx": args.wx,
+                "wy": args.wy,
+                "wz": args.wz,
+                "stabilizer_generators": json.loads(args.stabilizer_generators),
+                "qudit_positions": json.loads(args.qudit_positions),
+                "boundary": args.boundary,
             }
+            result = execute_service_payload(
+                {
+                    "operation": "boundary.gauge.algorithm1",
+                    "input_data": input_data,
+                }
+            )
 
         elif args.command == "search":
-            result = search_koszul_models(args.qudit_dim, args.target_dim, args.max_trials)
+            result = _service_execution(
+                "models.search",
+                {
+                    "qudit_dim": args.qudit_dim,
+                    "target_dim": args.target_dim,
+                    "max_trials": args.max_trials,
+                },
+            )
         elif args.command == "db":
             if args.action == "query":
                 result = query_vector_db(args.action, {"query": args.query_str})

@@ -4,6 +4,15 @@ from unittest.mock import patch
 from mobility_toolkit.__main__ import main
 from mobility_toolkit.reference_models import TORIC_CODE_2D
 
+
+def _service_value(result, operation):
+    assert result["schema"] == "mobility_toolkit.service_execution.v1"
+    assert result["request"]["operation"] == operation
+    assert result["result"]["operation"] == operation
+    assert result["capability"]["operation"] == operation
+    return result["result"]["value"]
+
+
 def test_cli_homology():
     test_args = [
         "__main__.py",
@@ -20,7 +29,7 @@ def test_cli_homology():
         assert exc_info.value.code == 0
         output_str = "".join([call.args[0] for call in mock_stdout.write.call_args_list])
         result = json.loads(output_str)
-        assert "krull_dimension" in result
+        assert "krull_dimension" in _service_value(result, "homology.ext")
 
 def test_cli_mobility():
     test_args = [
@@ -37,7 +46,9 @@ def test_cli_mobility():
         assert exc_info.value.code == 0
         output_str = "".join([call.args[0] for call in mock_stdout.write.call_args_list])
         result = json.loads(output_str)
-        assert "mobility_dimension" in result
+        assert "mobility_dimension" in _service_value(
+            result, "mobility.translation_lattice"
+        )
 
 def test_cli_grobner():
     test_args = [
@@ -56,7 +67,7 @@ def test_cli_grobner():
         assert exc_info.value.code == 0
         output_str = "".join([call.args[0] for call in mock_stdout.write.call_args_list])
         result = json.loads(output_str)
-        assert "gsd" in result
+        assert "gsd" in _service_value(result, "periodic.gsd")
 
 def test_cli_fusion_interference():
     test_args = [
@@ -75,7 +86,9 @@ def test_cli_fusion_interference():
         assert exc_info.value.code == 0
         output_str = "".join([call.args[0] for call in mock_stdout.write.call_args_list])
         result = json.loads(output_str)
-        assert "annihilator_dimension" in result
+        assert "annihilator_dimension" in _service_value(
+            result, "fusion.interference"
+        )
 
 def test_cli_sset_fusion():
     test_args = [
@@ -92,7 +105,9 @@ def test_cli_sset_fusion():
         assert exc_info.value.code == 0
         output_str = "".join([call.args[0] for call in mock_stdout.write.call_args_list])
         result = json.loads(output_str)
-        assert "characteristic_polynomial" in result
+        assert "characteristic_polynomial" in _service_value(
+            result, "fusion.sset"
+        )
 
 def test_cli_search():
     test_args = [
@@ -111,7 +126,7 @@ def test_cli_search():
         assert exc_info.value.code == 0
         output_str = "".join([call.args[0] for call in mock_stdout.write.call_args_list])
         result = json.loads(output_str)
-        assert "status" in result
+        assert "status" in _service_value(result, "models.search")
 
 def test_cli_db():
     test_args = [

@@ -6,7 +6,11 @@ from dataclasses import dataclass
 from typing import Callable, Dict, Optional, Tuple
 
 from mobility_toolkit.core import CertificateLevel, ComputationResult
-from mobility_toolkit.services.contracts import ServiceCapability, ServiceRequest
+from mobility_toolkit.services.contracts import (
+    ServiceCapability,
+    ServiceCatalogEntry,
+    ServiceRequest,
+)
 
 
 ServiceHandler = Callable[[ServiceRequest], ComputationResult]
@@ -25,6 +29,7 @@ class ServiceRegistration:
     operation: str
     handler: ServiceHandler
     capability: Optional[CapabilityHandler] = None
+    catalog: Optional[ServiceCatalogEntry] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.operation, str) or not self.operation:
@@ -33,6 +38,11 @@ class ServiceRegistration:
             raise TypeError("handler must be callable")
         if self.capability is not None and not callable(self.capability):
             raise TypeError("capability must be callable")
+        if self.catalog is not None:
+            if not isinstance(self.catalog, ServiceCatalogEntry):
+                raise TypeError("catalog must be a ServiceCatalogEntry")
+            if self.catalog.operation != self.operation:
+                raise ValueError("catalog operation differs from registration")
 
 
 class ServiceRegistry:
@@ -46,6 +56,26 @@ class ServiceRegistry:
     @property
     def operations(self) -> Tuple[str, ...]:
         return tuple(sorted(self._registrations))
+
+    @property
+    def catalog_entries(self) -> Tuple[ServiceCatalogEntry, ...]:
+        return tuple(
+            registration.catalog
+            for _, registration in sorted(self._registrations.items())
+            if registration.catalog is not None
+        )
+
+    def is_cacheable(self, operation: str) -> bool:
+        registration = self._registrations.get(operation)
+        if registration is None:
+            raise KeyError(f"unknown service operation: {operation}")
+        return registration.catalog is None or registration.catalog.cacheable
+
+    def catalog_entry(self, operation: str) -> Optional[ServiceCatalogEntry]:
+        registration = self._registrations.get(operation)
+        if registration is None:
+            raise KeyError(f"unknown service operation: {operation}")
+        return registration.catalog
 
     def register(self, registration: ServiceRegistration) -> None:
         if not isinstance(registration, ServiceRegistration):
@@ -73,6 +103,14 @@ class ServiceRegistry:
                 f"operation {request.operation!r} is unsupported: {capability.reason}"
             )
         result = registration.handler(request)
+        self.validate_result(request, result)
+        return result
+
+    def validate_result(
+        self, request: ServiceRequest, result: ComputationResult
+    ) -> None:
+        """Validate both fresh and cached results against a request."""
+
         if not isinstance(result, ComputationResult):
             raise TypeError("service handler must return ComputationResult")
         if result.operation != request.operation:
@@ -86,7 +124,6 @@ class ServiceRegistry:
             < _CERTIFICATE_RANK[request.requested_certificate_level]
         ):
             raise ArithmeticError("result does not satisfy the requested certificate level")
-        return result
 
     def _registration(self, request: ServiceRequest) -> ServiceRegistration:
         if not isinstance(request, ServiceRequest):

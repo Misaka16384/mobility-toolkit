@@ -24,6 +24,13 @@ from mobility_toolkit.grobner import compute_gsd_and_periodicity
 from mobility_toolkit.search import search_koszul_models
 from mobility_toolkit.registry import ModelRegistry, query_vector_db
 from mobility_toolkit.physics import classify_mobility
+from mobility_toolkit.services import (
+    ServiceExecution,
+    ServiceRequest,
+    default_service_catalog,
+    execute_service_payload,
+    execute_service_request,
+)
 
 __all__ = [
     "__version__",
@@ -43,4 +50,9 @@ __all__ = [
     "ModelRegistry",
     "query_vector_db",
     "classify_mobility",
+    "ServiceExecution",
+    "ServiceRequest",
+    "default_service_catalog",
+    "execute_service_payload",
+    "execute_service_request",
 ]
