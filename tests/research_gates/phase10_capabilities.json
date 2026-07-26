@@ -1,0 +1,584 @@
+{
+  "schema_version": "mobility_toolkit.research_dashboard.v1",
+  "policy": {
+    "production_required_layers": [
+      "correctness",
+      "literature",
+      "cross_backend",
+      "scale"
+    ],
+    "allowed_statuses": [
+      "production",
+      "experimental",
+      "unsupported"
+    ],
+    "allowed_exactness": [
+      "certified_exact",
+      "bounded_exact",
+      "stabilized_empirically",
+      "experimental",
+      "unsupported"
+    ],
+    "forbidden_production_phrases": [
+      "all 3d boundaries",
+      "general thermodynamic completeness",
+      "phase-equivalence proof",
+      "minimum circuit depth"
+    ]
+  },
+  "ci_layers": {
+    "correctness": {
+      "description": "Mathematical identities, adversarial certificates, and independent exhaustive small-system checks.",
+      "smoke_command": [
+        "python",
+        "-m",
+        "pytest",
+        "tests/research_gates/test_phase10_dashboard.py",
+        "tests/test_finite_stabilizer.py::test_centralizer_matches_brute_force_for_mixed_group",
+        "tests/test_boundary_enumeration_e1.py::test_e1_exhaustion_matches_independent_bruteforce_subgroups",
+        "-q"
+      ]
+    },
+    "literature": {
+      "description": "Source-locked operator conventions or physical invariants from named primary-source models.",
+      "smoke_command": [
+        "python",
+        "-m",
+        "pytest",
+        "tests/test_boundary_literature_models.py::test_real_space_cut_has_complete_literal_primary_image",
+        "tests/test_anyons2d_literature_models.py::test_zd_toric_raw_lagrangian_counts",
+        "tests/test_cheshire.py::test_open_segment_matches_eq8_gsd_termination_and_dual_representation",
+        "-q"
+      ]
+    },
+    "cross_backend": {
+      "description": "Agreement with an independent backend, brute-force oracle, rank implementation, or finite-versus-symbolic formulation.",
+      "smoke_command": [
+        "python",
+        "-m",
+        "pytest",
+        "tests/test_finite_backend.py::test_smith_invariants_are_cross_checked",
+        "tests/test_finite_stabilizer.py::test_centralizer_matches_brute_force_for_mixed_group",
+        "tests/test_boundary_enumeration_e1.py::test_z4_e1_lagrangians_match_independent_composite_oracle",
+        "-q"
+      ]
+    },
+    "scale": {
+      "description": "Bounded resource refusal, checkpoint/resume, semantic replay, and finite search-domain accounting; never a thermodynamic extrapolation.",
+      "smoke_command": [
+        "python",
+        "-m",
+        "pytest",
+        "tests/test_finite_backend.py::test_dense_materialization_budget_is_enforced",
+        "tests/test_boundary_enumeration_e1.py::test_e1_resume_and_result_paging_reaches_same_certificate",
+        "tests/test_boundary_enumeration_e2.py::test_resource_limited_resume_matches_one_shot",
+        "tests/test_boundary_enumeration_symbolic3d.py::test_budget_exhaustion_is_experimental_and_replayable",
+        "-q"
+      ]
+    }
+  },
+  "evidence": [
+    {
+      "id": "finite-mixed-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_finite_stabilizer.py::test_centralizer_matches_brute_force_for_mixed_group",
+      "assertion": "Mixed finite centralizers and logical quotients agree with complete projective-Pauli enumeration.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "finite-cellular-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_geometry_cell_complex.py::test_cellular_toric_code_matches_independent_homology_on_disk_annulus_torus",
+      "assertion": "Cellular toric-code GSD agrees with independently computed absolute cellular homology on disk, annulus, and torus fixtures.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "finite-backend-crosscheck",
+      "layer": "cross_backend",
+      "nodeid": "tests/test_finite_backend.py::test_smith_invariants_are_cross_checked",
+      "assertion": "FLINT Smith invariants pass the independent verifier and SymPy small-matrix cross-check.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "finite-dense-budget",
+      "layer": "scale",
+      "nodeid": "tests/test_finite_backend.py::test_dense_materialization_budget_is_enforced",
+      "assertion": "Oversized dense materialization is refused instead of silently exhausting resources.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "e1-certificate-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_boundary_enumeration_e1.py::test_e1_checkpoint_rejects_resealed_cursor_prefix_and_transcript_tampering",
+      "assertion": "A resealed but semantically false E1 transcript is rejected.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "finite-cut-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_boundary_literature_models.py::test_real_space_cut_has_complete_literal_primary_image",
+      "assertion": "Literal Z2/Z4 toric cuts cover every crossing check modulo bulk-trivial operators.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "e1-bruteforce-crosscheck",
+      "layer": "cross_backend",
+      "nodeid": "tests/test_boundary_enumeration_e1.py::test_e1_exhaustion_matches_independent_bruteforce_subgroups",
+      "assertion": "E1 candidates agree with a separately implemented powerset subgroup oracle.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "e1-resume-scale",
+      "layer": "scale",
+      "nodeid": "tests/test_boundary_enumeration_e1.py::test_e1_resume_and_result_paging_reaches_same_certificate",
+      "assertion": "Resource-limited E1 pages resume to the same exhausted finite-domain certificate.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "e2-period-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_boundary_enumeration_e2.py::test_genuine_fundamental_period_two_is_not_forced_to_be_t_invariant",
+      "assertion": "An order-four qutrit Fourier action distinguishes period two from one-step invariance.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "e2-toric-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_boundary_enumeration_e2.py::test_z2_toric_shadow_has_electric_and_magnetic_periodic_lagrangians",
+      "assertion": "The bounded periodic toric shadow contains the expected electric and magnetic sectors.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "e2-e1-crosscheck",
+      "layer": "cross_backend",
+      "nodeid": "tests/test_boundary_enumeration_e2.py::test_nonsymmetric_qutrit_action_uses_e1_generator_vectors_not_product_order",
+      "assertion": "E2 translation filtering agrees with the independently materialized E1 subgroup span.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "e2-resume-scale",
+      "layer": "scale",
+      "nodeid": "tests/test_boundary_enumeration_e2.py::test_resource_limited_resume_matches_one_shot",
+      "assertion": "Bounded E2 checkpoint/resume produces the identical one-shot candidate order and certificate.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "completion-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_completion2d_local.py::test_completion_rejects_resealed_wrong_remote_syndrome",
+      "assertion": "A falsified termination syndrome is rejected even when embedded in an otherwise valid supplied completion.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "completion-toric-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_completion2d_local.py::test_zd_toric_cut_completion_closes_metric_to_local_pipeline",
+      "assertion": "Supplied rough and smooth Z2/Z3/Z4 toric completions have the expected finite GSD and one-endpoint syndrome.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "completion-folding-crosscheck",
+      "layer": "cross_backend",
+      "nodeid": "tests/test_completion2d_local.py::test_folded_z4_diagonal_is_lagrangian_with_reversed_second_form",
+      "assertion": "The finite FGA condensate agrees with the independently constructed folded metric pairing.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "completion-locality-scale",
+      "layer": "scale",
+      "nodeid": "tests/test_completion2d_local.py::test_completion_rejects_short_string_outside_declared_bound",
+      "assertion": "A supplied lift outside the declared finite completion depth is refused.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "halfspace-pairing-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_halfspace_boundary_module.py::test_boundary_pairing_extracts_depth_zero_instead_of_setting_y_to_one",
+      "assertion": "The boundary pairing uses one-sided depth extraction and is not implemented as R/(normal-1).",
+      "dependencies": []
+    },
+    {
+      "id": "halfspace-example45-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_halfspace_secondary_example.py::test_published_example45_has_a_genuine_secondary_generator",
+      "assertion": "The source-locked Example 45 fixture distinguishes the proper secondary generator from primary data.",
+      "dependencies": []
+    },
+    {
+      "id": "halfspace-finite-symbolic-crosscheck",
+      "layer": "cross_backend",
+      "nodeid": "tests/test_halfspace_boundary_module.py::test_finite_periodic_boundary_window_matches_symbolic_toric_module",
+      "assertion": "Finite periodic shadows agree with the supplied symbolic toric boundary module across several periods.",
+      "dependencies": []
+    },
+    {
+      "id": "halfspace-window-scale",
+      "layer": "scale",
+      "nodeid": "tests/test_halfspace_toric3d.py::test_finite_slab_rejects_degenerate_search_windows",
+      "assertion": "Degenerate or out-of-scope finite slab search domains are rejected explicitly.",
+      "dependencies": []
+    },
+    {
+      "id": "cheshire-static-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_cheshire.py::test_open_segment_matches_eq8_gsd_termination_and_dual_representation",
+      "assertion": "Phase-aware Eq. (8), finite GSD, endpoint termination, and the dual tube representation are jointly verified.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-static-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_cheshire.py::test_open_segment_matches_eq8_gsd_termination_and_dual_representation",
+      "assertion": "The 3+1D Z2 toric operator rewrite is locked to the Cheshire-string reference convention.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-rank-crosscheck",
+      "layer": "cross_backend",
+      "nodeid": "tests/test_cheshire.py::test_two_open_segments_on_t3_have_one_relative_charge_qubit",
+      "assertion": "Certified FGA counting agrees with an independent bit-packed GF(2) stabilizer-rank implementation.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-radius-scale",
+      "layer": "scale",
+      "nodeid": "tests/test_cheshire.py::test_length_and_tube_radius_are_explicit_finite_scaling_data",
+      "assertion": "Length and tube radius remain explicit finite samples rather than an asymptotic inference.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "e3-bounded-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_boundary_enumeration_symbolic3d.py::test_odd_prime_constant_symplectic_search_is_bounded_complete",
+      "assertion": "Canonical RREF seeds are exhausted exactly inside the declared odd-prime exponent box.",
+      "dependencies": []
+    },
+    {
+      "id": "e3-source-lock-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_boundary_enumeration_symbolic3d.py::test_toric3d_primary_pairing_has_expected_bounded_isotropic_sectors",
+      "assertion": "The 3D toric preflight preserves the source-frozen primary-sector interpretation.",
+      "dependencies": []
+    },
+    {
+      "id": "e3-resume-scale",
+      "layer": "scale",
+      "nodeid": "tests/test_boundary_enumeration_symbolic3d.py::test_budget_exhaustion_is_experimental_and_replayable",
+      "assertion": "A truncated symbolic search is experimental and semantically resumable.",
+      "dependencies": []
+    },
+    {
+      "id": "cheshire-synthesis-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_cheshire_synthesis.py::test_source_locked_open_and_closed_toric_species_are_reproduced",
+      "assertion": "The bounded synthesis route reproduces the source-locked open and closed toric reference candidates.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-synthesis-scale",
+      "layer": "scale",
+      "nodeid": "tests/test_cheshire_synthesis.py::test_tubular_to_line_radius_domain_is_explicit_and_strict",
+      "assertion": "The tube-to-line radius schedule is finite, explicit, and rejects malformed domains.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-fusion-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_cheshire_fusion.py::test_two_open_segments_have_exact_static_fusion_but_no_circuit_claim",
+      "assertion": "Fusion compares finite before/after logical data without emitting a circuit claim.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-fusion-topology-guard",
+      "layer": "cross_backend",
+      "nodeid": "tests/test_cheshire_fusion.py::test_topology_guard_refutes_component_count_only_rule_for_exact_finite_counts",
+      "assertion": "A noncontractible control case rejects component-count-only fusion rules.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "fracton-cheshire-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_fracton_cheshire.py::test_axial_reference_is_explicit_finite_and_experimental",
+      "assertion": "The X-cube axial reference exposes finite static data and retains an experimental label.",
+      "dependencies": [
+        "python-flint"
+      ]
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "finite_mixed_stabilizer",
+      "title": "Finite mixed/composite phase-aware stabilizer analysis",
+      "status": "production",
+      "exactness": [
+        "certified_exact"
+      ],
+      "operation_scope": "Explicit finite cyclic local systems within the dense materialization budget.",
+      "evidence": [
+        "finite-mixed-correctness",
+        "finite-cellular-literature",
+        "finite-backend-crosscheck",
+        "finite-dense-budget"
+      ],
+      "limitations": [
+        "No general efficient exact distance search.",
+        "python-flint is required for the production integer backend."
+      ]
+    },
+    {
+      "id": "finite_boundary_e1",
+      "title": "Finite boundary algebra and E1 subgroup enumeration",
+      "status": "production",
+      "exactness": [
+        "certified_exact"
+      ],
+      "operation_scope": "A supplied finite support window and exhausted finite paired-FGA search domain.",
+      "evidence": [
+        "e1-certificate-correctness",
+        "finite-cut-literature",
+        "e1-bruteforce-crosscheck",
+        "e1-resume-scale"
+      ],
+      "limitations": [
+        "Does not promote window stability to a half-space theorem.",
+        "Physical boundary counting requires an explicit equivalence relation."
+      ]
+    },
+    {
+      "id": "bounded_periodic_e2",
+      "title": "E2 translation-compatible submodule enumeration",
+      "status": "production",
+      "exactness": [
+        "bounded_exact"
+      ],
+      "operation_scope": "The declared finite FGA, microscopic translation actions, period, and support-image orbit; ancilla count is zero.",
+      "evidence": [
+        "e2-period-correctness",
+        "e2-toric-literature",
+        "e2-e1-crosscheck",
+        "e2-resume-scale"
+      ],
+      "limitations": [
+        "Ancilla and local-Hamiltonian completion enumeration are unsupported.",
+        "The result is not thermodynamic completeness."
+      ]
+    },
+    {
+      "id": "supplied_2d_local_completion",
+      "title": "Supplied 2D metric condensation and finite local completion",
+      "status": "production",
+      "exactness": [
+        "certified_exact",
+        "bounded_exact"
+      ],
+      "operation_scope": "A supplied finite metric group, condensate, short-string lifts, Hamiltonian terms, and locality domain.",
+      "evidence": [
+        "completion-correctness",
+        "completion-toric-literature",
+        "completion-folding-crosscheck",
+        "completion-locality-scale"
+      ],
+      "limitations": [
+        "No arbitrary-code anyon extraction.",
+        "Finite locality verification is not a thermodynamic spectral-gap theorem."
+      ]
+    },
+    {
+      "id": "halfspace_primary_and_supplied_pairing",
+      "title": "Half-space geometry, primary module, and supplied free pairing",
+      "status": "production",
+      "exactness": [
+        "certified_exact"
+      ],
+      "operation_scope": "Rational primitive normals with the implemented primary compiler and caller-supplied uniform-prime free boundary pairing.",
+      "evidence": [
+        "halfspace-pairing-correctness",
+        "halfspace-example45-literature",
+        "halfspace-finite-symbolic-crosscheck",
+        "halfspace-window-scale"
+      ],
+      "limitations": [
+        "Generic full boundary module and secondary closure are unsupported.",
+        "The source-locked X-cube orientation conclusions remain experimental."
+      ]
+    },
+    {
+      "id": "static_toric_cheshire",
+      "title": "Static 3+1D Z2 toric Cheshire analysis",
+      "status": "production",
+      "exactness": [
+        "certified_exact",
+        "bounded_exact"
+      ],
+      "operation_scope": "User-specified finite cubical open segments, closed loops, and deleted-tube/direct-line representations.",
+      "evidence": [
+        "cheshire-static-correctness",
+        "cheshire-static-literature",
+        "cheshire-rank-crosscheck",
+        "cheshire-radius-scale"
+      ],
+      "limitations": [
+        "No finite-depth equivalence or circuit-depth conclusion.",
+        "No claim that every line defect is a Cheshire string."
+      ]
+    },
+    {
+      "id": "symbolic_3d_e3_seeds",
+      "title": "Bounded symbolic 3D seed enumeration",
+      "status": "experimental",
+      "exactness": [
+        "bounded_exact",
+        "experimental"
+      ],
+      "operation_scope": "Canonical finite-field RREF seed presentations inside an explicit Laurent exponent box and seed-rank bound.",
+      "evidence": [
+        "e3-bounded-correctness",
+        "e3-source-lock-literature",
+        "e3-resume-scale"
+      ],
+      "limitations": [
+        "No saturation, anomaly, local completion, or residual boundary-order analysis.",
+        "No local-Clifford, stable-ancilla, stacking, or foliated quotient."
+      ]
+    },
+    {
+      "id": "bounded_cheshire_synthesis",
+      "title": "Bounded toric tube-to-line synthesis",
+      "status": "experimental",
+      "exactness": [
+        "bounded_exact",
+        "experimental"
+      ],
+      "operation_scope": "Explicit toric candidate families and finite tube-radius schedules.",
+      "evidence": [
+        "cheshire-synthesis-literature",
+        "cheshire-synthesis-scale"
+      ],
+      "limitations": [
+        "Finite invariant preservation does not prove phase equivalence.",
+        "Search-domain exhaustion is not species completeness outside the supplied family."
+      ]
+    },
+    {
+      "id": "static_cheshire_fusion",
+      "title": "Static Cheshire fusion and junction bookkeeping",
+      "status": "experimental",
+      "exactness": [
+        "bounded_exact",
+        "experimental"
+      ],
+      "operation_scope": "Finite before/after stabilizer presentations with explicit defect and junction provenance.",
+      "evidence": [
+        "cheshire-fusion-correctness",
+        "cheshire-fusion-topology-guard"
+      ],
+      "limitations": [
+        "No finite-depth fusion circuit is produced.",
+        "Static logical counting is not a complete superselection classification."
+      ]
+    },
+    {
+      "id": "fracton_cheshire_reference",
+      "title": "Orientation-aware finite fracton Cheshire reference",
+      "status": "experimental",
+      "exactness": [
+        "experimental"
+      ],
+      "operation_scope": "The explicit finite axial X-cube reference and its declared local probes.",
+      "evidence": [
+        "fracton-cheshire-correctness"
+      ],
+      "limitations": [
+        "Unregistered orientations are unsupported.",
+        "The finite candidate is not a general fracton Cheshire classification."
+      ]
+    },
+    {
+      "id": "generic_full_halfspace_boundary_module",
+      "title": "Generic full half-space boundary module and secondary closure",
+      "status": "unsupported",
+      "exactness": [
+        "unsupported"
+      ],
+      "operation_scope": "Arbitrary translation-invariant stabilizer presentations.",
+      "evidence": [],
+      "limitations": [
+        "Only model-specific or caller-supplied full modules are available."
+      ]
+    },
+    {
+      "id": "arbitrary_code_anyon_extraction",
+      "title": "Automatic anyon extraction from arbitrary 2D stabilizer codes",
+      "status": "unsupported",
+      "exactness": [
+        "unsupported"
+      ],
+      "operation_scope": "Arbitrary 2D periodic stabilizer input.",
+      "evidence": [],
+      "limitations": [
+        "The saturation and period-certificate pipeline is not implemented."
+      ]
+    },
+    {
+      "id": "cheshire_dynamic_phase_and_circuits",
+      "title": "Cheshire dynamic phase classification and circuit synthesis",
+      "status": "unsupported",
+      "exactness": [
+        "unsupported"
+      ],
+      "operation_scope": "Finite-depth deformation, fusion, and sequential creation circuits.",
+      "evidence": [],
+      "limitations": [
+        "Static stabilizer data cannot establish minimum circuit depth or phase equivalence."
+      ]
+    }
+  ]
+}
