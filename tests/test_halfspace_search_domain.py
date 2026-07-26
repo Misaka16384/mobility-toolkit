@@ -140,18 +140,20 @@ def test_search_domain_validates_tangent_rank_and_ancilla_orders():
         AncillaBound(max_sites_per_unit_cell=1)
 
 
-def test_phase6_geometry_contract_reports_symbolic_engine_as_unimplemented():
+def test_phase6_capability_reports_lh_but_not_full_boundary_module_engine():
     report = halfspace_capability_report()
     assert report.exact_lattice_geometry
     assert report.bounded_periodic_domain_schema
     assert not report.bounded_periodic_enumerator
+    assert report.uniform_prime_lh_contraction
     assert not report.symbolic_halfspace_modules
     assert set(report.unsupported_symbolic_outputs) >= {
-        "L_H",
         "P_boundary",
         "relative_Ext",
         "quasi_symplectic_pairing",
     }
+    assert "L_H" not in report.unsupported_symbolic_outputs
     payload = canonical_json(report)
+    assert '"uniform_prime_lh_contraction":true' in payload
     assert '"symbolic_halfspace_modules":false' in payload
     assert '"bounded_periodic_enumerator":false' in payload

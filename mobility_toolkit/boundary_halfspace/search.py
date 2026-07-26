@@ -304,6 +304,7 @@ class HalfSpaceCapabilityReport:
     exact_lattice_geometry: bool
     bounded_periodic_domain_schema: bool
     bounded_periodic_enumerator: bool
+    uniform_prime_lh_contraction: bool
     symbolic_halfspace_modules: bool
     unsupported_symbolic_outputs: Tuple[str, ...]
 
@@ -316,6 +317,7 @@ class HalfSpaceCapabilityReport:
             "exact_lattice_geometry": self.exact_lattice_geometry,
             "schema": self.SCHEMA_ID,
             "symbolic_halfspace_modules": self.symbolic_halfspace_modules,
+            "uniform_prime_lh_contraction": self.uniform_prime_lh_contraction,
             "unsupported_symbolic_outputs": self.unsupported_symbolic_outputs,
         }
 
@@ -327,9 +329,9 @@ def halfspace_capability_report() -> HalfSpaceCapabilityReport:
         exact_lattice_geometry=True,
         bounded_periodic_domain_schema=True,
         bounded_periodic_enumerator=False,
+        uniform_prime_lh_contraction=True,
         symbolic_halfspace_modules=False,
         unsupported_symbolic_outputs=(
-            "L_H",
             "P_boundary",
             "primary_boundary_module",
             "secondary_boundary_module",
