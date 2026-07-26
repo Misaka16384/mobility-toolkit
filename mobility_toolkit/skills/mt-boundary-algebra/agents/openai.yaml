@@ -1,0 +1,4 @@
+interface:
+  display_name: "Finite Boundary Algebra"
+  short_description: "Compute certified finite boundary data"
+  default_prompt: "Use $mt-boundary-algebra to run a canonical finite-boundary service request."

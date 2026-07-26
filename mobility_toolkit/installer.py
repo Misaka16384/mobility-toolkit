@@ -39,9 +39,13 @@ SKILL_NAMES = [
     "mt-models",      # L1<->L3 model/property registry
     "mt-doctor",      # infra   Macaulay2 backend diagnostic
     "mt-boundary",    # L1->L3  boundary gauge operators
+    "mt-finite-code",  # canonical service facade for finite Pauli/stabilizer arithmetic
+    "mt-boundary-algebra",  # canonical service facade for finite boundary algebra
+    "mt-relative-homology",  # canonical finite-pair relative homology service
     "mt-halfspace",   # L1->L2/L3 exact oriented half-space algebra
     "mt-gapped-boundary-2d",  # L2/L1->L3 metric condensation + local completion
     "mt-gapped-boundary-3d",  # E1/E2/E3 bounded 3D boundary enumeration
+    "mt-defect",      # finite stratified defects and capability discovery
     "mt-cheshire",    # L1->L3  finite static Cheshire defect analysis
 ]
 

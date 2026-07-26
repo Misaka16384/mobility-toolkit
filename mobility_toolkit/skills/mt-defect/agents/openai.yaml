@@ -1,0 +1,4 @@
+interface:
+  display_name: "Stratified Defect Analysis"
+  short_description: "Inspect supported boundary and defect data"
+  default_prompt: "Use $mt-defect to run a canonical stratified-defect service request."
