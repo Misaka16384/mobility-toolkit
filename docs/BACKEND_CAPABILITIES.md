@@ -4,16 +4,15 @@ This file records intended ownership and the current production boundary of
 each mathematical backend. `production` means covered by correctness tests for
 the stated domain; it does not mean every operation is fast.
 
-## Current baseline at commit `7279a28`
+## Current backend status
 
 | Backend | Domain | Current reliable operations | Current status |
 |---|---|---|---|
-| Internal Laurent parser | Uniform `Z/p`, prime | Parse/antipode/commutation validation | Production for current homology input contract |
-| Macaulay2 | Uniform prime Laurent free Pauli module | Ext, annihilator, Krull dimension | Production within `docs/THEORY_SCOPE.md` |
-| NumPy field backend | Finite uniform prime | Row span and finite boundary helper operations | Legacy regression only |
-| Custom `Z/d` backend | Finite uniform composite | Span membership/generator reduction | Experimental; depends on uncertified custom SNF |
-| Custom Smith backend | Integer matrices | Attempted SNF transforms | Not trusted: fixed iteration breaks and no verifier |
-| SymPy | Small integer/finite calculations | Utility/reference operations | Development fallback, not a general certified kernel |
+| Canonical Laurent AST | Uniform prime production; composite/nonuniform presentation research | Structured rings, modules, antipode and commutation | Production for validated uniform-prime operations |
+| Macaulay2 | Uniform-prime Laurent and free tangent-Laurent modules | Ext, annihilator, Krull dimension, saturation, kernels/cokernels | Production operation-by-operation within `docs/THEORY_SCOPE.md` |
+| python-flint FGA backend | Prime, composite and mixed finite local systems | HNF/SNF/Howell, kernel/image/intersection/quotient, centralizer and logicals | Production within the declared dense budget |
+| Internal finite-field paths | Uniform prime finite modules | RREF, GF(2) bit-packed rank, exhaustive E1/E2 helpers | Production with FGA canonicalization/cross-checks |
+| SymPy | Small integer and rational calculations | Independent checks and exact utility operations | Development/check backend, not the production FGA kernel |
 
 ## Target ownership
 
@@ -32,7 +31,7 @@ the stated domain; it does not mean every operation is fast.
 | Bounded periodic enumeration E2 | FGA + translation action | independent rerun | finite search-domain certificate |
 | Symbolic 3D enumeration E3 | Laurent/half-space research backend | E1/E2 exhaustion | Experimental unless module completeness is proved |
 
-## Implemented production capabilities after Phase 3
+## Implemented operation-specific capabilities
 
 | Capability | Backend/representation | Status |
 |---|---|---|
@@ -50,8 +49,21 @@ the stated domain; it does not mean every operation is fast.
 | Static Z2 Cheshire lines | phase-aware finite stabilizers, pinned elimination, deleted-tube compiler | Production for user-specified 3D cubical paths |
 | Finite charge termination | explicit syndrome witness | Production |
 | Finite magnetic nontermination | complete mod-2 cellular syndrome-image rank plus `boundary^2=0` | Production for the plaquette-qubit reference |
-| Boundary synthesis/enumeration | not yet implemented | Unsupported until Phase 5A |
-| Half-space symbolic boundary | not yet implemented | Unsupported until Phase 6 |
+| Finite boundary algebra | exact `(C intersect P_W)/(S intersect P_W)` paired FGA | Production within the finite dense budget |
+| E1 finite subgroup enumeration | exhaustive finite-group BFS, phase lifts, orbit reduction, semantic resume transcript | `certified_exact` after exhaustion |
+| Half-space lattice geometry | primitive normal, unimodular adapted basis, tangent lattice and one-sided support | Production |
+| Uniform-prime `L_H` contraction | normal clearing plus live Macaulay2 saturation | `certified_exact` |
+| Uniform-prime primary subquotient | complete crossing-shift compilation of `pi_H(L)/L_H` | `certified_exact` |
+| Supplied free boundary pairing | radical kernel, pairing cokernel, annihilator and Krull dimension | `certified_exact` for uniform prime |
+| Generic full `P_boundary` / secondary closure | no general certified constructor | Unsupported; model-specific examples only |
+| E2 bounded-periodic submodules | finite FGA support-image translation orbit plus period invariance | `bounded_exact` after exhaustion; no ancillas/completions |
+| 2D finite metric-group condensation | exact spin/braiding and Lagrangian subgroup enumeration | `certified_exact` |
+| 2D supplied local completion | phase-aware finite Hamiltonian, fusion lifting, locality and endpoint syndrome | `bounded_exact` for the supplied finite patch |
+| Arbitrary-code 2D anyon extraction | no saturation/period certificate pipeline | Unsupported |
+| E3 bounded symbolic seeds | finite-field RREF seed presentations in a Laurent exponent box | `bounded_exact` for that box; research layer |
+| E3 saturation/anomaly/local completion | not implemented | Unsupported |
+| 3D toric half-space | source-frozen bulk and certified primary pairing; finite slab alignment | Primary-only, operation-specific |
+| X-cube orientations | source-locked axial/diagonal conclusions | Experimental oracle; no full boundary module |
 
 The FLINT adapter refuses a single dense materialization above 2,000,000
 entries by default. See `docs/FINITE_BACKEND.md`.
@@ -59,6 +71,15 @@ entries by default. See `docs/FINITE_BACKEND.md`.
 The Phase 4 Cheshire workflow is finite and static. It does not provide
 automatic condensation discovery, Cheshire-species enumeration, circuit
 depth, dynamic deformation/fusion, or thermodynamic phase equivalence.
+
+The Phase 7 local-completion path starts from a supplied finite metric group
+and supplied short-string lifts. Its exact finite verification must not be
+reported as automatic anyon extraction or a thermodynamic gap theorem.
+
+The Phase 8 symbolic path exhausts seed presentations, not all Laurent
+submodules up to arbitrary polynomial generator changes. Its resumable
+certificate replays the canonical RREF prefix and remains distinct from E2
+finite-periodic completeness.
 
 ## Selection rules
 

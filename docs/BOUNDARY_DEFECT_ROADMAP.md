@@ -5,6 +5,25 @@
 日期：2026-07-22
 适用项目：`mobility_toolkit`
 
+## 0. 实施状态快照（2026-07-26）
+
+本节记录代码已经达到的 operation-specific gate，不改写后文的最终目标。
+
+| 阶段 | 当前状态 | 尚未完成且不能冒充已完成的部分 |
+|---|---|---|
+| Phase 0--3 | 已完成并有 checkpoint | 无旧兼容性承诺 |
+| Phase 4 | static Cheshire MVP 已完成 | 自动 species、动态 circuit/fusion 不在 MVP |
+| Phase 5A | finite boundary algebra、primary coverage、E1 已完成 | 旧入口统一删除留到 Phase 10 |
+| Phase 5B | structured Laurent IR、uniform-prime production、composite research gate 已完成 | composite/nonuniform Ext 仍逐 operation 标记 |
+| Phase 6 | geometry、`L_H`、primary、supplied pairing invariants、E2 与模型 benchmark 已完成 | 一般 full `P_boundary`、secondary closure、boundary-to-bulk map 仍 unsupported |
+| Phase 7 | metric-group condensation、folding、显式 finite local completion 已完成 | arbitrary-code anyon extraction、BB 与多洞/mixed completion 尚未完成 |
+| Phase 8 | E1/E2 与 bounded E3 seed research enumerator 已完成 | E3 saturation/anomaly/completion、local-Clifford/ancilla/stacking/foliated quotient 尚未完成 |
+| Phase 9 | 未开始正式自动合成 | 依赖 Phase 7/8 尚缺的 completion 与 termination maps |
+| Phase 10 | service/cache 合同已有基础 | transport 统一、旧入口删除、完整 skill 集与发布 gate 尚未完成 |
+
+因此，表中的“已完成”只表示该行列出的 operation 已通过当前
+certificate/literature gate，不表示后文整个阶段的所有研究目标已经完成。
+
 ## 1. 已确定的产品取舍
 
 本文按以下决定制定，不再把它们列为待定项。

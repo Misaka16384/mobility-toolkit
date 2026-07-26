@@ -127,3 +127,70 @@ Additional certified checks:
 Static degeneracy, termination, and representation fields remain separate
 from circuit depth, finite-depth phase equivalence, dynamic deformation, and
 fusion claims.
+
+## Phase 5 finite boundary algebra and E1/E2 enumeration
+
+| Fixture | Expected result | Evidence |
+|---|---|---|
+| literal left-square cut of a 2-by-1 Z2/Z4 toric patch | every crossing check is covered modulo bulk-trivial operators | exact finite FGA plus cut-provenance witness |
+| electric Z string at rough cut | two parent endpoints become one retained bulk endpoint | finite commutation syndrome / relative-homology interpretation |
+| magnetic X string at smooth cut | two parent endpoints become one retained bulk endpoint | finite commutation syndrome / relative-homology interpretation |
+| small paired FGA E1 | every isotropic subgroup once | exhaustive subgroup BFS and brute-force cross-check |
+| E2 period-two qutrit Fourier action | `T^2 H = H`, `T H != H`, fundamental period 2 | exact finite automorphism and subgroup membership |
+| E2 support bound | single-site translation orbit accepted; intrinsically two-site seed rejected at `max_sites=1` | exact translated support-image intersections |
+
+E1 transcript checkpoints bind the finite paired algebra and complete output
+prefix. E2 additionally binds adapted site coordinates, the microscopic
+translation actions, anchor and translated support-image hashes, period,
+coefficient domain, candidate family, and resource accounting. These are
+finite-domain completeness statements only.
+
+## Phase 6 half-space benchmarks
+
+| Fixture | Expected result | Evidence |
+|---|---|---|
+| 2D Z2 toric, `y >= 0` | primary equals full; pairing `1+x`; boundary charges `Z2 + Z2`; boundary-to-bulk isomorphism | analytic module identities plus periodic strips |
+| Ruba--Yang Example 45 | proper secondary generator with `(1+x)e1' = e1`; primary charge nonzero, full pairing unimodular | `LIT_DIRECT` equations (114)--(118) plus finite periods |
+| 3D Z2 toric, `z >= 0` | primary generators `e_X,e_Zx,e_Zy`; pairings `1+x` and `1+y` | source-frozen cellular rows, live saturation and finite slabs |
+| X-cube axial `(0,0,1)` | boundary-to-bulk map not surjective, obstruction family `[<x^m y^n z>]` | source-locked Example 54 oracle |
+| X-cube diagonal `(1,1,1)` | source equation (144) records an isomorphism | source-locked Example 54 oracle |
+
+The X-cube rows, adapted lattice basis, and registered orientation are
+machine-checked, but the analytic boundary-to-bulk conclusion is not
+independently re-derived. Those results therefore remain `experimental`.
+Unregistered and opposite normals return `unsupported`.
+
+## Phase 7 2D metric condensation and local completion
+
+| Fixture | Raw Lagrangians / finite result | Evidence |
+|---|---:|---|
+| Z2 toric metric | 2 | exhaustive finite subgroup enumeration |
+| Z4 toric metric | 3 | exhaustive finite subgroup enumeration |
+| double semion metric | 1 | exhaustive spin/braiding test |
+| color-code metric (`D(Z2)` squared) | 6 | exhaustive raw subgroup enumeration |
+| fish-toric abstract `D(Z2)` metric | 2 | abstract metric equivalence only |
+| Z2/Z3/Z4 toric rough and smooth finite cuts | `K=1`, no residual logical factors, exact one-endpoint string syndrome | phase-aware FGA completion |
+| folded Z4 toric diagonal | Lagrangian `Z4 + Z4` after reversing the second form | exact folded metric pairing |
+
+The fish, color, and double-semion entries do not claim microscopic
+short-string extraction. The finite toric completions verify one supplied
+Hamiltonian and locality domain; they do not prove a thermodynamic gap.
+
+## Phase 8 bounded 3D symbolic research enumeration
+
+The E3 research fixture exhausts canonical finite-field RREF seed
+presentations within an explicit two-variable Laurent exponent box and seed
+rank. It checks Laurent-polynomial isotropy exactly and supports resumable
+semantic transcript replay.
+
+| Fixture | Expected result | Evidence |
+|---|---|---|
+| constant rank-two symplectic form over F3 | four nonzero isotropic seed subspaces among five nonzero/all seed presentations in the recorded rank bound | complete RREF search |
+| common monomial translation quotient | translated seed presentations share the explicit algebraic equivalence key | exact Laurent support translation |
+| 3D toric primary preflight | electric/magnetic primary isotropic sectors visible; E3 search on the model rejected | primary/full distinction |
+| X-cube E3 preflight | axial/diagonal orientation difference retained; both searches rejected without full `P_boundary` | source-lock and capability check |
+
+`bounded_exact` applies only to the recorded RREF seed domain. Saturation,
+anomaly detection, local Hamiltonian completion, residual boundary order,
+bulk termination, local-Clifford/stable-ancilla equivalence, stacking, and
+foliated equivalence remain unsupported.
