@@ -27,6 +27,12 @@ from mobility_toolkit.anyons2d.metric import (
     MetricDescentCertificate,
     MetricValidationCertificate,
 )
+from mobility_toolkit.anyons2d.models import (
+    LiteratureMetricModel,
+    color_code_metric_model,
+    double_semion_metric_model,
+    zd_toric_metric_model,
+)
 
 __all__ = [
     "AnyonTerminationCertificate",
@@ -38,14 +44,18 @@ __all__ = [
     "CondensateEnumerationPage",
     "CondensateSearchDomain",
     "FiniteMetricGroup",
+    "LiteratureMetricModel",
     "MetricDescentCertificate",
     "MetricDirectSum",
     "MetricValidationCertificate",
     "anyon_termination_certificate",
     "can_terminate",
+    "color_code_metric_model",
+    "double_semion_metric_model",
     "direct_sum_metric_groups",
     "enumerate_condensates",
     "fold_metric_groups",
     "test_condensation",
     "verify_condensation_certificate",
+    "zd_toric_metric_model",
 ]
