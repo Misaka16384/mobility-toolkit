@@ -58,6 +58,35 @@ from mobility_toolkit.boundary_halfspace.boundary_module import (
     toric_z2_y_nonnegative_boundary_module,
     verify_toric_z2_y_nonnegative_finite,
 )
+from mobility_toolkit.boundary_halfspace.xcube import (
+    BoundaryToBulkBehavior,
+    XCUBE_RUBA_YANG_EQ140_ROWS,
+    XCUBE_RUBA_YANG_SOURCE,
+    XCubeChargeWitness,
+    XCubeLiteratureSource,
+    XCubeOrientationBenchmark,
+    XCubeOrientationCertificate,
+    XCubeOrientationRequest,
+    xcube_orientation_benchmark,
+)
+from mobility_toolkit.boundary_halfspace.toric3d import (
+    FROZEN_Z2_3D_TORIC_ROWS,
+    Toric3DCondensationSector,
+    Toric3DFiniteSlabCrosscheck,
+    Toric3DHalfSpaceCapabilityReport,
+    Toric3DPrimaryBenchmarkCertificate,
+    Toric3DZ2HalfSpacePrimaryBenchmark,
+    toric3d_halfspace_capability_report,
+    toric3d_z2_z_nonnegative_primary_benchmark,
+    verify_toric3d_z_nonnegative_finite,
+)
+from mobility_toolkit.boundary_halfspace.secondary_example import (
+    RubaYangSecondaryBoundaryExample,
+    RubaYangSecondaryExampleCertificate,
+    SecondaryExampleFiniteCheck,
+    ruba_yang_secondary_boundary_example,
+    verify_secondary_example_finite,
+)
 
 __all__ = [
     "AncillaBound",
@@ -101,4 +130,27 @@ __all__ = [
     "compile_projected_bulk_primary",
     "toric_z2_y_nonnegative_boundary_module",
     "verify_toric_z2_y_nonnegative_finite",
+    "BoundaryToBulkBehavior",
+    "XCUBE_RUBA_YANG_EQ140_ROWS",
+    "XCUBE_RUBA_YANG_SOURCE",
+    "XCubeChargeWitness",
+    "XCubeLiteratureSource",
+    "XCubeOrientationBenchmark",
+    "XCubeOrientationCertificate",
+    "XCubeOrientationRequest",
+    "xcube_orientation_benchmark",
+    "FROZEN_Z2_3D_TORIC_ROWS",
+    "Toric3DCondensationSector",
+    "Toric3DFiniteSlabCrosscheck",
+    "Toric3DHalfSpaceCapabilityReport",
+    "Toric3DPrimaryBenchmarkCertificate",
+    "Toric3DZ2HalfSpacePrimaryBenchmark",
+    "toric3d_halfspace_capability_report",
+    "toric3d_z2_z_nonnegative_primary_benchmark",
+    "verify_toric3d_z_nonnegative_finite",
+    "RubaYangSecondaryBoundaryExample",
+    "RubaYangSecondaryExampleCertificate",
+    "SecondaryExampleFiniteCheck",
+    "ruba_yang_secondary_boundary_example",
+    "verify_secondary_example_finite",
 ]
