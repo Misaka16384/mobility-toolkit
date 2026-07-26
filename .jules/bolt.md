@@ -12,3 +12,6 @@
 ## 2024-07-17 - [C-Level Optimization For Multi-Argument Math Methods]
 **Learning:** Manual list loops and `functools.reduce` over math functions like `lcm` or `gcd` are unexpectedly heavy bottlenecks in purely algorithmic workflows like the Grobner basis solver, despite being common Python idioms. `math.gcd` and `math.lcm` (since Python 3.9) accept *args directly and process natively in C.
 **Action:** Always scan numeric arrays for loop-based mathematical reductions (LCM, GCD, Sum) and map them to their Python 3.9+ C-optimized native multi-argument counterparts.
+## 2024-07-26 - SQLite Connection Overhead
+**Learning:** Re-opening a sqlite3 connection and executing CREATE TABLE IF NOT EXISTS on every query adds a tremendous amount of overhead (~0.23ms per call). When doing this repeatedly in a loop (e.g. for caching lookups), it slows down the system by more than 10x.
+**Action:** Always use persistent `sqlite3.connect` with `check_same_thread=False` and a `try/except Exception: self.conn.rollback(); raise` block in the methods that perform write operations for long-lived cache registries. Make sure to close the connection properly in `__del__`.

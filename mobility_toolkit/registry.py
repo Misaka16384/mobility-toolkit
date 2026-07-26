@@ -185,12 +185,18 @@ class ModelRegistry:
         self.db_path = db_path
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         
-        # Ensure tables exist
-        conn = sqlite3.connect(self.db_path)
-        try:
-            self._ensure_tables(conn)
-        finally:
-            conn.close()
+        # ⚡ Bolt: Cache persistent DB connection to avoid connection/initialization overhead
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self._ensure_tables(self.conn)
+
+    def close(self):
+        """Close the persistent database connection."""
+        if self.conn:
+            self.conn.close()
+            self.conn = None
+
+    def __del__(self):
+        self.close()
 
     def _ensure_tables(self, conn) -> None:
         cursor = conn.cursor()
@@ -232,28 +238,23 @@ class ModelRegistry:
         Otherwise return None.
         """
         matrix_str = json.dumps(stabilizer_matrix)
-        conn = sqlite3.connect(self.db_path)
-        self._ensure_tables(conn)
-        cursor = conn.cursor()
-        try:
-            cursor.execute("""
-                SELECT krull_dimension, ext_modules, annihilator_generators 
-                FROM computations 
-                WHERE qudit_dim = ? AND stabilizer_matrix = ? AND p_ext = ?
-            """, (qudit_dim, matrix_str, p_ext))
-            row = cursor.fetchone()
-            if row is not None:
-                krull_dimension, ext_modules_str, annihilator_generators_str = row
-                ext_modules = json.loads(ext_modules_str) if ext_modules_str else None
-                annihilator_generators = json.loads(annihilator_generators_str) if annihilator_generators_str else None
-                return {
-                    "krull_dimension": krull_dimension,
-                    "ext_modules": ext_modules,
-                    "annihilator_generators": annihilator_generators
-                }
-            return None
-        finally:
-            conn.close()
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT krull_dimension, ext_modules, annihilator_generators
+            FROM computations
+            WHERE qudit_dim = ? AND stabilizer_matrix = ? AND p_ext = ?
+        """, (qudit_dim, matrix_str, p_ext))
+        row = cursor.fetchone()
+        if row is not None:
+            krull_dimension, ext_modules_str, annihilator_generators_str = row
+            ext_modules = json.loads(ext_modules_str) if ext_modules_str else None
+            annihilator_generators = json.loads(annihilator_generators_str) if annihilator_generators_str else None
+            return {
+                "krull_dimension": krull_dimension,
+                "ext_modules": ext_modules,
+                "annihilator_generators": annihilator_generators
+            }
+        return None
 
     def cache_annihilator(self, stabilizer_matrix: List[List[str]], qudit_dim: int, p_ext: int, krull_dimension: int, ext_modules: List[str], annihilator_generators: List[str]) -> None:
         """Insert/replace row in computations table."""
@@ -261,9 +262,7 @@ class ModelRegistry:
         ext_modules_str = json.dumps(ext_modules)
         annihilator_generators_str = json.dumps(annihilator_generators)
         
-        conn = sqlite3.connect(self.db_path)
-        self._ensure_tables(conn)
-        cursor = conn.cursor()
+        cursor = self.conn.cursor()
         try:
             cursor.execute("""
                 SELECT id FROM computations 
@@ -282,9 +281,10 @@ class ModelRegistry:
                     (qudit_dim, stabilizer_matrix, p_ext, krull_dimension, ext_modules, annihilator_generators)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (qudit_dim, matrix_str, p_ext, krull_dimension, ext_modules_str, annihilator_generators_str))
-            conn.commit()
-        finally:
-            conn.close()
+            self.conn.commit()
+        except Exception:
+            self.conn.rollback()
+            raise
 
     def get_cached_properties(self, generators: List[str], qudit_dim: int) -> Dict[str, Any]:
         """Query computations table for matching qudit_dim and annihilator_generators (sorted).
@@ -293,29 +293,24 @@ class ModelRegistry:
         """
         sorted_gens = sorted(generators)
         gens_str = json.dumps(sorted_gens)
-        conn = sqlite3.connect(self.db_path)
-        self._ensure_tables(conn)
-        cursor = conn.cursor()
-        try:
-            cursor.execute("""
-                SELECT mobility_dimension, valuation_matrix, kernel_basis 
-                FROM computations 
-                WHERE qudit_dim = ? AND annihilator_generators = ?
-            """, (qudit_dim, gens_str))
-            rows = cursor.fetchall()
-            for row in rows:
-                mobility_dimension, valuation_matrix_str, kernel_basis_str = row
-                if mobility_dimension is not None:
-                    valuation_matrix = json.loads(valuation_matrix_str) if valuation_matrix_str else None
-                    kernel_basis = json.loads(kernel_basis_str) if kernel_basis_str else None
-                    return {
-                        "mobility_dimension": mobility_dimension,
-                        "valuation_matrix": valuation_matrix,
-                        "kernel_basis": kernel_basis
-                    }
-            return None
-        finally:
-            conn.close()
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT mobility_dimension, valuation_matrix, kernel_basis
+            FROM computations
+            WHERE qudit_dim = ? AND annihilator_generators = ?
+        """, (qudit_dim, gens_str))
+        rows = cursor.fetchall()
+        for row in rows:
+            mobility_dimension, valuation_matrix_str, kernel_basis_str = row
+            if mobility_dimension is not None:
+                valuation_matrix = json.loads(valuation_matrix_str) if valuation_matrix_str else None
+                kernel_basis = json.loads(kernel_basis_str) if kernel_basis_str else None
+                return {
+                    "mobility_dimension": mobility_dimension,
+                    "valuation_matrix": valuation_matrix,
+                    "kernel_basis": kernel_basis
+                }
+        return None
 
     def cache_properties(self, generators: List[str], qudit_dim: int, mobility_dimension: int, valuation_matrix: List[List[int]], kernel_basis: List[List[int]]) -> None:
         """Insert or update the matching computations row. If no row exists matching qudit_dim and generators, insert a new one."""
@@ -324,9 +319,7 @@ class ModelRegistry:
         val_matrix_str = json.dumps(valuation_matrix)
         ker_basis_str = json.dumps(kernel_basis)
         
-        conn = sqlite3.connect(self.db_path)
-        self._ensure_tables(conn)
-        cursor = conn.cursor()
+        cursor = self.conn.cursor()
         try:
             cursor.execute("""
                 SELECT id FROM computations 
@@ -345,6 +338,7 @@ class ModelRegistry:
                     (qudit_dim, stabilizer_matrix, p_ext, annihilator_generators, krull_dimension, ext_modules, mobility_dimension, valuation_matrix, kernel_basis)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (qudit_dim, "[]", -1, gens_str, None, None, mobility_dimension, val_matrix_str, ker_basis_str))
-            conn.commit()
-        finally:
-            conn.close()
+            self.conn.commit()
+        except Exception:
+            self.conn.rollback()
+            raise
