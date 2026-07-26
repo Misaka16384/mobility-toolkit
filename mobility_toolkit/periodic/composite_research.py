@@ -378,6 +378,7 @@ def finite_resolution_check(
 class RubaYangZ4BenchmarkValue:
     additive_invariant_factors: Tuple[int, ...]
     annihilator_generators: Tuple[LaurentPolynomial, ...]
+    annihilator_matches_paper: bool
     higher_charge_degrees_tested_zero: Tuple[int, ...]
     all_higher_zero_conditional_on_paper_resolution: bool
     explicit_generators: Tuple[str, ...]
@@ -395,6 +396,7 @@ class RubaYangZ4BenchmarkValue:
         return {
             "additive_invariant_factors": self.additive_invariant_factors,
             "annihilator_generators": self.annihilator_generators,
+            "annihilator_matches_paper": self.annihilator_matches_paper,
             "explicit_generators": self.explicit_generators,
             "explicit_generators_are_cycles": self.explicit_generators_are_cycles,
             "explicit_generators_span_h1": self.explicit_generators_span_h1,
@@ -477,6 +479,10 @@ print "VALUE:H1_NUMGENS"
 print numgens H1
 print "VALUE:H1_ANN"
 print toString(generators gb ann H1)
+actualAnn = ann H1
+expectedAnn = ideal(2,x1-1,x2-1)
+print "VALUE:H1_ANN_MATCHES_PAPER"
+print (isSubset(actualAnn,expectedAnn) and isSubset(expectedAnn,actualAnn))
 H2 = prune homology(tauDagger,tauDagger)
 print "VALUE:H2_NUMGENS"
 print numgens H2
@@ -559,6 +565,9 @@ def run_ruba_yang_z4_resolution_benchmark(
         "e+m": _m2_bool(stdout, "VALUE:EM_BOUNDARY"),
     }
     spans = _m2_bool(stdout, "VALUE:GENERATORS_SPAN")
+    annihilator_matches_paper = _m2_bool(
+        stdout, "VALUE:H1_ANN_MATCHES_PAPER"
+    )
     annihilator = _parse_annihilator(
         _marker_payload(stdout, "VALUE:H1_ANN"),
         resolution.sigma.translation_group,
@@ -571,6 +580,8 @@ def run_ruba_yang_z4_resolution_benchmark(
         failures.append("Macaulay2 rejected one or more chain identities")
     if h1_numgens != 2:
         failures.append(f"H^1 has {h1_numgens} generators instead of two")
+    if not annihilator_matches_paper:
+        failures.append("ann H^1 differs from the paper ideal (2,x1-1,x2-1)")
     if h2_numgens != 0:
         failures.append("periodic H^2 is nonzero")
     if not cycles or any(boundaries.values()) or not spans:
@@ -585,6 +596,7 @@ def run_ruba_yang_z4_resolution_benchmark(
     value = RubaYangZ4BenchmarkValue(
         additive_invariant_factors=(2, 2),
         annihilator_generators=annihilator,
+        annihilator_matches_paper=annihilator_matches_paper,
         higher_charge_degrees_tested_zero=(1,),
         all_higher_zero_conditional_on_paper_resolution=True,
         explicit_generators=("e=(2,0,0,0)", "m=(0,2,0,0)"),
@@ -618,6 +630,7 @@ def run_ruba_yang_z4_resolution_benchmark(
                 "boundaries": boundaries,
                 "spans": spans,
             },
+            "annihilator_matches_paper_ideal": annihilator_matches_paper,
             "all_higher_zero_statement": (
                 "If the infinite periodic sequence in 2204.06023v3 Eq. (101) is an "
                 "exact resolution, the repeated verified H^2 computation proves Q^i=0 "

@@ -46,6 +46,24 @@ def _presentation(dimensions):
 def test_paper_resolution_is_canonical_and_squares_to_zero_without_m2():
     first = ruba_yang_z4_resolution()
     second = ruba_yang_z4_resolution()
+    # Independent literal locks for Ruba--Yang v3 Eqs. (99)--(102).  Comparing
+    # two calls to the same factory would not detect a transcription typo.
+    assert first.sigma.render_m2_rows() == (
+        "{{2*t1 + 2,0,0,0},{2*t2 + 2,0,0,0},"
+        "{0,1 + 3*x2,2,0},{0,1 + 3*x1,0,2}}"
+    )
+    assert first.tau.render_m2_rows() == (
+        "{{2,0,0,0},{0,2,0,0},{0,1 + 3*x2,2,0},"
+        "{0,1 + 3*x1,0,2}}"
+    )
+    assert first.epsilon.render_m2_rows() == (
+        "{{0,0,2 + 2*x1,2 + 2*x2},{3*t2 + 1,3*t1 + 1,0,0},"
+        "{2,0,0,0},{0,2,0,0}}"
+    )
+    assert first.tau_dagger.render_m2_rows() == (
+        "{{2,0,0,0},{0,2,3*t2 + 1,3*t1 + 1},"
+        "{0,0,2,0},{0,0,0,2}}"
+    )
     assert dict(first.chain_identities()) == {
         "sigma_tau": True,
         "tau_tau": True,
@@ -62,7 +80,7 @@ def test_independent_finite_fga_specializations_reproduce_z2_plus_z2(periods):
     assert check.h1_invariant_factors == (2, 2)
 
 
-def test_fixed_research_operations_do_not_promote_generic_ext():
+def test_fixed_research_operations_are_not_claimed_for_generic_presentations():
     matrix = PeriodicSupportMatrix()
     composite = _presentation((4, 4))
     paper = matrix.decide(PeriodicOperation.PAPER_RESOLUTION_BENCHMARK, composite)
@@ -73,12 +91,10 @@ def test_fixed_research_operations_do_not_promote_generic_ext():
         nonuniform,
     )
     generic_nonuniform = matrix.decide(PeriodicOperation.EXT, nonuniform)
-    assert (paper.coefficient_domain, paper.tier) == (
-        CoefficientDomain.UNIFORM_COMPOSITE,
-        SupportTier.EXPERIMENTAL,
-    )
+    assert paper.coefficient_domain is CoefficientDomain.UNIFORM_COMPOSITE
+    assert paper.tier is SupportTier.UNSUPPORTED
     assert generic.tier is SupportTier.EXPERIMENTAL
-    assert toy.tier is SupportTier.EXPERIMENTAL
+    assert toy.tier is SupportTier.UNSUPPORTED
     assert generic_nonuniform.tier is SupportTier.UNSUPPORTED
 
 
@@ -105,6 +121,8 @@ def test_live_m2_paper_resolution_reproduces_charge_group_and_higher_vanishing()
     result = run_ruba_yang_z4_resolution_benchmark()
     assert result.exactness is Exactness.EXPERIMENTAL
     assert result.value.additive_invariant_factors == (2, 2)
+    assert result.value.annihilator_matches_paper
+    assert result.certificate["annihilator_matches_paper_ideal"]
     assert result.value.explicit_generators_are_cycles
     assert result.value.explicit_nonzero_classes == ("e", "m", "e+m")
     assert result.value.explicit_generators_span_h1

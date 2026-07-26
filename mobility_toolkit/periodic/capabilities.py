@@ -90,40 +90,24 @@ class PeriodicSupportMatrix:
             raise TypeError("presentation must be QuasiFreePauliModulePresentation")
         domain = coefficient_domain(presentation)
         if operation is PeriodicOperation.PAPER_RESOLUTION_BENCHMARK:
-            if domain is CoefficientDomain.UNIFORM_COMPOSITE:
-                return CapabilityDecision(
-                    operation,
-                    domain,
-                    SupportTier.EXPERIMENTAL,
-                    Exactness.EXPERIMENTAL,
-                    "macaulay2-explicit-paper-resolution",
-                    "only a fixed machine-verified paper resolution is executable",
-                )
             return CapabilityDecision(
                 operation,
                 domain,
                 SupportTier.UNSUPPORTED,
                 Exactness.UNSUPPORTED,
                 "none",
-                "the fixed paper benchmark is defined for its Z4 presentation only",
+                "this presentation-specific gate cannot identify the fixed Sec. 7.8 "
+                "resolution; call run_ruba_yang_z4_resolution_benchmark directly",
             )
         if operation is PeriodicOperation.NONUNIFORM_QUASI_FREE_BENCHMARK:
-            if domain is CoefficientDomain.NONUNIFORM:
-                return CapabilityDecision(
-                    operation,
-                    domain,
-                    SupportTier.EXPERIMENTAL,
-                    Exactness.EXPERIMENTAL,
-                    "macaulay2-fixed-quasi-free-resolution",
-                    "fixed Lemma 20 toy only; no generic nonuniform Ext construction",
-                )
             return CapabilityDecision(
                 operation,
                 domain,
                 SupportTier.UNSUPPORTED,
                 Exactness.UNSUPPORTED,
                 "none",
-                "the fixed nonuniform toy requires mixed local orders",
+                "this presentation-specific gate cannot identify the fixed Lemma 20 "
+                "toy; call run_nonuniform_quasi_free_toy_benchmark directly",
             )
         if operation is PeriodicOperation.PRESENTATION:
             return CapabilityDecision(
