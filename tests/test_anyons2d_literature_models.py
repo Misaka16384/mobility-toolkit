@@ -7,6 +7,7 @@ from mobility_toolkit.anyons2d import (
     color_code_metric_model,
     double_semion_metric_model,
     enumerate_condensates,
+    fish_toric_metric_model,
     zd_toric_metric_model,
 )
 from mobility_toolkit.core import Exactness
@@ -75,3 +76,16 @@ def test_color_code_metric_has_six_raw_lagrangian_subgroups(backend):
     assert all(item.order == 4 for item in lagrangians)
     assert all(item.invariant_factors == (2, 2) for item in lagrangians)
     assert "without quotienting" in model.literature_scope
+
+
+def test_fish_toric_abstract_metric_reuses_toric_order_without_fake_extraction(
+    backend,
+):
+    model = fish_toric_metric_model(backend)
+    candidates, certificate = _all_candidates(model, backend)
+    assert sum(candidate.lagrangian for candidate in candidates) == 2
+    assert certificate.lagrangian_subgroups == 2
+    assert model.expected_raw_lagrangian_subgroups == 2
+    assert not model.stabilizer_extraction_constructed
+    assert not model.local_boundary_completion_constructed
+    assert "microscopic extraction" in model.literature_scope

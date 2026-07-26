@@ -31,6 +31,7 @@ from mobility_toolkit.anyons2d.models import (
     LiteratureMetricModel,
     color_code_metric_model,
     double_semion_metric_model,
+    fish_toric_metric_model,
     zd_toric_metric_model,
 )
 
@@ -54,6 +55,7 @@ __all__ = [
     "double_semion_metric_model",
     "direct_sum_metric_groups",
     "enumerate_condensates",
+    "fish_toric_metric_model",
     "fold_metric_groups",
     "test_condensation",
     "verify_condensation_certificate",

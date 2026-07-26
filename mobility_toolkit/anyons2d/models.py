@@ -170,9 +170,45 @@ def color_code_metric_model(
     )
 
 
+def fish_toric_metric_model(
+    backend: FiniteIntegerBackend,
+) -> LiteratureMetricModel:
+    """Return the abstract anyon metric of the frozen fish-toric benchmark.
+
+    The legacy fish presentation has toric topological order, so its abstract
+    metric group is ``D(Z_2)``.  This fixture intentionally does not claim a
+    canonical phase-aware extraction or local completion for the legacy rows.
+    """
+
+    metric = _coordinate_metric(
+        (2, 2),
+        2,
+        ((0, 1), (1, 0)),
+        (0, 0),
+        ("fish_e", "fish_m"),
+        backend,
+    )
+    return LiteratureMetricModel(
+        "fish_toric_metric",
+        metric,
+        ("fish_e", "fish_m"),
+        2,
+        (
+            "abstract fish-toric anyon data identified with D(Z_2); raw "
+            "Lagrangian subgroups only, while microscopic extraction from the "
+            "legacy boundary-gauge rows remains unsupported"
+        ),
+        (
+            "frozen fish-toric regression family in mobility_toolkit; topological "
+            "metric equivalence only"
+        ),
+    )
+
+
 __all__ = [
     "LiteratureMetricModel",
     "color_code_metric_model",
     "double_semion_metric_model",
+    "fish_toric_metric_model",
     "zd_toric_metric_model",
 ]
