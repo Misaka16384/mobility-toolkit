@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import itertools
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fractions import Fraction
 from typing import Dict, Iterable, Optional, Sequence, Tuple
 
@@ -32,6 +32,12 @@ from mobility_toolkit.finite import (
 
 ElementKey = Tuple[Tuple[int, int], ...]
 IndexSubgroup = Tuple[int, ...]
+CandidateTranscriptEntry = Tuple[IndexSubgroup, str]
+OutputPrefixEntry = Tuple[IndexSubgroup, str]
+
+_ISOTROPIC = "isotropic"
+_NOT_ISOTROPIC = "not_isotropic"
+_CANDIDATE_OUTCOMES = frozenset((_ISOTROPIC, _NOT_ISOTROPIC))
 
 
 def _plain_positive(value: int, name: str) -> int:
@@ -131,6 +137,12 @@ class E1CompletenessCertificate:
     distinct_elements: int
     subgroup_join_tests: int
     distinct_subgroups: int
+    candidate_subgroups_scanned: int
+    isotropic_subgroups: int
+    output_prefix_length: int
+    candidate_transcript_hash: str
+    output_transcript_hash: str
+    page_work_units: int
     exactness: Exactness
     verification: Tuple[str, ...]
     theorem_scope: str = (
@@ -138,7 +150,7 @@ class E1CompletenessCertificate:
         "thermodynamic completeness follows"
     )
 
-    SCHEMA_ID = "mobility_toolkit.e1_completeness_certificate.v1"
+    SCHEMA_ID = "mobility_toolkit.e1_completeness_certificate.v2"
 
     @property
     def certified_complete(self) -> bool:
@@ -151,13 +163,19 @@ class E1CompletenessCertificate:
     def to_canonical_dict(self) -> dict:
         return {
             "certified_complete": self.certified_complete,
+            "candidate_subgroups_scanned": self.candidate_subgroups_scanned,
+            "candidate_transcript_hash": self.candidate_transcript_hash,
             "coordinate_tuples_scanned": self.coordinate_tuples_scanned,
             "distinct_elements": self.distinct_elements,
             "distinct_subgroups": self.distinct_subgroups,
             "domain": self.domain,
             "elements_complete": self.elements_complete,
             "exactness": self.exactness,
+            "isotropic_subgroups": self.isotropic_subgroups,
             "output_complete": self.output_complete,
+            "output_prefix_length": self.output_prefix_length,
+            "output_transcript_hash": self.output_transcript_hash,
+            "page_work_units": self.page_work_units,
             "schema": self.SCHEMA_ID,
             "subgroup_join_tests": self.subgroup_join_tests,
             "subgroup_search_complete": self.subgroup_search_complete,
@@ -177,18 +195,30 @@ class E1EnumerationCheckpoint:
     active_element_cursor: int = 0
     subgroup_join_tests: int = 0
     subgroup_search_complete: bool = False
+    candidate_scan_cursor: int = 0
+    candidate_transcript: Tuple[CandidateTranscriptEntry, ...] = ()
+    candidate_transcript_hash: str = ""
     output_cursor: int = 0
+    output_prefix: Tuple[OutputPrefixEntry, ...] = ()
+    output_transcript_hash: str = ""
+    checkpoint_hash: str = ""
 
-    SCHEMA_ID = "mobility_toolkit.e1_enumeration_checkpoint.v1"
+    SCHEMA_ID = "mobility_toolkit.e1_enumeration_checkpoint.v2"
 
     def to_canonical_dict(self) -> dict:
         return {
             "active_element_cursor": self.active_element_cursor,
             "active_subgroup": self.active_subgroup,
             "algebra_input_hash": self.algebra_input_hash,
+            "candidate_scan_cursor": self.candidate_scan_cursor,
+            "candidate_transcript": self.candidate_transcript,
+            "candidate_transcript_hash": self.candidate_transcript_hash,
+            "checkpoint_hash": self.checkpoint_hash,
             "element_cursor": self.element_cursor,
             "element_vectors": self.element_vectors,
             "output_cursor": self.output_cursor,
+            "output_prefix": self.output_prefix,
+            "output_transcript_hash": self.output_transcript_hash,
             "pending_subgroups": self.pending_subgroups,
             "schema": self.SCHEMA_ID,
             "seen_subgroups": self.seen_subgroups,
@@ -386,40 +416,239 @@ def _orthogonal(
     )
 
 
-def _candidate_records(
-    subgroups: Sequence[IndexSubgroup],
+def _candidate_record(
+    subgroup: IndexSubgroup,
+    isotropic_subgroups: Sequence[IndexSubgroup],
     vectors: Sequence[Tuple[int, ...]],
     paired: PairedFiniteAbelianGroup,
     backend: FiniteIntegerBackend,
     space: _ElementSpace,
     algebra_input_hash: str,
-) -> Tuple[E1SubgroupCandidate, ...]:
+) -> E1SubgroupCandidate:
     keys = {space.key(vector): index for index, vector in enumerate(vectors)}
-    isotropic_groups = tuple(group for group in subgroups if _isotropic(group, vectors, space))
-    isotropic_sets = tuple(frozenset(group) for group in isotropic_groups)
-    records = []
-    for subgroup, member_set in zip(isotropic_groups, isotropic_sets):
-        generators = _canonical_generators(subgroup, vectors, keys, space)
-        generator_vectors = tuple(vectors[index] for index in generators)
-        matrix = _matrix_from_columns(generator_vectors, paired.group.presentation_rank)
-        finite_subgroup = paired.group.subgroup(matrix, backend)
-        maximal = not any(
-            member_set < other_set for other_set in isotropic_sets
-        )
-        records.append(
-            E1SubgroupCandidate(
-                algebra_input_hash,
-                subgroup,
-                generators,
-                generator_vectors,
-                finite_subgroup.invariant_factors(backend),
-                len(subgroup),
-                True,
-                maximal,
-                subgroup == _orthogonal(subgroup, vectors, space),
-            )
-        )
-    return tuple(sorted(records, key=lambda item: item.element_indices))
+    member_set = frozenset(subgroup)
+    generators = _canonical_generators(subgroup, vectors, keys, space)
+    generator_vectors = tuple(vectors[index] for index in generators)
+    matrix = _matrix_from_columns(generator_vectors, paired.group.presentation_rank)
+    finite_subgroup = paired.group.subgroup(matrix, backend)
+    maximal = not any(
+        member_set < frozenset(other) for other in isotropic_subgroups
+    )
+    return E1SubgroupCandidate(
+        algebra_input_hash,
+        subgroup,
+        generators,
+        generator_vectors,
+        finite_subgroup.invariant_factors(backend),
+        len(subgroup),
+        True,
+        maximal,
+        subgroup == _orthogonal(subgroup, vectors, space),
+    )
+
+
+def _candidate_transcript_genesis(algebra_input_hash: str) -> str:
+    return canonical_hash(
+        "e1-candidate-transcript-genesis-v1",
+        {"algebra_input_hash": algebra_input_hash},
+    )
+
+
+def _candidate_transcript_step(
+    previous_hash: str,
+    scan_index: int,
+    entry: CandidateTranscriptEntry,
+) -> str:
+    subgroup, outcome = entry
+    return canonical_hash(
+        "e1-candidate-transcript-step-v1",
+        {
+            "outcome": outcome,
+            "previous_hash": previous_hash,
+            "scan_index": scan_index,
+            "subgroup": subgroup,
+        },
+    )
+
+
+def _replay_candidate_transcript(
+    algebra_input_hash: str,
+    transcript: Sequence[CandidateTranscriptEntry],
+) -> str:
+    digest = _candidate_transcript_genesis(algebra_input_hash)
+    for scan_index, entry in enumerate(transcript):
+        digest = _candidate_transcript_step(digest, scan_index, entry)
+    return digest
+
+
+def _output_transcript_genesis(
+    algebra_input_hash: str, candidate_transcript_hash: str
+) -> str:
+    return canonical_hash(
+        "e1-output-transcript-genesis-v1",
+        {
+            "algebra_input_hash": algebra_input_hash,
+            "candidate_transcript_hash": candidate_transcript_hash,
+        },
+    )
+
+
+def _output_transcript_step(
+    previous_hash: str,
+    output_index: int,
+    entry: OutputPrefixEntry,
+) -> str:
+    subgroup, candidate_hash = entry
+    return canonical_hash(
+        "e1-output-transcript-step-v1",
+        {
+            "candidate_hash": candidate_hash,
+            "output_index": output_index,
+            "previous_hash": previous_hash,
+            "subgroup": subgroup,
+        },
+    )
+
+
+def _replay_output_transcript(
+    algebra_input_hash: str,
+    candidate_transcript_hash: str,
+    prefix: Sequence[OutputPrefixEntry],
+) -> str:
+    digest = _output_transcript_genesis(
+        algebra_input_hash, candidate_transcript_hash
+    )
+    for output_index, entry in enumerate(prefix):
+        digest = _output_transcript_step(digest, output_index, entry)
+    return digest
+
+
+def _checkpoint_payload(checkpoint: E1EnumerationCheckpoint) -> dict:
+    return {
+        "active_element_cursor": checkpoint.active_element_cursor,
+        "active_subgroup": checkpoint.active_subgroup,
+        "algebra_input_hash": checkpoint.algebra_input_hash,
+        "candidate_scan_cursor": checkpoint.candidate_scan_cursor,
+        "candidate_transcript": checkpoint.candidate_transcript,
+        "candidate_transcript_hash": checkpoint.candidate_transcript_hash,
+        "element_cursor": checkpoint.element_cursor,
+        "element_vectors": checkpoint.element_vectors,
+        "output_cursor": checkpoint.output_cursor,
+        "output_prefix": checkpoint.output_prefix,
+        "output_transcript_hash": checkpoint.output_transcript_hash,
+        "pending_subgroups": checkpoint.pending_subgroups,
+        "seen_subgroups": checkpoint.seen_subgroups,
+        "subgroup_join_tests": checkpoint.subgroup_join_tests,
+        "subgroup_search_complete": checkpoint.subgroup_search_complete,
+    }
+
+
+def _seal_checkpoint(
+    checkpoint: E1EnumerationCheckpoint,
+) -> E1EnumerationCheckpoint:
+    unsealed = replace(checkpoint, checkpoint_hash="")
+    return replace(
+        unsealed,
+        checkpoint_hash=canonical_hash(
+            "e1-enumeration-checkpoint-state-v1",
+            _checkpoint_payload(unsealed),
+        ),
+    )
+
+
+def _validate_checkpoint(
+    checkpoint: E1EnumerationCheckpoint,
+    domain: E1SearchDomain,
+) -> None:
+    if checkpoint.algebra_input_hash != domain.algebra_input_hash:
+        raise ValueError("E1 checkpoint belongs to a different paired algebra")
+    if not checkpoint.checkpoint_hash:
+        raise ValueError("E1 checkpoint is unsealed")
+    if _seal_checkpoint(checkpoint).checkpoint_hash != checkpoint.checkpoint_hash:
+        raise ValueError("E1 checkpoint state hash is invalid")
+    scalar_fields = (
+        checkpoint.element_cursor,
+        checkpoint.active_element_cursor,
+        checkpoint.subgroup_join_tests,
+        checkpoint.candidate_scan_cursor,
+        checkpoint.output_cursor,
+    )
+    if any(
+        isinstance(value, bool) or not isinstance(value, int) or value < 0
+        for value in scalar_fields
+    ):
+        raise ValueError("E1 checkpoint has an invalid cursor")
+    if any(
+        len(vector) != domain.presentation_rank
+        for vector in checkpoint.element_vectors
+    ):
+        raise ValueError("E1 checkpoint has an invalid element vector")
+    if checkpoint.active_element_cursor > len(checkpoint.element_vectors):
+        raise ValueError("E1 checkpoint active cursor is out of range")
+    if len(set(checkpoint.seen_subgroups)) != len(checkpoint.seen_subgroups):
+        raise ValueError("E1 checkpoint repeats a seen subgroup")
+    if len(set(checkpoint.pending_subgroups)) != len(checkpoint.pending_subgroups):
+        raise ValueError("E1 checkpoint repeats pending work")
+    seen = set(checkpoint.seen_subgroups)
+    if any(subgroup not in seen for subgroup in checkpoint.pending_subgroups):
+        raise ValueError("E1 checkpoint has unseen pending work")
+    if checkpoint.active_subgroup is not None and checkpoint.active_subgroup not in seen:
+        raise ValueError("E1 checkpoint has an unseen active subgroup")
+    if checkpoint.subgroup_search_complete and (
+        checkpoint.pending_subgroups or checkpoint.active_subgroup is not None
+    ):
+        raise ValueError("completed E1 checkpoint still has pending work")
+    if not checkpoint.subgroup_search_complete and (
+        checkpoint.candidate_scan_cursor
+        or checkpoint.candidate_transcript
+        or checkpoint.output_cursor
+        or checkpoint.output_prefix
+    ):
+        raise ValueError("E1 checkpoint scanned candidates before subgroup exhaustion")
+    if len(checkpoint.candidate_transcript) != checkpoint.candidate_scan_cursor:
+        raise ValueError("E1 checkpoint candidate transcript disagrees with its cursor")
+    if checkpoint.candidate_scan_cursor > len(seen):
+        raise ValueError("E1 checkpoint candidate cursor is out of range")
+    expected_subgroups = tuple(sorted(seen))[: checkpoint.candidate_scan_cursor]
+    transcript_subgroups = []
+    for entry in checkpoint.candidate_transcript:
+        if not isinstance(entry, tuple) or len(entry) != 2:
+            raise ValueError("E1 checkpoint has a malformed candidate transcript")
+        subgroup, outcome = entry
+        transcript_subgroups.append(subgroup)
+        if outcome not in _CANDIDATE_OUTCOMES:
+            raise ValueError("E1 checkpoint has an invalid isotropy outcome")
+    if tuple(transcript_subgroups) != expected_subgroups:
+        raise ValueError("E1 checkpoint candidate transcript is not its scan prefix")
+    expected_candidate_hash = _replay_candidate_transcript(
+        domain.algebra_input_hash, checkpoint.candidate_transcript
+    )
+    if checkpoint.candidate_transcript_hash != expected_candidate_hash:
+        raise ValueError("E1 checkpoint candidate transcript hash is invalid")
+    isotropic_subgroups = tuple(
+        subgroup
+        for subgroup, outcome in checkpoint.candidate_transcript
+        if outcome == _ISOTROPIC
+    )
+    if checkpoint.output_cursor > len(isotropic_subgroups):
+        raise ValueError("E1 checkpoint output cursor is out of range")
+    if checkpoint.output_cursor and checkpoint.candidate_scan_cursor != len(seen):
+        raise ValueError("E1 checkpoint emitted output before isotropy exhaustion")
+    if len(checkpoint.output_prefix) != checkpoint.output_cursor:
+        raise ValueError("E1 checkpoint output prefix disagrees with its cursor")
+    if tuple(entry[0] for entry in checkpoint.output_prefix) != isotropic_subgroups[
+        : checkpoint.output_cursor
+    ]:
+        raise ValueError("E1 checkpoint output prefix skips an isotropic subgroup")
+    if any(not candidate_hash for _, candidate_hash in checkpoint.output_prefix):
+        raise ValueError("E1 checkpoint output prefix omits a candidate hash")
+    expected_output_hash = _replay_output_transcript(
+        domain.algebra_input_hash,
+        checkpoint.candidate_transcript_hash,
+        checkpoint.output_prefix,
+    )
+    if checkpoint.output_transcript_hash != expected_output_hash:
+        raise ValueError("E1 checkpoint output transcript hash is invalid")
 
 
 def enumerate_e1_subgroups(
@@ -438,31 +667,55 @@ def enumerate_e1_subgroups(
     paired = paired_boundary_presentation(algebra, backend)
     domain = _domain(algebra, paired)
     if checkpoint is None:
-        checkpoint = E1EnumerationCheckpoint(domain.algebra_input_hash)
-    elif checkpoint.algebra_input_hash != domain.algebra_input_hash:
-        raise ValueError("E1 checkpoint belongs to a different paired algebra")
+        candidate_hash = _candidate_transcript_genesis(
+            domain.algebra_input_hash
+        )
+        checkpoint = E1EnumerationCheckpoint(
+            algebra_input_hash=domain.algebra_input_hash,
+            candidate_transcript_hash=candidate_hash,
+            output_transcript_hash=_output_transcript_genesis(
+                domain.algebra_input_hash, candidate_hash
+            ),
+        )
+    else:
+        _validate_checkpoint(checkpoint, domain)
 
     if domain.group_order > budget.max_elements:
         certificate = E1CompletenessCertificate(
-            domain,
-            False,
-            False,
-            False,
-            0 if checkpoint is None else checkpoint.element_cursor,
-            0 if checkpoint is None else len(checkpoint.element_vectors),
-            0 if checkpoint is None else checkpoint.subgroup_join_tests,
-            0 if checkpoint is None else len(checkpoint.seen_subgroups),
-            Exactness.EXPERIMENTAL,
-            (f"group order exceeds max_elements={budget.max_elements}",),
+            domain=domain,
+            elements_complete=False,
+            subgroup_search_complete=False,
+            output_complete=False,
+            coordinate_tuples_scanned=checkpoint.element_cursor,
+            distinct_elements=len(checkpoint.element_vectors),
+            subgroup_join_tests=checkpoint.subgroup_join_tests,
+            distinct_subgroups=len(checkpoint.seen_subgroups),
+            candidate_subgroups_scanned=checkpoint.candidate_scan_cursor,
+            isotropic_subgroups=sum(
+                outcome == _ISOTROPIC
+                for _, outcome in checkpoint.candidate_transcript
+            ),
+            output_prefix_length=len(checkpoint.output_prefix),
+            candidate_transcript_hash=checkpoint.candidate_transcript_hash,
+            output_transcript_hash=checkpoint.output_transcript_hash,
+            page_work_units=0,
+            exactness=Exactness.EXPERIMENTAL,
+            verification=(f"group order exceeds max_elements={budget.max_elements}",),
         )
-        return E1EnumerationPage(domain, (), checkpoint, certificate)
+        return E1EnumerationPage(
+            domain, (), _seal_checkpoint(checkpoint), certificate
+        )
 
     space = _ElementSpace(paired)
     element_vectors = list(checkpoint.element_vectors)
     known_keys = {space.key(vector) for vector in element_vectors}
+    if len(known_keys) != len(element_vectors):
+        raise ValueError("E1 checkpoint repeats a finite-group element")
     element_cursor = checkpoint.element_cursor
     work = 0
     coordinate_limit = domain.exponent ** domain.presentation_rank
+    if element_cursor > coordinate_limit:
+        raise ValueError("E1 checkpoint element cursor is out of range")
     while len(element_vectors) < domain.group_order and element_cursor < coordinate_limit:
         if work >= budget.max_work_units:
             break
@@ -474,6 +727,8 @@ def enumerate_e1_subgroups(
             known_keys.add(key)
             element_vectors.append(vector)
     elements_complete = len(element_vectors) == domain.group_order
+    if element_cursor == coordinate_limit and not elements_complete:
+        raise ArithmeticError("E1 element materialization contradicts its group order")
 
     pending = list(checkpoint.pending_subgroups)
     seen = set(checkpoint.seen_subgroups)
@@ -489,6 +744,8 @@ def enumerate_e1_subgroups(
         trivial = (zero_index,)
         pending = [trivial]
         seen = {trivial}
+    elif not elements_complete and (seen or pending or active is not None):
+        raise ValueError("E1 checkpoint traversed subgroups before materializing elements")
 
     keys = {space.key(vector): index for index, vector in enumerate(element_vectors)}
     subgroup_complete = checkpoint.subgroup_search_complete
@@ -518,23 +775,82 @@ def enumerate_e1_subgroups(
     if elements_complete and active is None and not pending:
         subgroup_complete = True
 
-    all_candidates: Tuple[E1SubgroupCandidate, ...] = ()
+    candidate_scan_cursor = checkpoint.candidate_scan_cursor
+    candidate_transcript = list(checkpoint.candidate_transcript)
+    candidate_transcript_hash = checkpoint.candidate_transcript_hash
     output_cursor = checkpoint.output_cursor
-    page_candidates: Tuple[E1SubgroupCandidate, ...] = ()
+    output_prefix = list(checkpoint.output_prefix)
+    output_transcript_hash = checkpoint.output_transcript_hash
+    page_candidates_list = []
     output_complete = False
     if subgroup_complete:
-        all_candidates = _candidate_records(
-            tuple(sorted(seen)),
-            tuple(element_vectors),
-            paired,
-            backend,
-            space,
-            domain.algebra_input_hash,
+        ordered_subgroups = tuple(sorted(seen))
+        while (
+            candidate_scan_cursor < len(ordered_subgroups)
+            and work < budget.max_work_units
+        ):
+            subgroup = ordered_subgroups[candidate_scan_cursor]
+            work += 1
+            outcome = (
+                _ISOTROPIC
+                if _isotropic(subgroup, tuple(element_vectors), space)
+                else _NOT_ISOTROPIC
+            )
+            entry = (subgroup, outcome)
+            candidate_transcript.append(entry)
+            candidate_transcript_hash = _candidate_transcript_step(
+                candidate_transcript_hash,
+                candidate_scan_cursor,
+                entry,
+            )
+            candidate_scan_cursor += 1
+
+        isotropic_subgroups = tuple(
+            subgroup
+            for subgroup, outcome in candidate_transcript
+            if outcome == _ISOTROPIC
         )
-        end = min(output_cursor + budget.max_results, len(all_candidates))
-        page_candidates = all_candidates[output_cursor:end]
-        output_cursor = end
-        output_complete = output_cursor == len(all_candidates)
+        candidate_scan_complete = candidate_scan_cursor == len(ordered_subgroups)
+        if not output_prefix:
+            output_transcript_hash = _output_transcript_genesis(
+                domain.algebra_input_hash, candidate_transcript_hash
+            )
+        while (
+            candidate_scan_complete
+            and output_cursor < len(isotropic_subgroups)
+            and work < budget.max_work_units
+            and len(page_candidates_list) < budget.max_results
+        ):
+            subgroup = isotropic_subgroups[output_cursor]
+            work += 1
+            candidate = _candidate_record(
+                subgroup,
+                isotropic_subgroups,
+                tuple(element_vectors),
+                paired,
+                backend,
+                space,
+                domain.algebra_input_hash,
+            )
+            prefix_entry = (
+                subgroup,
+                canonical_hash("e1-subgroup-output-v1", candidate),
+            )
+            output_prefix.append(prefix_entry)
+            output_transcript_hash = _output_transcript_step(
+                output_transcript_hash,
+                output_cursor,
+                prefix_entry,
+            )
+            output_cursor += 1
+            page_candidates_list.append(candidate)
+        output_complete = (
+            candidate_scan_complete
+            and output_cursor == len(isotropic_subgroups)
+        )
+    else:
+        isotropic_subgroups = ()
+    page_candidates = tuple(page_candidates_list)
 
     exactness = (
         Exactness.CERTIFIED_EXACT
@@ -547,33 +863,50 @@ def enumerate_e1_subgroups(
     if subgroup_complete:
         verification.append("BFS closure under adjoining every finite-group element exhausted")
     if output_complete:
-        verification.append("every isotropic subgroup record was emitted")
+        verification.append(
+            "every subgroup isotropy test and every maximality record generation consumed a work unit"
+        )
+        verification.append(
+            "candidate and output prefixes were replayed against their transcript chain hashes"
+        )
+        verification.append("every isotropic subgroup record was emitted exactly once")
     certificate = E1CompletenessCertificate(
-        domain,
-        elements_complete,
-        subgroup_complete,
-        output_complete,
-        element_cursor,
-        len(element_vectors),
-        join_tests,
-        len(seen),
-        exactness,
-        tuple(verification),
+        domain=domain,
+        elements_complete=elements_complete,
+        subgroup_search_complete=subgroup_complete,
+        output_complete=output_complete,
+        coordinate_tuples_scanned=element_cursor,
+        distinct_elements=len(element_vectors),
+        subgroup_join_tests=join_tests,
+        distinct_subgroups=len(seen),
+        candidate_subgroups_scanned=candidate_scan_cursor,
+        isotropic_subgroups=len(isotropic_subgroups),
+        output_prefix_length=len(output_prefix),
+        candidate_transcript_hash=candidate_transcript_hash,
+        output_transcript_hash=output_transcript_hash,
+        page_work_units=work,
+        exactness=exactness,
+        verification=tuple(verification),
     )
     next_checkpoint = None
     if not certificate.certified_complete:
-        next_checkpoint = E1EnumerationCheckpoint(
-            domain.algebra_input_hash,
-            element_cursor,
-            tuple(element_vectors),
-            tuple(pending),
-            tuple(sorted(seen)),
-            active,
-            active_cursor,
-            join_tests,
-            subgroup_complete,
-            output_cursor,
-        )
+        next_checkpoint = _seal_checkpoint(E1EnumerationCheckpoint(
+            algebra_input_hash=domain.algebra_input_hash,
+            element_cursor=element_cursor,
+            element_vectors=tuple(element_vectors),
+            pending_subgroups=tuple(pending),
+            seen_subgroups=tuple(sorted(seen)),
+            active_subgroup=active,
+            active_element_cursor=active_cursor,
+            subgroup_join_tests=join_tests,
+            subgroup_search_complete=subgroup_complete,
+            candidate_scan_cursor=candidate_scan_cursor,
+            candidate_transcript=tuple(candidate_transcript),
+            candidate_transcript_hash=candidate_transcript_hash,
+            output_cursor=output_cursor,
+            output_prefix=tuple(output_prefix),
+            output_transcript_hash=output_transcript_hash,
+        ))
     return E1EnumerationPage(domain, page_candidates, next_checkpoint, certificate)
 
 

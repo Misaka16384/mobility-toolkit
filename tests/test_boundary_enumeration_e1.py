@@ -1,9 +1,11 @@
 import itertools
+from dataclasses import replace
 
 import pytest
 
 pytest.importorskip("flint")
 
+import mobility_toolkit.boundary.enumeration.finite as e1_module
 from mobility_toolkit.boundary import (
     EnumerationBudget,
     PhaseLiftContext,
@@ -250,3 +252,100 @@ def test_zero_pairing_degenerate_group_keeps_radical_distinct(backend):
         PresentedModule(1, SparseIntMatrix.diagonal((2,))), backend
     )
     assert group.invariant_factors == (2,)
+
+
+def test_e1_checkpoint_rejects_resealed_cursor_prefix_and_transcript_tampering(
+    backend,
+):
+    algebra = _qubit_algebra(backend)
+    checkpoint = None
+    while checkpoint is None or not checkpoint.output_prefix:
+        page = enumerate_e1_subgroups(
+            algebra,
+            backend,
+            EnumerationBudget(max_work_units=1, max_results=1),
+            checkpoint,
+        )
+        checkpoint = page.checkpoint
+        assert checkpoint is not None
+
+    assert checkpoint.checkpoint_hash
+    assert checkpoint.candidate_transcript_hash
+    assert checkpoint.output_transcript_hash
+    assert checkpoint.candidate_scan_cursor == len(checkpoint.candidate_transcript)
+    assert checkpoint.output_cursor == len(checkpoint.output_prefix)
+
+    changed_outcome = list(checkpoint.candidate_transcript)
+    subgroup, outcome = changed_outcome[0]
+    changed_outcome[0] = (
+        subgroup,
+        "not_isotropic" if outcome == "isotropic" else "isotropic",
+    )
+    tampered = (
+        replace(
+            checkpoint,
+            candidate_scan_cursor=checkpoint.candidate_scan_cursor + 1,
+        ),
+        replace(checkpoint, output_cursor=checkpoint.output_cursor + 1),
+        replace(checkpoint, output_prefix=()),
+        replace(checkpoint, candidate_transcript=tuple(changed_outcome)),
+        replace(checkpoint, output_transcript_hash="0" * 64),
+    )
+    for changed in tampered:
+        # Re-seal the outer checkpoint envelope to prove that validation also
+        # checks transcript/prefix semantics rather than only an opaque checksum.
+        changed = e1_module._seal_checkpoint(changed)
+        with pytest.raises(ValueError):
+            enumerate_e1_subgroups(
+                algebra,
+                backend,
+                EnumerationBudget(max_work_units=100),
+                changed,
+            )
+
+
+def test_e1_isotropy_and_maximality_scans_share_page_work_budget(
+    backend, monkeypatch
+):
+    algebra = _qubit_algebra(backend)
+    original_isotropic = e1_module._isotropic
+    original_candidate = e1_module._candidate_record
+    isotropy_calls = []
+    candidate_calls = []
+
+    def counted_isotropic(*args, **kwargs):
+        isotropy_calls.append(1)
+        return original_isotropic(*args, **kwargs)
+
+    def counted_candidate(*args, **kwargs):
+        candidate_calls.append(1)
+        return original_candidate(*args, **kwargs)
+
+    monkeypatch.setattr(e1_module, "_isotropic", counted_isotropic)
+    monkeypatch.setattr(e1_module, "_candidate_record", counted_candidate)
+    checkpoint = None
+    emitted = []
+    while True:
+        calls_before = len(isotropy_calls) + len(candidate_calls)
+        page = enumerate_e1_subgroups(
+            algebra,
+            backend,
+            EnumerationBudget(max_work_units=1, max_results=100),
+            checkpoint,
+        )
+        calls_this_page = (
+            len(isotropy_calls) + len(candidate_calls) - calls_before
+        )
+        assert page.certificate.page_work_units <= 1
+        assert calls_this_page <= page.certificate.page_work_units
+        emitted.extend(page.candidates)
+        if page.checkpoint is None:
+            break
+        checkpoint = page.checkpoint
+
+    assert page.certificate.certified_complete
+    assert len(isotropy_calls) == page.certificate.distinct_subgroups
+    assert len(candidate_calls) == page.certificate.isotropic_subgroups
+    assert len(candidate_calls) == page.certificate.output_prefix_length
+    assert len(emitted) == len(candidate_calls)
+    assert len({candidate.element_indices for candidate in emitted}) == len(emitted)
