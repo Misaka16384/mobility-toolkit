@@ -146,6 +146,7 @@ def test_phase6_capability_reports_lh_but_not_full_boundary_module_engine():
     assert report.bounded_periodic_domain_schema
     assert not report.bounded_periodic_enumerator
     assert report.uniform_prime_lh_contraction
+    assert report.uniform_prime_primary_subquotient
     assert not report.symbolic_halfspace_modules
     assert set(report.unsupported_symbolic_outputs) >= {
         "P_boundary",
@@ -155,5 +156,6 @@ def test_phase6_capability_reports_lh_but_not_full_boundary_module_engine():
     assert "L_H" not in report.unsupported_symbolic_outputs
     payload = canonical_json(report)
     assert '"uniform_prime_lh_contraction":true' in payload
+    assert '"uniform_prime_primary_subquotient":true' in payload
     assert '"symbolic_halfspace_modules":false' in payload
     assert '"bounded_periodic_enumerator":false' in payload

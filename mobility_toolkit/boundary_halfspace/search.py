@@ -305,10 +305,11 @@ class HalfSpaceCapabilityReport:
     bounded_periodic_domain_schema: bool
     bounded_periodic_enumerator: bool
     uniform_prime_lh_contraction: bool
+    uniform_prime_primary_subquotient: bool
     symbolic_halfspace_modules: bool
     unsupported_symbolic_outputs: Tuple[str, ...]
 
-    SCHEMA_ID = "mobility_toolkit.halfspace_capability_report.v1"
+    SCHEMA_ID = "mobility_toolkit.halfspace_capability_report.v2"
 
     def to_canonical_dict(self) -> dict:
         return {
@@ -318,6 +319,8 @@ class HalfSpaceCapabilityReport:
             "schema": self.SCHEMA_ID,
             "symbolic_halfspace_modules": self.symbolic_halfspace_modules,
             "uniform_prime_lh_contraction": self.uniform_prime_lh_contraction,
+            "uniform_prime_primary_subquotient":
+                self.uniform_prime_primary_subquotient,
             "unsupported_symbolic_outputs": self.unsupported_symbolic_outputs,
         }
 
@@ -330,10 +333,10 @@ def halfspace_capability_report() -> HalfSpaceCapabilityReport:
         bounded_periodic_domain_schema=True,
         bounded_periodic_enumerator=False,
         uniform_prime_lh_contraction=True,
+        uniform_prime_primary_subquotient=True,
         symbolic_halfspace_modules=False,
         unsupported_symbolic_outputs=(
             "P_boundary",
-            "primary_boundary_module",
             "secondary_boundary_module",
             "quasi_symplectic_pairing",
             "boundary_to_bulk_map",
