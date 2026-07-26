@@ -1,4 +1,4 @@
 interface:
   display_name: "MT Cheshire"
-  short_description: "Analyze finite static Cheshire strings exactly"
-  default_prompt: "Use $mt-cheshire to analyze a static open or closed Cheshire defect."
+  short_description: "Synthesize and statically fuse finite Cheshire defects"
+  default_prompt: "Use $mt-cheshire to analyze or synthesize a bounded Cheshire defect workflow while keeping static and dynamic claims separate."

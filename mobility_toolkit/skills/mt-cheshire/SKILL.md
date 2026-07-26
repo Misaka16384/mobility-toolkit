@@ -1,33 +1,44 @@
 ---
 name: mt-cheshire
-description: "Compute certified finite static data for user-specified Cheshire open segments, closed loops, and multiple line components in the 3+1D Z2 plaquette-qubit toric code. Use for finite GSD changes, total-charge sectors, endpoint and defect-local Pauli algebras, charge/flux termination checks, tube-versus-line representation certificates, or finite length/radius comparisons."
+description: "Analyze, synthesize, finitely enumerate, and statically fuse Cheshire line defects. Use for certified finite 3+1D Z2 toric open/closed defects, tube-to-line radius checks, bounded supplied-species searches, endpoint/junction networks, or the explicitly experimental axial X-cube reference."
 ---
 
 # mt-cheshire
 
-Run the bundled script on a 3D cubical region. It implements the static
-stabilizer replacement of Tantivasadakarn--Chen, arXiv:2307.03180, Eq. (6)--(8),
-and returns exact finite-system certificates.
+Use this skill for Cheshire line/tube defects. It separates exact finite
+stabilizer statements from phase, thermodynamic, and dynamical claims.
 
-## Workflow
+Run:
 
-1. Choose `shape` and any `periodic_axes`.
-2. Give each defect an ordered nearest-neighbor `cube_bases` path and select
-   `open_segment` or `closed_loop`.
-3. Run `python scripts/mt-cheshire.py` with JSON on stdin.
-4. Read `bulk`, `local_hamiltonian`, and `fixed_charge_sectors` separately.
-   `local_hamiltonian` retains every bulk term away from the line; only path
-   charge checks are replaced. `fixed_charge_sectors` uses the stabilizer
-   `+1` eigenvalue convention for the added `Q_gamma` generators.
-5. Treat `tube_radius_lattice_steps` only as the finite support window used for
-   defect-local algebra. The separately certified deleted-tube representation
-   removes the specified core volume while retaining wall/cap plaquettes.
+```bash
+python scripts/mt-cheshire.py < input.json
+```
+
+## Operations
+
+- `capabilities`: machine-readable production/experimental/unsupported scope.
+- `static`: exact Phase-4 finite analysis of supplied toric open segments,
+  closed loops, or several components.
+- `synthesize-toric`: revalidate a supplied toric candidate at every strictly
+  decreasing radius ending at zero, then compare declared finite invariants.
+- `enumerate-toric`: exhaust exactly the supplied finite `candidate_sets` list.
+  The result is not complete outside that recorded list.
+- `fusion-toric`: compare explicit before/after finite Hamiltonians, logical
+  counts, defect-local paired algebras, termination, and Hamiltonian deltas.
+  Optional network data can encode endpoint, interface, and junction strata.
+- `fracton-reference`: run the axial `(0,0,1)` X-cube finite candidate. Other
+  normals return structured `unsupported` results.
+
+The `static`, `synthesize-toric`, `enumerate-toric`, and `fusion-toric`
+operations use a common three-dimensional geometry:
 
 ```json
 {
-  "shape": [3, 1, 1],
+  "operation": "synthesize-toric",
+  "shape": [2, 1, 1],
   "periodic_axes": [],
-  "tube_radius_lattice_steps": 0,
+  "candidate_id": "open-electric",
+  "radii": [1, 0],
   "defects": [
     {
       "defect_id": "gamma",
@@ -38,21 +49,41 @@ and returns exact finite-system certificates.
 }
 ```
 
-```bash
-python scripts/mt-cheshire.py < input.json
+For `enumerate-toric`, replace `defects` with:
+
+```json
+{
+  "candidate_sets": [
+    {
+      "candidate_id": "candidate-a",
+      "defects": [
+        {
+          "defect_id": "gamma",
+          "topology": "open_segment",
+          "cube_bases": [[0, 0, 0], [1, 0, 0]]
+        }
+      ]
+    }
+  ]
+}
 ```
 
-Set `include_full_result` to `true` only when the complete canonical subgroup,
-pairing, and lattice certificates are needed; the payload can be large.
+For static fusion supply `fusion_id`, `before_defects`, and `after_defects`.
+Network nodes bind physical endpoint cube IDs; a junction node needs at least
+three bindings. Network validation certifies incidence/strata only unless the
+before/after Hamiltonians themselves contain a junction-local completion.
 
 ## Interpretation limits
 
-- Each finite stabilizer and specified window result is exact.
-- A sequence of exact finite samples is not a thermodynamic theorem.
-- Do not infer creation-circuit depth, finite-depth phase equivalence, dynamic
-  deformation/fusion, or completeness of Cheshire species.
-- `charge_termination` is a positive operator witness.
-- `magnetic_termination` is backed by a finite cellular syndrome no-solution
-  certificate, not merely a failed representative probe.
+- Finite stabilizer, commutation, logical, pairing, and syndrome certificates
+  are exact in their recorded geometry.
+- Tube shrinking certifies only the explicitly compared finite samples and
+  invariant names. It is not a finite-depth or phase-equivalence proof.
+- Static fusion does not construct a fusion circuit or a thermodynamic fusion
+  rule.
+- The X-cube workflow is an `experimental` candidate even though its finite
+  syndrome and GF(2) calculations are exact.
+- Do not identify every line defect with a Cheshire string, infer minimum
+  sequential creation depth, or claim species outside the bounded input list.
 
-The script needs the `python-flint` finite backend; it does not use Macaulay2.
+The finite backend is `python-flint`; Macaulay2 is not used.

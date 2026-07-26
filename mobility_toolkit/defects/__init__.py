@@ -39,6 +39,32 @@ from mobility_toolkit.defects.tube import (
     TubularDeletedRepresentation,
     compile_deleted_tube_representation,
 )
+from mobility_toolkit.defects.cheshire_synthesis import (
+    CheshireSpeciesEnumeration,
+    CondensationCandidate,
+    FiniteTubeLineDefectFamily,
+    TubularToLineSynthesis,
+    enumerate_cheshire_species,
+    synthesize_tubular_to_line,
+    toric_cheshire_condensation_candidate,
+    verify_cheshire_species_enumeration,
+    verify_tubular_to_line_synthesis,
+)
+from mobility_toolkit.defects.cheshire_fusion import (
+    CheshireDefectNetwork,
+    CheshireNetworkEdge,
+    CheshireNetworkNode,
+    StaticCheshireFusionResult,
+    component_count_topology_guard,
+    construct_static_toric_cheshire_fusion,
+    verify_static_cheshire_fusion,
+)
+from mobility_toolkit.defects.fracton_cheshire import (
+    XCubeAxialLineRequest,
+    XCubeFractonLineReference,
+    analyze_xcube_fracton_line_reference,
+    xcube_axial_line_reference_request,
+)
 
 __all__ = [
     "DefectLocalAlgebra",
@@ -72,4 +98,24 @@ __all__ = [
     "LineTubeRepresentationCertificate",
     "TubularDeletedRepresentation",
     "compile_deleted_tube_representation",
+    "CheshireSpeciesEnumeration",
+    "CondensationCandidate",
+    "FiniteTubeLineDefectFamily",
+    "TubularToLineSynthesis",
+    "enumerate_cheshire_species",
+    "synthesize_tubular_to_line",
+    "toric_cheshire_condensation_candidate",
+    "verify_cheshire_species_enumeration",
+    "verify_tubular_to_line_synthesis",
+    "CheshireDefectNetwork",
+    "CheshireNetworkEdge",
+    "CheshireNetworkNode",
+    "StaticCheshireFusionResult",
+    "component_count_topology_guard",
+    "construct_static_toric_cheshire_fusion",
+    "verify_static_cheshire_fusion",
+    "XCubeAxialLineRequest",
+    "XCubeFractonLineReference",
+    "analyze_xcube_fracton_line_reference",
+    "xcube_axial_line_reference_request",
 ]
