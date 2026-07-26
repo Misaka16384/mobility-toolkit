@@ -579,6 +579,34 @@ def _capability(
     input_schema: Any,
 ) -> Callable[[ServiceRequest], ServiceCapability]:
     def report(request: ServiceRequest) -> ServiceCapability:
+        # ``ServiceExecutor.catalog`` probes registrations with an empty
+        # input object.  Report the strongest operation-level contract there;
+        # a real request below receives the coefficient-domain-specific
+        # decision from ``PeriodicSupportMatrix``.
+        if request.input_data == {}:
+            certificate_level = (
+                CertificateLevel.FULL
+                if operation is PeriodicOperation.PRESENTATION
+                else CertificateLevel.STANDARD
+            )
+            return ServiceCapability(
+                operation=request.operation,
+                supported=True,
+                maximum_exactness=Exactness.CERTIFIED_EXACT,
+                backend_fingerprint=request.backend_fingerprint,
+                reason=(
+                    "Input-dependent capability: canonical presentation is "
+                    "certified exactly; Ext execution is production only for "
+                    "the uniform-prime free-translation domain."
+                ),
+                maximum_certificate_level=certificate_level,
+                input_schema=input_schema,
+                constraints=(
+                    ("coefficient_domain", "input_dependent"),
+                    ("execution_mode", "input_dependent"),
+                    ("support_tier", "input_dependent"),
+                ),
+            )
         backend_request = _decode_backend_request(request, operation)
         decision = backend.supports(backend_request)
         if decision.tier is SupportTier.PRODUCTION:

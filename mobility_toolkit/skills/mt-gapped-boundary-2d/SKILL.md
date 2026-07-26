@@ -1,66 +1,57 @@
 ---
 name: mt-gapped-boundary-2d
-description: "Enumerate exact Lagrangian condensates of an explicitly supplied finite Abelian metric group, inspect fusion/spin/braiding and folded interfaces, or machine-verify an explicitly supplied finite 2D generalized-Pauli boundary Hamiltonian with short-string lifts. Use for Z_d toric rough/smooth boundaries, double-semion/color/fish abstract metric benchmarks, anyon termination, finite boundary logicals/GSD, or structured capability refusal when automatic anyon extraction lacks a saturation certificate."
+description: "Use to inspect or enumerate a supplied finite Abelian metric group, fold an interface, verify source-locked Z_d toric cuts, or verify an explicit finite phase-aware 2D boundary Hamiltonian and short-string lifts."
 ---
 
 # mt-gapped-boundary-2d
 
-Use the bundled script for the exact algebraic and finite-local parts of a 2D
-Abelian boundary calculation.
-
-## Choose the operation
-
-- `metric`: report fusion SNF, spin, and braiding for a named or explicit
-  finite metric group.
-- `enumerate`: exhaust raw bosonic subgroups and identify all Lagrangians of
-  that metric group. Read `exactness` and the search-domain certificate.
-- `completion-benchmark`: verify the source-locked finite Z2/Z4 toric
-  `rough` or `smooth` cut completion.
-- `verify-completion`: verify caller-supplied uniform-prime or uniform-composite
-  finite Pauli terms, short-string lifts, locality bounds, fusion relations,
-  termination syndrome, finite GSD, and boundary logicals.
-- `fold`: reverse the second metric form before treating an interface as a
-  boundary.
-- `capabilities`: report what is and is not implemented.
-
-Run:
+Send one canonical request through the bundled adapter:
 
 ```bash
-python scripts/mt-gapped-boundary-2d.py < input.json
+python scripts/mt-gapped-boundary-2d.py < request.json
 ```
 
-Named models are `z2-toric`, `z4-toric`, `double-semion`, `color-code`, and
-`fish-toric`. The latter three are abstract metric benchmarks unless separate
-microscopic lifting data are supplied.
+Registered operations:
 
-```json
-{"operation":"enumerate","model":"z4-toric"}
-```
+- `boundary.completion2d.capabilities`
+- `boundary.completion2d.metric`
+- `boundary.completion2d.enumerate`
+- `boundary.completion2d.fold`
+- `boundary.completion2d.toric_cut`
+- `boundary.completion2d.verify`
+
+Example:
 
 ```json
 {
-  "operation": "completion-benchmark",
-  "model": "z4-toric",
-  "boundary_kind": "rough"
+  "schema": "mobility_toolkit.service_request.v1",
+  "schema_version": "1",
+  "operation": "boundary.completion2d.enumerate",
+  "input_data": {
+    "model": "z4-toric",
+    "max_pages": 1000,
+    "budget": {"max_work_units": 500000}
+  },
+  "requested_certificate_level": "full"
 }
 ```
 
-For `verify-completion`, supply `metric`, uniform cyclic `sites`, named
-`bulk_terms` and `boundary_terms`, `string_lifts`, and `locality`. Each Pauli
-term uses `{"site_id":"q0","x":0,"z":1}`. Remote excitation IDs must name the
-exact noncommuting bulk terms of that string; the verifier rejects a resealed
-but false syndrome.
+Named metric models are `z2-toric`, `z4-toric`, `double-semion`,
+`color-code`, and `fish-toric`. For an explicit metric, supply `orders`,
+`phase_modulus`, `braiding_rows`, and `generator_spins` under
+`input_data.metric`. For `fold`, put metric specifications under `left` and
+`right`.
 
-## Interpretation
+Use `toric_cut` with `modulus` and `boundary_kind` (`rough` or `smooth`).
+Use `verify` only with explicit uniform-cyclic sites, named bulk and boundary
+terms, short-string lifts, locality bounds, and a source scope.
 
-- Abstract metric-group exhaustion is `certified_exact`.
-- A verified local completion is `bounded_exact` in its recorded finite patch,
-  depth, diameter, and support bounds.
-- Lagrangianity plus a finite commuting completion does not by itself prove a
-  thermodynamic spectral gap.
-- Do not claim automatic anyon extraction from an arbitrary stabilizer code.
-  Without explicit short-string/saturation data, return `unsupported`.
-- Do not transfer this 2D Lagrangian criterion to 3D or fracton boundaries.
-- Folding must negate both spin and braiding on the second side.
+## Interpretation rules
 
-The script uses the `python-flint` finite backend and does not use Macaulay2.
+- Read enumeration completeness from the returned certificate. A truncated
+  page is experimental, not a negative existence result.
+- Abstract Lagrangian enumeration does not construct a microscopic boundary.
+- A finite verified completion is bounded to its recorded patch and locality
+  window; it does not prove a thermodynamic gap.
+- Automatic anyon extraction from an arbitrary stabilizer code is unsupported.
+- Folding reverses both spin and braiding on the second side.

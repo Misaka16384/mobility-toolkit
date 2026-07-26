@@ -17,6 +17,7 @@ from mobility_toolkit.periodic import (
     StructuredMacaulay2Backend,
 )
 from mobility_toolkit.services.contracts import ServiceRequest
+from mobility_toolkit.services.default import default_service_catalog
 from mobility_toolkit.services.periodic_operations import (
     decode_periodic_presentation,
     decode_translation_group,
@@ -209,3 +210,15 @@ def test_repeated_polynomial_ring_declarations_must_match_the_presentation():
     polynomial["translation_group"]["free_generator_names"] = ["not-x"]
     with pytest.raises(ValueError, match="translation_group differs"):
         decode_periodic_presentation(payload)
+
+
+def test_default_catalog_can_probe_input_dependent_periodic_capabilities():
+    catalog = default_service_catalog()
+    entries = {
+        item["operation"]["operation"]: item for item in catalog["operations"]
+    }
+    capability = entries["periodic.ext"]["capability"]
+    constraints = dict(capability["constraints"])
+    assert capability["maximum_exactness"] == "certified_exact"
+    assert constraints["coefficient_domain"] == "input_dependent"
+    assert constraints["support_tier"] == "input_dependent"

@@ -1,74 +1,61 @@
 ---
 name: mt-gapped-boundary-3d
-description: "Use for E1 finite, E2 bounded-periodic, or E3 bounded symbolic candidate enumeration at a three-dimensional generalized-Pauli boundary. The skill exposes exact search domains, orientation-aware toric/X-cube preflights, and explicit unsupported results instead of claiming a general fracton boundary classification."
+description: "Use for bounded symbolic E3 boundary-submodule enumeration from a supplied full free tangent-Laurent pairing, or for honest orientation-aware toric/X-cube preflights. Use when exact bounded scope and unsupported thermodynamic claims must remain explicit."
 ---
 
 # mt-gapped-boundary-3d
 
-Choose the enumeration level before interpreting the output:
-
-- E1 exhausts isotropic/Lagrangian subgroups of one supplied finite paired
-  boundary algebra. Use the Python API `enumerate_e1_subgroups`.
-- E2 exhausts translation-compatible subgroups inside one recorded finite
-  algebra, microscopic translation action, unit-cell period, and local support
-  domain. Use the Python API `enumerate_e2_bounded_periodic`.
-- E3 `symbolic` enumerates finite-rank seed presentations over a two-variable
-  tangent Laurent ring inside explicit coefficient-support and seed-rank
-  bounds.
-
-The bundled adapter supports E3 and source-locked preflights:
+Send one canonical request through the bundled adapter:
 
 ```bash
-python scripts/mt-gapped-boundary-3d.py < input.json
+python scripts/mt-gapped-boundary-3d.py < request.json
 ```
+
+Registered operations:
+
+- `boundary.symbolic3d.capabilities`
+- `boundary.symbolic3d.enumerate`
+- `boundary.symbolic3d.toric_primary_preflight`
+- `boundary.symbolic3d.xcube_preflight`
 
 Example:
 
 ```json
 {
-  "operation": "symbolic",
-  "full_boundary_module_supplied": true,
-  "coefficient_modulus": 3,
-  "normal": [0, 0, 1],
-  "generator_labels": ["e", "m"],
-  "pairing_matrix": [
-    [[], [{"coefficient": 1, "exponents": [0, 0]}]],
-    [[{"coefficient": 2, "exponents": [0, 0]}], []]
-  ],
-  "exponent_bounds": [[0, 0], [0, 0]],
-  "max_generators": 2
+  "schema": "mobility_toolkit.service_request.v1",
+  "schema_version": "1",
+  "operation": "boundary.symbolic3d.enumerate",
+  "input_data": {
+    "full_boundary_module_supplied": true,
+    "coefficient_modulus": 3,
+    "normal": [0, 0, 1],
+    "generator_labels": ["e", "m"],
+    "pairing_matrix": [
+      [[], [{"coefficient": 1, "exponents": [0, 0]}]],
+      [[{"coefficient": 2, "exponents": [0, 0]}], []]
+    ],
+    "exponent_bounds": [[0, 0], [0, 0]],
+    "max_generators": 2,
+    "max_pages": 1
+  },
+  "requested_certificate_level": "full",
+  "equivalence_relation": "raw_constant_generator_change"
 }
 ```
 
-Operations:
-
-- `symbolic`: bounded E3 RREF seed enumeration.
-- `toric3d-primary-preflight`: verify the frozen primary pairing and refuse to
-  pass it off as a full boundary module.
-- `xcube-preflight`: preserve the registered axial/diagonal orientation
-  result and refuse E3 when full \(P_\partial\) is unavailable.
-- `capabilities`: report implemented and unsupported analyses.
+The symbolic operation accepts only an explicitly asserted full free boundary
+module. Its finite coefficient box, seed rank, page budget, and implemented
+equivalence are part of the service input and certificate.
 
 ## Interpretation rules
 
-- `bounded_exact` proves exhaustion only of the recorded finite seed domain.
-  It is not an E3 thermodynamic completeness theorem.
-- The symbolic operation requires an explicit
-  `full_boundary_module_supplied: true` assertion. Primary-only data is not
-  accepted as full \(P_\partial\).
-- Projective Laurent isotropy is machine-verified. Odd-prime phase lifting is
-  only marked available by a canonical convention; no phase assignment
-  witness is claimed.
-- Saturation, anomaly detection, local Hamiltonian completion, residual
-  boundary topological order, and bulk termination remain `unsupported` in
-  E3 candidates.
-- X-cube conclusions are locked to exact registered normals. Do not
-  extrapolate them.
-- Raw and common-translation quotients are algebraic seed-presentation
-  equivalences, not local-Clifford, stable-ancilla, stacking, or foliated
-  equivalence.
-
-For resumable long E3 searches, call the Python API and pass the returned
-`Symbolic3DCheckpoint` back unchanged. The JSON adapter can run several pages
-inside one invocation but does not deserialize an externally edited
-checkpoint.
+- `bounded_exact` certifies only the recorded finite seed domain after complete
+  exhaustion. A resumable prefix remains experimental.
+- Primary-only data is insufficient for E3 enumeration.
+- Projective Laurent isotropy is exact. Phase assignment is not
+  machine-verified; at even prime a quadratic refinement is still required.
+- Saturation, anomaly detection, local completion, residual boundary order,
+  bulk termination, and thermodynamic classification are unsupported.
+- Do not extrapolate X-cube conclusions across unregistered normals.
+- The implemented algebraic seed equivalences are not local-Clifford, stable,
+  stacking, or foliated equivalence.

@@ -1,89 +1,61 @@
 ---
 name: mt-cheshire
-description: "Analyze, synthesize, finitely enumerate, and statically fuse Cheshire line defects. Use for certified finite 3+1D Z2 toric open/closed defects, tube-to-line radius checks, bounded supplied-species searches, endpoint/junction networks, or the explicitly experimental axial X-cube reference."
+description: "Use to analyze, synthesize, finitely enumerate, or statically fuse Cheshire line defects: certified finite 3+1D Z2 toric open/closed defects, supplied-radius tube shrinking, explicit endpoint/junction networks, or the experimental axial X-cube reference."
 ---
 
 # mt-cheshire
 
-Use this skill for Cheshire line/tube defects. It separates exact finite
-stabilizer statements from phase, thermodynamic, and dynamical claims.
-
-Run:
+Send one canonical request through the bundled adapter:
 
 ```bash
-python scripts/mt-cheshire.py < input.json
+python scripts/mt-cheshire.py < request.json
 ```
 
-## Operations
+Registered operations:
 
-- `capabilities`: machine-readable production/experimental/unsupported scope.
-- `static`: exact Phase-4 finite analysis of supplied toric open segments,
-  closed loops, or several components.
-- `synthesize-toric`: revalidate a supplied toric candidate at every strictly
-  decreasing radius ending at zero, then compare declared finite invariants.
-- `enumerate-toric`: exhaust exactly the supplied finite `candidate_sets` list.
-  The result is not complete outside that recorded list.
-- `fusion-toric`: compare explicit before/after finite Hamiltonians, logical
-  counts, defect-local paired algebras, termination, and Hamiltonian deltas.
-  Optional network data can encode endpoint, interface, and junction strata.
-- `fracton-reference`: run the axial `(0,0,1)` X-cube finite candidate. Other
-  normals return structured `unsupported` results.
+- `defects.cheshire.capabilities`
+- `defects.cheshire.static_toric`
+- `defects.cheshire.synthesize_toric`
+- `defects.cheshire.enumerate_toric`
+- `defects.cheshire.fuse_toric_static`
+- `defects.cheshire.xcube_axial_reference`
 
-The `static`, `synthesize-toric`, `enumerate-toric`, and `fusion-toric`
-operations use a common three-dimensional geometry:
+Example:
 
 ```json
 {
-  "operation": "synthesize-toric",
-  "shape": [2, 1, 1],
-  "periodic_axes": [],
-  "candidate_id": "open-electric",
-  "radii": [1, 0],
-  "defects": [
-    {
+  "schema": "mobility_toolkit.service_request.v1",
+  "schema_version": "1",
+  "operation": "defects.cheshire.synthesize_toric",
+  "input_data": {
+    "shape": [2, 1, 1],
+    "periodic_axes": [],
+    "candidate_id": "open-electric",
+    "radii": [1, 0],
+    "defects": [{
       "defect_id": "gamma",
       "topology": "open_segment",
       "cube_bases": [[0, 0, 0], [1, 0, 0]]
-    }
-  ]
+    }]
+  },
+  "requested_certificate_level": "full"
 }
 ```
 
-For `enumerate-toric`, replace `defects` with:
+For bounded species enumeration, replace `defects` by an explicit
+`candidate_sets` list. For static fusion, supply `fusion_id`,
+`before_defects`, and `after_defects`. Optional `before_network` and
+`after_network` objects contain nodes, edges, endpoint bindings, strata, and
+provenance; their certificate covers incidence and strata only unless the
+Hamiltonian itself includes a junction-local completion.
 
-```json
-{
-  "candidate_sets": [
-    {
-      "candidate_id": "candidate-a",
-      "defects": [
-        {
-          "defect_id": "gamma",
-          "topology": "open_segment",
-          "cube_bases": [[0, 0, 0], [1, 0, 0]]
-        }
-      ]
-    }
-  ]
-}
-```
-
-For static fusion supply `fusion_id`, `before_defects`, and `after_defects`.
-Network nodes bind physical endpoint cube IDs; a junction node needs at least
-three bindings. Network validation certifies incidence/strata only unless the
-before/after Hamiltonians themselves contain a junction-local completion.
-
-## Interpretation limits
+## Interpretation rules
 
 - Finite stabilizer, commutation, logical, pairing, and syndrome certificates
-  are exact in their recorded geometry.
-- Tube shrinking certifies only the explicitly compared finite samples and
-  invariant names. It is not a finite-depth or phase-equivalence proof.
-- Static fusion does not construct a fusion circuit or a thermodynamic fusion
-  rule.
-- The X-cube workflow is an `experimental` candidate even though its finite
-  syndrome and GF(2) calculations are exact.
-- Do not identify every line defect with a Cheshire string, infer minimum
-  sequential creation depth, or claim species outside the bounded input list.
-
-The finite backend is `python-flint`; Macaulay2 is not used.
+  are exact only in their recorded cellulation.
+- Tube shrinking compares only supplied finite radii and declared invariants.
+  It does not construct a finite-depth circuit or prove phase equivalence.
+- Static fusion is not a thermodynamic fusion rule.
+- Species enumeration is complete only over the supplied finite candidate list.
+- The X-cube axial reference is experimental even where finite linear algebra
+  is exact. Other normals return structured unsupported results.

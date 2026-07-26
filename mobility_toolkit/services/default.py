@@ -449,6 +449,8 @@ def _finite_code_capabilities(request: ServiceRequest) -> ComputationResult:
         "phase_aware_pauli_arithmetic": True,
         "dense_materialization_guard": True,
         "optional_backend": "python-flint",
+        "registered_operations": ("finite.code.analyze",),
+        "transport_semantics": "site-labelled sparse x/z terms with explicit phase",
     }
     return _capability_contract_result(
         request,
@@ -466,6 +468,13 @@ def _finite_boundary_capabilities(request: ServiceRequest) -> ComputationResult:
         "e2_bounded_periodic": (
             "bounded_exact_for_declared_support_period_and_ancilla_domain"
         ),
+        "registered_operations": (
+            "boundary.finite.analyze",
+            "boundary.finite.enumerate_e1",
+            "boundary.finite.e2.reference_z2_swap",
+        ),
+        "generic_e2_transport_decoder": False,
+        "e2_transport_reference": "source_locked_two_site_z2_tangent_swap",
         "local_2d_completion": "bounded_exact_for_explicit_metric_and_string_lifts",
         "automatic_anyon_extraction": "unsupported",
         "thermodynamic_completeness": "unsupported",
@@ -1323,6 +1332,23 @@ def build_default_registry() -> ServiceRegistry:
             constraints=(("requires_python_flint", True),),
         ),
     )
+    from mobility_toolkit.services.finite_boundary_operations import (
+        finite_boundary_service_registrations,
+    )
+
+    registrations = registrations + finite_boundary_service_registrations()
+    from mobility_toolkit.services.boundary_usecases import (
+        install_boundary_usecase_service_registrations,
+    )
+
+    registrations = install_boundary_usecase_service_registrations(
+        registrations
+    )
+    from mobility_toolkit.services.periodic_operations import (
+        periodic_service_registrations,
+    )
+
+    registrations = registrations + periodic_service_registrations()
     return ServiceRegistry(registrations)
 
 
