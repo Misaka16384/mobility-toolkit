@@ -64,13 +64,30 @@ the stated domain; it does not mean every operation is fast.
 | E3 saturation/anomaly/local completion | not implemented | Unsupported |
 | 3D toric half-space | source-frozen bulk and certified primary pairing; finite slab alignment | Primary-only, operation-specific |
 | X-cube orientations | source-locked axial/diagonal conclusions | Experimental oracle; no full boundary module |
+| Toric tubular-to-line static synthesis | supplied finite Hamiltonian family; phase/commutation, logical, pairing/radical and termination replay at explicit radii | `bounded_exact` for supplied samples and declared invariants; no phase equivalence |
+| Cheshire supplied-list enumeration | exhaustive replay of an explicitly declared finite candidate list | `bounded_exact` for that list only; no condensation discovery |
+| Toric static Cheshire fusion candidate | exact finite before/after stabilizers, Hamiltonian deltas, stratum provenance, logical counts and defect-local data | `certified_exact` for the supplied finite comparison; finite-depth circuit unsupported |
+| Cheshire junction/network schema | endpoint binding and incidence coverage | Schema-validated incidence only; junction-local Hamiltonian completion unsupported |
+| X-cube axial finite line candidate | Eq. (140) periodic-x/y open-z compilation, supplied cube-X deletion, GF(2) syndrome/local-algebra/rank/translation scan | `experimental` interpretation; finite algebra exact, no gapped or thermodynamic claim |
 
 The FLINT adapter refuses a single dense materialization above 2,000,000
 entries by default. See `docs/FINITE_BACKEND.md`.
 
-The Phase 4 Cheshire workflow is finite and static. It does not provide
-automatic condensation discovery, Cheshire-species enumeration, circuit
-depth, dynamic deformation/fusion, or thermodynamic phase equivalence.
+The Phase 4/9 Cheshire workflows are finite and static. Phase 9 can exhaust a
+supplied finite candidate list and replay supplied tube-radius families, but
+it does not derive a Cheshire Hamiltonian from an E1/E2 subgroup certificate.
+It provides no automatic condensation discovery, search-domain-independent
+species completeness, circuit depth, dynamic deformation/fusion, or
+thermodynamic phase equivalence. Static fusion is an exact comparison of
+supplied finite before/after Hamiltonians, not a fusion circuit or a
+superselection fusion law. Junction support is incidence validation only.
+
+The X-cube axial reference uses the Ruba--Yang Eq. (140) presentation and an
+explicit supplied cube-X deletion. Syndrome, rank, translation-scan, and
+defect-window GF(2) quotient data are exact for the finite slab; interpreting
+that deletion as a Cheshire condensate remains `experimental`. No ordinary
+2D anyon Lagrangian criterion, gapped completion, other-orientation
+completeness, or thermodynamic mobility conclusion is supplied.
 
 The Phase 7 local-completion path starts from a supplied finite metric group
 and supplied short-string lifts. Its exact finite verification must not be

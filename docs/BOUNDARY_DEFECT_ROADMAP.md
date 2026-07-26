@@ -18,7 +18,7 @@
 | Phase 6 | geometry、`L_H`、primary、supplied pairing invariants、E2 与模型 benchmark 已完成 | 一般 full `P_boundary`、secondary closure、boundary-to-bulk map 仍 unsupported |
 | Phase 7 | metric-group condensation、folding、显式 finite local completion 已完成 | arbitrary-code anyon extraction、BB 与多洞/mixed completion 尚未完成 |
 | Phase 8 | E1/E2 与 bounded E3 seed research enumerator 已完成 | E3 saturation/anomaly/completion、local-Clifford/ancilla/stacking/foliated quotient 尚未完成 |
-| Phase 9 | 未开始正式自动合成 | 依赖 Phase 7/8 尚缺的 completion 与 termination maps |
+| Phase 9 | toric finite supplied-candidate 合成/声明列表枚举/静态融合，以及 X-cube axial finite experimental reference 的 operational slices 已完成 | boundary-algebra 驱动的 condensation discovery、自动 endpoint/junction completion、动态 circuit 与 thermodynamic completeness 仍 unsupported |
 | Phase 10 | service/cache 合同已有基础 | transport 统一、旧入口删除、完整 skill 集与发布 gate 尚未完成 |
 
 因此，表中的“已完成”只表示该行列出的 operation 已通过当前
@@ -656,20 +656,30 @@ Phase 5A 与 Phase 5B 并行。
 
 ## Phase 9：Cheshire 自动合成、枚举与静态融合
 
-这一阶段把 Phase 4 的用户指定 Cheshire 模型升级为由 boundary/half-space algebra 驱动的自动工作流。
+这一阶段的通用长期目标仍是把 Phase 4 的用户指定模型升级为由
+boundary/half-space algebra 驱动的工作流。当前已完成的是下面这些严格受限的
+operational slices，不能把其中的 “synthesis” 或 “enumeration” 理解成一般自动
+凝聚发现。
 
-### 要做
+### 已完成的 operational slices
 
-- 从 tubular boundary algebra 枚举 charge-condensing subgroups；
-- 枚举 closed tube、open tube 和 endpoint completions；
-- 将 tube 半径逐步缩到 lattice scale，并逐步核对 logical/pairing/termination data；
-- 自动生成 line-local stabilizer/gauge candidates；
-- 枚举指定搜索域内的 Cheshire species；
-- 计算 defect-local degeneracy、endpoint algebra、bulk charge storage；
-- 对两条给定或枚举得到的 Cheshire defects 执行静态 fusion construction；
-- 计算 fusion 前后 finite logical counting 与候选 superselection data；
-- 支持 junction strata 和多段 defect network；
-- 对 3+1D toric、至少一个 fracton model 建 reference workflow。
+- 对**给定**的 finite tube/line Hamiltonian family，沿调用者显式给出的、严格递减且终止于零的 lattice radii 逐步重算 phase/commutation、logical、defect-local pairing/radical 与 charge/magnetic termination certificates；
+- 逐对比较调用者声明的有限静态 invariants，并以 `bounded_exact` 标记这些给定 finite samples；tube shrinking 只证明这些记录的 invariant 相等；
+- 对**调用者给出的有限 condensation candidate 列表**逐项执行上述检查，并给出列表内完整的接受/拒绝 transcript；E1/E2 certificate 只作 provenance，不能代替显式 Cheshire Hamiltonian builder；
+- 重现 3+1D \(\mathbb Z_2\) toric open segment 与 closed loop 的 source-locked finite candidates；
+- 对给定 toric before/after defects 构造可语义重放的 static fusion candidate，记录 local/fixed-sector Hamiltonian delta、stratum provenance、finite logical counting、defect-local paired algebra 与 termination data；
+- 表达 endpoint/junction/network incidence，并验证 network 对物理 endpoints 的覆盖；junction 当前只完成 incidence/strata schema；
+- 建立 X-cube axial \((0,0,1)\) 的 finite experimental line candidate：对给定 cube-\(X\) deletion 计算精确 finite syndrome、GF(2) defect-local paired quotient、translation scan 与 stabilizer ranks。其 bulk presentation 锁定到 Ruba--Yang Eq. (140)，Cheshire/condensation 解释保持 `experimental`。
+
+### 尚未完成的自动化与完备性目标
+
+- 从 tubular boundary algebra 自动枚举 charge-condensing subgroups；
+- 从 E1/E2/E3 candidate 自动生成 line-local stabilizer/gauge Hamiltonian；
+- 自动枚举 closed/open tube 与 endpoint 或 junction-local Hamiltonian completions；
+- 超出显式 supplied candidate list 的 Cheshire species completeness；
+- 一般 bulk charge storage/superselection 分类及 thermodynamic termination map；
+- X-cube diagonal 或其他 fracton orientation/model 的 certified Cheshire workflow；
+- junction-local gapped completion、junction fusion law 与 defect-network dynamics。
 
 ### 不做
 
@@ -677,20 +687,24 @@ Phase 5A 与 Phase 5B 并行。
 - 不从 static fusion counting 自动推出有限深度 fusion circuit；
 - 不求最小 sequential creation depth；
 - 不承诺枚举搜索域外的所有 Cheshire descendants；
-- 不把 Cheshire 与任意 line defect 无条件视为同一对象。
+- 不把 Cheshire 与任意 line defect 无条件视为同一对象；
+- 不把 exact finite Pauli calculation 提升为 gapped completion、能量学稳定性或热力学极限结论。
 
 ### 交付物
 
 - `mt-cheshire` 第二版；
-- tubular-to-line synthesis pipeline；
-- Cheshire enumeration/fusion result schema；
-- closed/open/junction reference catalog。
+- finite tubular-to-line invariant-preservation pipeline；
+- supplied-list Cheshire enumeration 与 semantic replay schema；
+- toric static fusion、Hamiltonian-delta 与 network-incidence schema；
+- toric closed/open references 与 X-cube axial finite experimental reference。
 
-### 验收门槛
+### 当前验收门槛
 
-- Phase 4 的手工输入案例能被自动流程重现；
-- 每个自动生成 defect 都附带 local Hamiltonian、phase/commutation、logical 和 termination certificates；
-- 动态结论与静态结论在输出 schema 中完全分离。
+- Phase 4 的 toric open/closed 手工输入案例由 supplied-candidate 流程重现；
+- 每个接受的 supplied candidate 都绑定 local Hamiltonian、phase/commutation、logical、pairing 与 termination certificates；
+- fusion certificate 可重放 before/after finite codes、Hamiltonian delta、logical counting 与 defect-local data，重封装后的语义篡改会被拒绝；
+- junction incidence validation 不冒充 junction-local completion；
+- 动态 circuit、phase equivalence、gapped completion 与 thermodynamic conclusion 在 schema 中显式为 `unsupported` 或 `experimental`。
 
 ## Phase 10：统一 services、skills、性能与研究发布门槛
 

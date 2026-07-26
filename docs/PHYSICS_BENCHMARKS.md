@@ -194,3 +194,46 @@ semantic transcript replay.
 anomaly detection, local Hamiltonian completion, residual boundary order,
 bulk termination, local-Clifford/stable-ancilla equivalence, stacking, and
 foliated equivalence remain unsupported.
+
+## Phase 9 finite Cheshire synthesis and static fusion
+
+The toric operational slice starts from the same source-locked 3+1D
+\(\mathbb Z_2\) plaquette-qubit Hamiltonian used in Phase 4; see
+Tantivasadakarn and Chen,
+[String operators for Cheshire strings in topological phases](https://arxiv.org/abs/2307.03180).
+The new certificates validate supplied finite candidates. They do not derive
+the condensation pattern from boundary algebra.
+
+| Fixture | Expected finite result | Evidence |
+|---|---|---|
+| supplied toric open segment and closed loop candidates at radius zero | both accepted; phase/commutation, logical, pairing/radical and charge/magnetic termination certificates verify | source-locked Phase 4 Hamiltonian plus exact finite FGA |
+| supplied open-segment family at radii `(1,0)` | declared static invariants agree at both recorded radii | semantic replay of both finite Hamiltonians; `bounded_exact` only for these samples |
+| declared list containing a valid and a false magnetic-termination candidate | valid candidate accepted and false claim rejected; every declared list item receives a decision | complete transcript over the supplied finite list |
+| two open toric segments to one open segment | local codespace ratio after/before is `1/2`; local/fixed Hamiltonian deltas stay on declared defect strata | exact finite stabilizer counting and replayable static-fusion certificate |
+| noncontractible-loop topology guard | exact finite logical counts refute a component-count-only rule | Phase 4 finite-rank values reused as an adversarial guard |
+| three-leg network | all physical endpoints are bound exactly once and edge/node incidence validates | exact combinatorial schema check only |
+
+The three-leg fixture does not include a junction-local Hamiltonian or a
+junction completion. Likewise, “fusion” above denotes a supplied finite
+before/after static construction; no finite-depth circuit, dynamical fusion
+process, superselection fusion law, phase equivalence, or thermodynamic
+completeness is inferred.
+
+The fracton reference uses the \(\mathbb Z_2\) X-cube stabilizer presentation
+recorded in Ruba and Yang,
+[Homological invariants of Pauli stabilizer codes](https://arxiv.org/abs/2204.06023),
+Eq. (140). This citation fixes the bulk presentation only; it is not used as
+literature proof that the supplied deletion is a Cheshire defect.
+
+| Fixture | Expected finite result | Evidence |
+|---|---|---|
+| axial `(0,0,1)` X-cube candidate on a `2x2x2` slab, periodic in x/y and open in z | supplied local cube-X deletion absorbs a probe with two bulk syndrome entries; defect-window quotient has factors `(2,2)`, pairing rank zero and radical `(2,2)` | exact finite compilation, GF(2) syndrome and paired linear algebra |
+| axial translation scan | records both terminating and nonterminating translated finite probes | exhaustive scan of translations in the supplied finite slab |
+| axial length-one scaling sample | 24 qubits; bulk/defect codespace dimensions `2048/4096`; two removed instances | exact finite GF(2) stabilizer ranks |
+| diagonal `(1,1,1)` request | structured `unsupported` | registered-orientation capability guard |
+
+All X-cube Pauli-algebra fields above are exact for the supplied finite code,
+but the overall result remains `experimental`: there is no certified fracton
+condensation criterion, gapped completion, circuit, asymptotic mobility,
+thermodynamic Cheshire classification, or completeness beyond this axial
+candidate.
