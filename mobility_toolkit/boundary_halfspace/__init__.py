@@ -87,6 +87,12 @@ from mobility_toolkit.boundary_halfspace.secondary_example import (
     ruba_yang_secondary_boundary_example,
     verify_secondary_example_finite,
 )
+from mobility_toolkit.boundary_halfspace.quasi_symplectic import (
+    FreeBoundaryPairingCertificate,
+    FreeBoundaryPairingInvariants,
+    FreeBoundaryPairingPresentation,
+    analyze_free_boundary_pairing,
+)
 
 __all__ = [
     "AncillaBound",
@@ -153,4 +159,8 @@ __all__ = [
     "SecondaryExampleFiniteCheck",
     "ruba_yang_secondary_boundary_example",
     "verify_secondary_example_finite",
+    "FreeBoundaryPairingCertificate",
+    "FreeBoundaryPairingInvariants",
+    "FreeBoundaryPairingPresentation",
+    "analyze_free_boundary_pairing",
 ]
