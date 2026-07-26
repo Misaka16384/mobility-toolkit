@@ -155,7 +155,9 @@ def rectangular_region(
     species: Sequence[LocalSystem],
     *,
     periodic_axes: Iterable[int] = (),
-    twists: Mapping[Tuple[int, str], LocalPauliAutomorphism] | None = None,
+    twists: Optional[
+        Mapping[Tuple[int, str], LocalPauliAutomorphism]
+    ] = None,
 ) -> FiniteRegion:
     shape = tuple(shape)
     if not shape or any(value < 1 for value in shape):

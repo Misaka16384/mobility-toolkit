@@ -11,7 +11,7 @@ import sys
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Optional
 
 os.environ.setdefault("MPMATH_NOGMPY", "1")
 os.environ.setdefault("SYMPY_GROUND_TYPES", "python")
@@ -229,7 +229,11 @@ def figure_title(fig) -> str:
     return "Untitled figure"
 
 
-def write_manifest(path: Path, rows: Iterable[dict[str, str]], fieldnames: list[str] | None = None) -> None:
+def write_manifest(
+    path: Path,
+    rows: Iterable[dict[str, str]],
+    fieldnames: Optional[list[str]] = None,
+) -> None:
     with path.open("w", encoding="utf-8", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames or FIGURE_MANIFEST_FIELDS)
         writer.writeheader()
