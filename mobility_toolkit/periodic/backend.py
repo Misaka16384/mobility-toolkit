@@ -166,6 +166,8 @@ def probe_macaulay2(execute_version: bool = False) -> Macaulay2Probe:
         ("uniform_prime.saturation", "experimental"),
         ("uniform_composite.ext", "experimental"),
         ("nonuniform.ext", "unsupported"),
+        ("fixed_z4_paper_resolution.homology", "experimental"),
+        ("fixed_nonuniform_quasi_free_toy.homology", "experimental"),
     )
     return Macaulay2Probe(
         available=available,

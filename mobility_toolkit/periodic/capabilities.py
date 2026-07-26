@@ -18,6 +18,8 @@ class PeriodicOperation(str, Enum):
     KRULL_DIMENSION = "krull_dimension"
     SATURATION = "saturation"
     SYZYGY = "syzygy"
+    PAPER_RESOLUTION_BENCHMARK = "paper_resolution_benchmark"
+    NONUNIFORM_QUASI_FREE_BENCHMARK = "nonuniform_quasi_free_benchmark"
 
 
 class CoefficientDomain(str, Enum):
@@ -87,6 +89,42 @@ class PeriodicSupportMatrix:
         if not isinstance(presentation, QuasiFreePauliModulePresentation):
             raise TypeError("presentation must be QuasiFreePauliModulePresentation")
         domain = coefficient_domain(presentation)
+        if operation is PeriodicOperation.PAPER_RESOLUTION_BENCHMARK:
+            if domain is CoefficientDomain.UNIFORM_COMPOSITE:
+                return CapabilityDecision(
+                    operation,
+                    domain,
+                    SupportTier.EXPERIMENTAL,
+                    Exactness.EXPERIMENTAL,
+                    "macaulay2-explicit-paper-resolution",
+                    "only a fixed machine-verified paper resolution is executable",
+                )
+            return CapabilityDecision(
+                operation,
+                domain,
+                SupportTier.UNSUPPORTED,
+                Exactness.UNSUPPORTED,
+                "none",
+                "the fixed paper benchmark is defined for its Z4 presentation only",
+            )
+        if operation is PeriodicOperation.NONUNIFORM_QUASI_FREE_BENCHMARK:
+            if domain is CoefficientDomain.NONUNIFORM:
+                return CapabilityDecision(
+                    operation,
+                    domain,
+                    SupportTier.EXPERIMENTAL,
+                    Exactness.EXPERIMENTAL,
+                    "macaulay2-fixed-quasi-free-resolution",
+                    "fixed Lemma 20 toy only; no generic nonuniform Ext construction",
+                )
+            return CapabilityDecision(
+                operation,
+                domain,
+                SupportTier.UNSUPPORTED,
+                Exactness.UNSUPPORTED,
+                "none",
+                "the fixed nonuniform toy requires mixed local orders",
+            )
         if operation is PeriodicOperation.PRESENTATION:
             return CapabilityDecision(
                 operation,
