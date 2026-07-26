@@ -13,6 +13,15 @@ from mobility_toolkit.anyons2d.folding import (
     direct_sum_metric_groups,
     fold_metric_groups,
 )
+from mobility_toolkit.anyons2d.enumeration import (
+    CondensateCandidate,
+    CondensateCompletenessCertificate,
+    CondensateEnumerationBudget,
+    CondensateEnumerationCheckpoint,
+    CondensateEnumerationPage,
+    CondensateSearchDomain,
+    enumerate_condensates,
+)
 from mobility_toolkit.anyons2d.metric import (
     FiniteMetricGroup,
     MetricDescentCertificate,
@@ -22,6 +31,12 @@ from mobility_toolkit.anyons2d.metric import (
 __all__ = [
     "AnyonTerminationCertificate",
     "CondensationCertificate",
+    "CondensateCandidate",
+    "CondensateCompletenessCertificate",
+    "CondensateEnumerationBudget",
+    "CondensateEnumerationCheckpoint",
+    "CondensateEnumerationPage",
+    "CondensateSearchDomain",
     "FiniteMetricGroup",
     "MetricDescentCertificate",
     "MetricDirectSum",
@@ -29,6 +44,7 @@ __all__ = [
     "anyon_termination_certificate",
     "can_terminate",
     "direct_sum_metric_groups",
+    "enumerate_condensates",
     "fold_metric_groups",
     "test_condensation",
     "verify_condensation_certificate",
