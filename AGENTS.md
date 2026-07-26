@@ -5,14 +5,17 @@ Google Antigravity) working in or with this repository.
 
 ## What this is
 
-`mobility_toolkit` computes **charge-module invariants of translation-invariant
-stabilizer codes** using homological algebra. The corrected homology path evaluates
-Ruba--Yang's `Q^p = Ext_R^(p+1)(bar(P/L),R)` and validates the stabilizer map.
-Krull dimension alone is not mapped to planon/lineon/fracton labels. GSD,
-finite-torus periodicity, fusion, and boundary algorithms are separate features.
+`mobility_toolkit` is a boundary-aware generalized-Pauli stabilizer-code
+research toolkit. It combines finite abelian-group algebra, explicit geometry,
+cellular relative homology, canonical periodic Laurent presentations,
+oriented half-spaces, bounded boundary enumeration, stratified defects, and
+finite static Cheshire analysis.
 
-The homological backend is an external **Macaulay2** binary. NumPy/SymPy support
-other finite-lattice and translation-lattice calculations.
+The public computational surface is one versioned native service registry.
+Python, CLI, MCP, and the eight use-case skills are transports over that
+registry; they are not separate algorithm APIs. Macaulay2 is an
+operation-specific backend for supported periodic Laurent/Ext requests, not a
+global requirement for finite and relative-homology work.
 
 ## Capabilities
 
@@ -39,18 +42,36 @@ using a result. In particular, a finite or bounded-exact result is not a
 thermodynamic classification, and an `unsupported` result must not be replaced
 with a heuristic conclusion.
 
+The computational CLI contains only `service`, `service-catalog`, and
+`service-stream`. The streaming command emits NDJSON pages for the registered
+2D-completion and symbolic-3D enumerators. Resume state can optionally be
+persisted by explicitly constructing
+`mobility_toolkit.services.SQLiteCheckpointStore(path)`; there is no default
+database or process-global checkpoint store.
+
 ## Input conventions (IMPORTANT — these cause most errors)
 
-- The current Ext backend requires a uniform prime **`qudit_dim`**. The paper is
-  more general; `prime_bypass` does not add composite Ext support.
-- **No parentheses in polynomials.** Inputs are validated against a strict character
-  whitelist. Fully expand everything: use `y + z + x*y + x*z`, never `(1+x)*(y+z)`.
-- **Variables**: spatial `x, y, z`; their Laurent inverses are `t, u, w`
-  (`x*t = y*u = z*w = 1`). Use `x^-1` / `x**-1` in input; it is rewritten to `t`.
-- A stabilizer matrix is a list of equal-length rows. Each row is one generator
-  in `[X_1,...,X_q,Z_1,...,Z_q]` coordinates, so its length must be even.
-  Homology checks `sigma^dagger lambda sigma=0` by default.
-- Supply `spatial_dim` when the ambient ring has axes absent from the coefficients.
+- Begin with `mobility-toolkit service-catalog`. Every operation owns a strict
+  JSON input schema; do not infer one operation's fields from another.
+- The only public computational request is
+  `mobility_toolkit.service_request.v1`. Unknown top-level and operation input
+  fields are rejected.
+- Finite operators are phase-aware, site-labelled sparse generalized-Pauli
+  data with explicit local dimensions. Floating-point drawing positions,
+  bare blocked/interleaved vectors, and dimension-specific tuples are not
+  algebraic identities.
+- Periodic requests use the canonical Laurent AST: translation group,
+  structured terms, explicit Pauli basis and local-order relations,
+  stabilizer-image columns, and phase modulus. Free-form polynomial strings
+  and flat stabilizer matrices are not the public IR.
+- Composite and nonuniform periodic presentations are representable, but
+  execution support is operation-specific. The current production Ext path is
+  uniform-prime/free-translation; other domains return structured
+  experimental or unsupported results. There is no bypass switch.
+- Geometry requests state region, identifications, restriction policy, strata,
+  equivalence relation, search domain, and resource budget explicitly.
+- E1/E2/E3, finite, bounded-exact, experimental, and unsupported results must
+  not be promoted beyond the exact domain written in their certificate.
 
 ## Backend / environment
 
@@ -61,9 +82,9 @@ Macaulay2 invocation is resolved per platform (see `engine.resolve_m2_command`):
 3. native `M2` on PATH (Linux/macOS / native Windows).
 4. WSL on Windows — distro from `MOBILITY_M2_WSL_DISTRO` (default `Ubuntu`).
 
-When a Macaulay2-backed computation fails, use the low-level
-`mobility-toolkit doctor` CLI command to report the resolved backend and run a
-`2+2` smoke test.
+When a capability contract requires Macaulay2 and execution fails, use the
+low-level `mobility-toolkit doctor` CLI command to report the resolved backend
+and run a `2+2` smoke test.
 
 ## Working in this repo
 

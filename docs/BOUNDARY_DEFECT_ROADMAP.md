@@ -13,13 +13,13 @@
 |---|---|---|
 | Phase 0--3 | 已完成并有 checkpoint | 无旧兼容性承诺 |
 | Phase 4 | static Cheshire MVP 已完成 | 自动 species、动态 circuit/fusion 不在 MVP |
-| Phase 5A | finite boundary algebra、primary coverage、E1 已完成 | 旧入口统一删除留到 Phase 10 |
+| Phase 5A | 已完成 operational slice：finite boundary algebra、primary coverage、E1，以及 source-locked fish-toric finite-cut benchmark | fish 结果只证明 raw finite cut 的 primary/secondary quotient 与论文模板，不声称已自动完成 gapped/thermodynamic boundary |
 | Phase 5B | structured Laurent IR、uniform-prime production、composite research gate 已完成 | composite/nonuniform Ext 仍逐 operation 标记 |
 | Phase 6 | geometry、`L_H`、primary、supplied pairing invariants、E2 与模型 benchmark 已完成 | 一般 full `P_boundary`、secondary closure、boundary-to-bulk map 仍 unsupported |
 | Phase 7 | metric-group condensation、folding、显式 finite local completion 已完成 | arbitrary-code anyon extraction、BB 与多洞/mixed completion 尚未完成 |
 | Phase 8 | E1/E2 与 bounded E3 seed research enumerator 已完成 | E3 saturation/anomaly/completion、local-Clifford/ancilla/stacking/foliated quotient 尚未完成 |
 | Phase 9 | toric finite supplied-candidate 合成/声明列表枚举/静态融合，以及 X-cube axial finite experimental reference 的 operational slices 已完成 | boundary-algebra 驱动的 condensation discovery、自动 endpoint/junction completion、动态 circuit 与 thermodynamic completeness 仍 unsupported |
-| Phase 10 | service/cache 合同已有基础 | transport 统一、旧入口删除、完整 skill 集与发布 gate 尚未完成 |
+| Phase 10 | 已完成：versioned native service、Python/CLI/MCP/skill transport、旧入口删除、最终 8 skills、NDJSON streaming、caller-owned SQLite checkpoint 与四层发布 gate | 无兼容层待补；后续只按 operation 增加研究能力与证据 |
 
 因此，表中的“已完成”只表示该行列出的 operation 已通过当前
 certificate/literature gate，不表示后文整个阶段的所有研究目标已经完成。
@@ -49,6 +49,7 @@ certificate/literature gate，不表示后文整个阶段的所有研究目标�
 - 任意有限 region mask、洞、多边界分量、corners、hinges、周期或 twisted gluing；
 - 给定的 boundary Hamiltonian、domain wall、branch cut、line defect、junction 和 endpoint；
 - 有限码的 commutation、phase consistency、centralizer、logical group、GSD 与 invariant factors；
+- 显式有限 cellular pair \((X,A)\) 的 exact relative chain complex 与 homology；
 - 平移不变 bulk 的 Laurent/group-ring module、Ext、annihilator 与 Krull dimension；
 - rational flat half-space 的 primary/secondary boundary module 与 quasi-symplectic pairing；
 - 2D topological generalized Pauli code 的 boundary anyons、凝聚、completion 与 folding defects；
@@ -350,7 +351,7 @@ ComputationResult[T]
 ### 不做
 
 - 不先写 boundary-specific class hierarchy；
-- 不用 `qudit_dim + prime_bypass` 表示 mixed dimensions；
+- 不用单一局域维数加绕过开关表示 mixed dimensions；
 - 不用 NumPy dense matrix 作为 public IR；
 - 不实现物理 boundary 分类。
 
@@ -374,6 +375,8 @@ ComputationResult[T]
 - 实现 HNF/SNF/Howell 与 CRT/prime-power route；
 - 实现 orthogonal complement、pairing radical、symplectic reduction；
 - 实现 finite stabilizer centralizer、logical group、GSD 与 paired logicals；
+- 实现显式 cellular pair 的 relative chain quotient
+  \(C_*(X,A)=C_*(X)/C_*(A)\) 与 exact homology；
 - prime field 与 \(d=2\) bit-packed 快路径统一回 canonical FGA result；
 - 评估 FLINT/python-flint 作为 optional native backend；
 - Sage 或独立 CAS 仅作 oracle/cross-check，不设为硬依赖；
@@ -385,11 +388,14 @@ ComputationResult[T]
 - 不继续把当前固定 100 次 break 的自写 SNF 当作生产 backend；
 - 不因为输入是 composite 就降级成域上 rank；
 - 不默认计算巨大的完整 SNF transforms；只有请求 representatives/witness 时才计算；
-- 不实现通用 exact minimum distance 搜索。
+- 不实现通用 exact minimum distance 搜索；
+- 不把 finite relative homology 改名为 Laurent half-space module，也不由它自动
+  推断 thermodynamic gapped boundary。
 
 ### 交付物
 
 - `finite/solver`；
+- `topology/relative_homology`；
 - backend protocol 与 verifier；
 - composite/nonuniform correctness suite；
 - 性能基线和 sparse-to-dense materialization policy。
@@ -399,7 +405,9 @@ ComputationResult[T]
 - 所有小系统与 Pauli-group/Hilbert-space 穷举一致；
 - 满足 \(|S^\perp/S|=K^2\) 等内部一致性关系；
 - 注入错误 SNF/kernel certificate 时 verifier 必须拒绝；
-- internal 与至少一个独立 backend 的 invariant factors 一致。
+- internal 与至少一个独立 backend 的 invariant factors 一致；
+- CSS interval relative homology 与独立构造的 finite symplectic logical
+  quotient 一致。
 
 ## Phase 3：Generic finite geometry、strata 与 compiler
 
@@ -523,7 +531,7 @@ Phase 5A 与 Phase 5B 并行。
 - uniform-prime 保持 production；
 - composite/nonuniform Laurent 按 operation 建立 capability matrix、验证基准与 experimental-to-production gate；
 - 复现 2204.06023 的 uniform、Z4 与 nonuniform examples；
-- 核心删除含混的 `prime_bypass` 语义。
+- 核心删除含混的 coefficient-domain bypass 语义。
 
 ### 不做
 
@@ -708,11 +716,20 @@ operational slices，不能把其中的 “synthesis” 或 “enumeration” �
 
 ## Phase 10：统一 services、skills、性能与研究发布门槛
 
-### 要做
+状态：**工程架构与发布门槛已完成。** 本阶段的完成表示公共入口和证据
+机制已经统一，不表示 Phase 6--9 中列出的开放研究问题已经解决。
 
-- 所有 CLI、MCP 和 skills 只调用一个 versioned service layer；
-- 删除旧 boundary tuple、blocked/interleaved dual layout 和旧 schema；
-- 建立 skills：
+### 已完成
+
+- 所有 Python、CLI、MCP 和 skills 共享
+  `mobility_toolkit.service_request.v1`、同一 native operation registry 与
+  `ServiceExecution` 结果；
+- public registry 只保留 native registrations，没有 legacy adapter；
+- CLI 计算入口统一为 `service`、`service-catalog` 和 NDJSON
+  `service-stream`，删除旧 per-algorithm commands；
+- 删除旧 boundary tuple、blocked/interleaved dual layout、polynomial-text
+  request、flat stabilizer matrix 与旧 schema；
+- public skill inventory 固定为：
   - `mt-finite-code`
   - `mt-boundary-algebra`
   - `mt-relative-homology`
@@ -721,10 +738,20 @@ operational slices，不能把其中的 “synthesis” 或 “enumeration” �
   - `mt-gapped-boundary-3d`
   - `mt-defect`
   - `mt-cheshire`
-- cache key 包含 canonical input、operation、backend fingerprint、assumptions、certificate level；
-- 枚举支持 checkpoint、resume、streaming、resource budget；
-- 建立 correctness、literature、cross-backend、scale 四层 CI；
-- production/experimental capability 自动显示在 CLI/MCP/skill 输出中。
+- cache key 绑定 canonical input、operation、backend fingerprint、
+  assumptions、equivalence/search domain 与 certificate level；
+- `boundary.completion2d.enumerate` 与
+  `boundary.symbolic3d.enumerate` 支持逐页 NDJSON streaming，每页保留可密封
+  的 resume checkpoint；
+- `SQLiteCheckpointStore(path)` 提供显式、caller-owned 的持久化；import
+  不创建数据库或全局 store，并验证 session/base-request identity、序列推进与
+  checkpoint envelope；
+- correctness、literature、cross-backend/formulation、scale 四层 CI 与
+  machine-readable capability dashboard 已建立；
+- production、bounded、experimental 与 unsupported 字段在公共 transport
+  中保持一致；
+- package-root 和安装测试阻止已删除的 public symbols、operations、skills 与
+  runtime bypass fields 回归。
 
 ### 不做
 
@@ -732,20 +759,36 @@ operational slices，不能把其中的 “synthesis” 或 “enumeration” �
 - 不让 skill 各自复制输入验证或算法 dispatch；
 - 不因一个模型成功就把整个 3D backend 升级为 production；
 - 不把数据库写入设为 core function 的隐式副作用。
+- 不把 streaming/checkpoint 的可恢复性描述成 thermodynamic completeness；
+- 不在没有四层 operation-specific evidence 时升级 dashboard claim。
 
 ### 交付物
 
-- 新 public API；
-- 全部新 skills；
+- versioned native public service API 与三种外部 transport；
+- 全部八个 use-case skills；
+- NDJSON streaming 与 caller-owned SQLite checkpoint store；
 - capability/benchmark dashboard；
-- release checklist。
+- research release checklist 与 legacy-removal record。
 
-### 验收门槛
+### 已通过的架构验收门槛
 
 - 同一请求从 Python、CLI、MCP、skill 得到同 schema 结果；
 - 所有 experimental 能力在机器可读字段中可见；
 - 长枚举可以安全中断和恢复；
 - 删除旧接口后没有内部模块继续依赖旧 tuple/string conventions。
+
+### Phase 10 之后仍属于研究而非架构欠账
+
+- generic full half-space boundary module、secondary closure 与
+  boundary-to-bulk map；
+- arbitrary-code anyon extraction、saturation、BB/multiple-hole/mixed
+  thermodynamic completion；
+- E3 saturation、anomaly/completion 与 local-Clifford、ancilla、stacking、
+  foliated quotient；
+- 自动 Cheshire condensation discovery、endpoint/junction completion、
+  dynamic circuit、phase equivalence 与 thermodynamic species completeness；
+- X-cube 其他 orientations，以及 Haah/checkerboard 的一般 boundary
+  classification。
 
 ## 7. 并行执行顺序
 

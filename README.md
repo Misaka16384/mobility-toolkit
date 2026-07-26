@@ -1,233 +1,217 @@
 # mobility_toolkit
 
-A homological-algebra toolkit for computing **charge-module invariants of
-translation-invariant stabilizer codes**, plus separately sourced ground-state
-degeneracy (GSD), periodicity, fusion, and boundary tools — packaged
-as a **cross-platform agent skill set** for Claude Code, OpenAI Codex, opencode, and
-Google Antigravity.
+`mobility_toolkit` is a boundary-aware stabilizer-code research toolkit. Its
+public computational surface is one versioned, native service registry shared
+by Python, CLI, MCP, and eight use-case skills. The implemented operation
+families cover:
 
-Stabilizer models are mapped to modules over a Laurent polynomial ring. The corrected
-homology path computes Ruba--Yang's
-`Q^p = Ext_R^(p+1)(bar(P/L), R)`, including the Laurent antipode and a strict
-commutation check. Macaulay2 evaluates Ext, Krull dimensions, and Gröbner bases;
-NumPy/SymPy support the finite-lattice and translation-lattice helpers.
+- finite generalized-Pauli codes over prime, composite, and mixed local
+  dimensions;
+- explicit finite cuts, boundary algebras, and bounded E1/E2 searches;
+- exact cellular relative homology for finite pairs;
+- canonical periodic Laurent presentations and theorem-scoped charge-module
+  operations;
+- oriented rational half-spaces and source-locked boundary benchmarks;
+- bounded 2D and 3D boundary-candidate enumeration;
+- stratified defects, endpoints, tubes, and junction incidence;
+- finite static Cheshire analysis, supplied-candidate synthesis, and static
+  fusion data.
 
-The toolkit deliberately does **not** infer planon/lineon/fracton labels from a
-Krull dimension. See [the exact theorem scope](docs/THEORY_SCOPE.md) before giving
-a physical interpretation to a result.
+Every result reports its operation scope, exactness, assumptions, certificate,
+provenance, and warnings. A finite or bounded-exact computation is not a
+thermodynamic classification. Unsupported mathematics is returned as a
+structured result instead of being approximated silently.
+
+See [the theorem and research scope](docs/THEORY_SCOPE.md) and the
+[capability dashboard](docs/CAPABILITY_DASHBOARD.md) before assigning a
+physical interpretation.
 
 ## Requirements
 
-- **Python ≥ 3.9**
-- **Macaulay2** reachable as `M2` (native on Linux/macOS, via **WSL** on Windows, or via
-  **Docker**). See [macaulay2.com](https://macaulay2.com).
+- Python 3.9 or newer.
+- Macaulay2 only for operations whose capability contract declares that
+  backend requirement, notably supported periodic Laurent/Ext computations.
+  Finite, relative-homology, static defect, and bounded enumeration operations
+  do not all require Macaulay2.
 
 ## Install
 
-**One-time — install the CLI** (isolated, with [pipx](https://pipx.pypa.io)):
+Install the package, then install the project-local skills:
 
 ```bash
 pipx install "git+https://github.com/Misaka16384/mobility-toolkit.git"
-# also want the optional MCP server?
-#   pipx install "mobility-toolkit[mcp] @ git+https://github.com/Misaka16384/mobility-toolkit.git"
-```
-
-> No pipx? `python -m pip install --user pipx && pipx ensurepath`, or `pip install "git+https://…"` into a venv.
-
-**Per project — one interactive line.** Open a terminal in the project folder and run:
-
-```bash
 mobility-toolkit install
 ```
 
-That launches an interactive flow (pick agents → MCP yes/no → confirm) and wires everything
-into that project. Run `mobility-toolkit doctor` first to check the Macaulay2 backend.
+Add the optional MCP transport with:
 
-<details><summary>From a clone (development)</summary>
+```bash
+mobility-toolkit install --mcp
+```
+
+From a development clone:
 
 ```bash
 git clone https://github.com/Misaka16384/mobility-toolkit.git
 cd mobility-toolkit
-python -m venv .venv && . .venv/Scripts/activate   # (Linux/macOS: . .venv/bin/activate)
-pip install -e ".[dev]"        # editable; add ".[mcp]" for the MCP server
+python -m venv .venv
+# Windows:
+. .venv/Scripts/activate
+# Linux/macOS:
+# . .venv/bin/activate
+pip install -e ".[dev]"
 mobility-toolkit install
 ```
-</details>
 
-`mobility-toolkit install` is **project-level by default** and installs **skills only** —
-the agent runs each skill's bundled script directly (`python scripts/<name>.py < input.json`).
-MCP is **opt-in** via `--mcp`. The toolkit auto-detects which agents are present:
+Skills are copied into project-level agent directories. MCP configuration is
+opt-in.
 
-| Agent | Skills → (always) | MCP config → (only with `--mcp`) |
+| Agent | Skills | MCP config with `--mcp` |
 |---|---|---|
 | Claude Code | `.claude/skills/` | `.mcp.json` |
-| opencode | `.opencode/skills/` (also reads `.claude/skills/`) | `opencode.json` |
+| opencode | `.opencode/skills/` | `opencode.json` |
 | Codex | `.agents/skills/` | `.codex/config.toml` |
-| Antigravity 2.0 | `.agents/skills/` *(shared with Codex)* | `.agents/mcp_config.json` |
+| Antigravity 2.0 | `.agents/skills/` | `.agents/mcp_config.json` |
 
-All four are project-level. `.agents/skills/` is shared by Codex and Antigravity 2.0.
-To install Antigravity globally instead (`~/.gemini/`), add `--antigravity-global`.
-(The MCP server needs the `[mcp]` extra: `pip install -e ".[mcp]"`.)
-
-A bare `mobility-toolkit install` is **interactive** when run in a terminal. Passing any
-of `--target` / `--mcp` / `--yes` makes it non-interactive (scriptable / CI):
+Useful administration commands:
 
 ```bash
-mobility-toolkit install --yes                            # non-interactive: detected agents, skills-only
-mobility-toolkit install --target claude --target codex   # pick agents
-mobility-toolkit install --target all                     # all four agents
-mobility-toolkit install --mcp                            # also wire the MCP server
-mobility-toolkit install --target antigravity --antigravity-global  # Antigravity into ~/.gemini
-mobility-toolkit install --project-dir /path/to/project   # install elsewhere
-mobility-toolkit install --list                           # show status
-mobility-toolkit install --uninstall                      # remove
-```
-
-## Updating
-
-The project skills are **copies**, so updating is two steps — pull the latest code,
-then refresh each project. One command does both:
-
-```bash
-cd /path/to/project
+mobility-toolkit install --list
+mobility-toolkit install --yes
 mobility-toolkit self-update
+mobility-toolkit --version
 ```
 
-It detects how the toolkit was installed and updates accordingly — `git pull` for a
-clone, or a pip reinstall from the git URL for a pipx/wheel install — then re-installs
-**exactly the agents already wired into this project** (preserving your MCP choice).
-Useful flags:
+`mobility-toolkit doctor` is a low-level diagnostic for Macaulay2-backed
+operations. It is not a computational skill or an alternate public API.
 
-```bash
-mobility-toolkit self-update --dry-run      # show what it would run, change nothing
-mobility-toolkit self-update --no-refresh   # update the package only
-mobility-toolkit self-update --mcp          # also (re)wire the MCP config
-```
+## Public skills
 
-Prefer to do it by hand? Update the package, then re-run `install` in each project:
+The supported inventory is exactly these eight use-case skills:
 
-```bash
-pipx upgrade mobility-toolkit               # wheel/pipx — picks up the latest release
-# or, from a clone:  git pull
-mobility-toolkit install --yes              # refresh this project's skills
-```
-
-Check what you have with `mobility-toolkit --version`.
-
-> `pipx upgrade` works **across releases** because each release bumps the version (see
-> [Development](#development)). To pull *un-released* commits on `main` (same version
-> number), use `mobility-toolkit self-update` or
-> `pipx install --force "git+https://github.com/Misaka16384/mobility-toolkit.git"`.
-
-## Skills
-
-The toolkit installs eight `mt-*` skills, organized as **edges between three layers** —
-so you pick a skill by "what I have → what I want":
-
-- **L1 Model** — the Pauli stabilizer matrix over `ZZ/N[x,y,z,…]`.
-- **L2 Algebra** — `Ext^{p+1}` charge module, annihilator ideal, Gröbner basis, Krull dim.
-- **L3 Physics** — theorem-scoped mobility conclusions, GSD, and independent fusion tools.
-
-| Skill | Edge | What it does |
+| Skill | Primary operation family | Scope |
 |---|---|---|
-| `mt-translate` | L1→L2 | Stabilizer matrix → ring, variables, M2 matrix (pure) |
-| `mt-homology` | L1→L2 | Validated `Ext^{p+1}(bar(P/L),R)` + Krull dim + annihilator |
-| `mt-classify` | L2→L3 | The theorem-safe conclusion supported by a Krull dimension |
-| `mt-mobility` | L2→L3 | Exact translation lattice for Laurent-binomial annihilators |
-| `mt-gsd` | L1→L3 | GSD + anyon periodicities on an Lx×Ly torus (any N) |
-| `mt-fusion` | L1→L3 | Dimension drops under relative shift vectors |
-| `mt-models` | L1↔L3 | SQLite registry of models ↔ physical properties |
-| `mt-doctor` | infra | Diagnose the Macaulay2 backend |
+| `mt-finite-code` | `finite.code.*` | Finite generalized-Pauli arithmetic, centralizers, logical groups, and GSD |
+| `mt-boundary-algebra` | `boundary.finite.*`, `boundary.enumeration.*` | Explicit finite cuts, paired groups, primary projections, and bounded E1/E2 searches |
+| `mt-relative-homology` | `topology.relative_homology` | Exact cellular relative homology for explicit finite pairs |
+| `mt-halfspace` | `boundary.halfspace.*` | Oriented one-sided Laurent half-spaces and source-locked benchmarks |
+| `mt-gapped-boundary-2d` | `boundary.completion2d.*` | Finite metric condensation and explicitly bounded local completions |
+| `mt-gapped-boundary-3d` | `boundary.symbolic3d.*` | E1/E2 and bounded symbolic E3 candidate searches |
+| `mt-defect` | `defects.*` | Finite stratified boundaries, endpoints, tubes, and junction incidence |
+| `mt-cheshire` | `defects.cheshire.*` | Finite Cheshire static analysis, supplied-candidate searches, and static fusion |
 
-Each skill bundles a script the agent runs directly (`python scripts/<name>.py < input.json`).
-See [`AGENTS.md`](AGENTS.md) for the full per-skill contract.
+Each skill is a thin transport to the same registry. Skills do not own a
+separate validator or algorithm implementation.
+
+## Canonical service transport
+
+Discover operations and their machine-readable input contracts:
+
+```bash
+mobility-toolkit service-catalog
+```
+
+Execute one canonical `ServiceRequest`:
+
+```bash
+mobility-toolkit service --request '{
+  "schema": "mobility_toolkit.service_request.v1",
+  "schema_version": "1",
+  "operation": "finite.code.capabilities",
+  "input_data": {}
+}'
+```
+
+The same payload can be read from standard input by passing `--request -`.
+Python callers use `ServiceRequest` plus `execute_service_request`, or the JSON
+adapter `execute_service_payload`. MCP and skill scripts forward that same
+transport object.
+
+There are no public per-algorithm convenience CLI commands. Old matrix-string,
+polynomial-string, blocked/interleaved-vector, and dimension-specific tuple
+contracts are not accepted by the canonical service.
+
+## Streaming and checkpoints
+
+Two bounded enumerators currently expose incremental pages:
+
+- `boundary.completion2d.enumerate`;
+- `boundary.symbolic3d.enumerate`.
+
+Use the NDJSON transport:
+
+```bash
+mobility-toolkit service-stream --request - < request.json
+```
+
+`--request` accepts a JSON object or `-` for standard input. Add
+`--max-pages 20` (or another positive integer) to impose a transport page
+ceiling.
+
+Each output line is a complete `ServiceExecution` envelope. An incomplete page
+contains a sealed `result.value.next_checkpoint`; resuming means placing that
+checkpoint back into the original request.
+
+Python callers that want persistence explicitly import
+`SQLiteCheckpointStore` from `mobility_toolkit.services` and construct it with
+a caller-selected path. The store is caller-owned: importing the package does
+not create a database, choose a path, or open process-global state. It binds
+each session to the canonical base request and rejects foreign, tampered,
+completed, or non-progressing checkpoint chains.
+
+## Canonical inputs
+
+- Start from `service-catalog`; each operation owns a strict JSON object schema.
+- Finite operators are phase-aware, site-labelled sparse generalized-Pauli
+  data with explicit local dimensions. Algebraic identity does not depend on a
+  floating-point drawing position.
+- Periodic inputs use a structured Laurent AST, translation group, Pauli basis,
+  local-order relations, stabilizer-image columns, and phase modulus. Free-form
+  polynomial strings and flat Pauli matrices are not the public IR.
+- Composite and nonuniform periodic presentations are representable. Whether a
+  requested operation is executable is operation- and backend-specific.
+  Unsupported Ext domains remain structured `unsupported`/experimental
+  results; there is no bypass switch.
+- Geometry requests state the selected finite region, identifications,
+  restriction policy, strata, and search domain explicitly.
+- Enumeration claims apply only to the serialized finite window, support,
+  period, rank/exponent box, candidate family, equivalence relation, and
+  resource budget.
 
 ## Macaulay2 backend
 
-The M2 invocation is resolved per platform, overridable by environment variable:
+Macaulay2 invocation is resolved in this order:
 
-| Variable | Effect |
-|---|---|
-| `MOBILITY_M2_CMD` | Explicit command, e.g. `wsl -d Ubuntu M2 --no-readline -q` |
-| `MOBILITY_M2_DOCKER_IMAGE` | Run M2 inside `docker run --rm -i <image>` |
-| `MOBILITY_M2_WSL_DISTRO` | WSL distro name on Windows (default `Ubuntu`) |
+1. `MOBILITY_M2_CMD`;
+2. `MOBILITY_M2_DOCKER_IMAGE`;
+3. native `M2` on `PATH`;
+4. WSL on Windows, with distro selected by `MOBILITY_M2_WSL_DISTRO`.
 
-Resolution order: `MOBILITY_M2_CMD` → Docker image → native `M2` on PATH → WSL (Windows).
-There is no official Macaulay2 Docker image; if you use the Docker path, point
-`MOBILITY_M2_DOCKER_IMAGE` at one you build/pull (see the
-[M2 Docker guide](https://github.com/Macaulay2/M2/blob/master/M2/BUILD/docker/README.md)).
+Run `mobility-toolkit doctor` to inspect the resolved backend and perform a
+small smoke test. Backend absence must produce structured unsupported behavior
+or an explicit non-release skip; it must never fabricate an exact result.
 
-Run `mobility-toolkit doctor` to see what was resolved.
-
-## CLI examples
-
-```bash
-# Toric code Q^0: Krull dimension 0; all local point charges are fully mobile
-mobility-toolkit homology \
-  --stabilizer '[["1-t","1-u","0","0"],["0","0","y-1","1-x"]]' \
-  --qudit-dim 2 --p-ext 0 --spatial-dim 2
-
-# Interpret Q^0 without over-classifying individual excitations
-mobility-toolkit classify --krull-dim 1 --spatial-dim 3 --p-ext 0
-
-# Exact rank-one diagonal translation lattice H=< (1,1) >
-mobility-toolkit mobility --generators '["x*y-1"]' --qudit-dim 2 \
-  --all-vars '["x","y"]'
-
-# Use --algebra-only only for a non-stabilizer module presentation
-mobility-toolkit homology \
-  --stabilizer '[["x-2","0"]]' --qudit-dim 5 --p-ext 0 --algebra-only
-
-# Ground-state degeneracy of the Z_2 toric code on a 3x3 torus (= 4)
-mobility-toolkit grobner \
-  --stabilizer '[["1-t","1-u","0","0"],["0","0","y-1","1-x"]]' --Lx 3 --Ly 3 --qudit-dim 2
-
-# Seed + query the bundled model registry
-mobility-toolkit db init
-mobility-toolkit db query --query-str "SELECT name, gsd_val FROM models WHERE qudit_dim=12"
-```
-
-## Input conventions
-
-- Each stabilizer row is one generator in `[X_1,...,X_q,Z_1,...,Z_q]`
-  coordinates. Homology validates even Pauli rank and
-  `sigma^dagger lambda sigma=0` by default.
-- The current **Ext backend** requires uniform prime `qudit_dim`. The paper also
-  supports composite/nonuniform qudits; that remains an implementation gap.
-  `prime_bypass` is useful to translation and other paths, not composite Ext.
-- **No parentheses** in polynomials — fully expand (`y + z + x*y + x*z`, not `(1+x)*(y+z)`).
-- Variables: spatial `x, y, z`; Laurent inverses `t, u, w` (`x*t = y*u = z*w = 1`).
-  Write inverses as `x^-1` / `x**-1`; they are rewritten to `t`/`u`/`w`.
-- Set `spatial_dim` explicitly when an ambient axis does not occur in the
-  coefficients. Otherwise the smallest ring containing the variables is used.
-
-## Development
+## Development and releases
 
 ```bash
 pip install -e ".[dev]"
-pytest                       # M2-backed tests require a working Macaulay2 backend
+pytest
+python tools/phase10_verify_dashboard.py
 ```
 
-Importable code lives in `mobility_toolkit/`; SKILL.md sources live in
-`mobility_toolkit/skills/` (bundled into the wheel). See
-[`AGENTS.md`](AGENTS.md) for agent-facing usage notes.
+Importable code lives in `mobility_toolkit/`; bundled skill sources live in
+`mobility_toolkit/skills/`. The version source of truth is
+`mobility_toolkit.__version__`; `pyproject.toml` derives it dynamically.
 
-### Cutting a release
-
-The version is a single source of truth in `mobility_toolkit/__init__.py`
-(`__version__`); `pyproject.toml` derives the package version from it. Bumping it
-on each release is what lets users `pipx upgrade`. Use the helper:
+Use the release helper:
 
 ```bash
-python tools/release.py                 # patch bump (0.1.0 -> 0.1.1), commit + tag
-python tools/release.py --minor         # 0.1.0 -> 0.2.0
-python tools/release.py --set 1.2.3     # explicit version
-python tools/release.py --push          # also push the commit + tag to origin
-python tools/release.py --dry-run       # preview, change nothing
+python tools/release.py
+python tools/release.py --minor
+python tools/release.py --set 1.2.3
+python tools/release.py --push
 ```
 
-It refuses to run on a dirty tree (override with `--allow-dirty`) or a tag that
-already exists. After pushing, `pipx upgrade mobility-toolkit` picks it up.
-
-See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the full development, release,
-and update workflow (install kinds, version model, refreshing project skills).
+The [research release checklist](docs/RELEASE_CHECKLIST.md) requires the
+operation-scoped dashboard, four evidence layers, full-suite results, and
+external-backend records before a research release is promoted.

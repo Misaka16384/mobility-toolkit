@@ -25,6 +25,40 @@ python tools/phase10_verify_dashboard.py --run-layer scale
 None of these bounded smoke commands requires Macaulay2. The full Laurent and
 live-saturation suites remain separate external-backend gates.
 
+## Public architecture
+
+The supported computational surface is:
+
+1. `mobility_toolkit.service_request.v1`;
+2. native registrations in one versioned service registry;
+3. transport-neutral `ServiceExecution` results;
+4. thin Python, CLI, MCP, and eight-skill transports.
+
+The registry contains no compatibility adapter registrations. The public skill
+inventory is exactly:
+
+- `mt-finite-code`;
+- `mt-boundary-algebra`;
+- `mt-relative-homology`;
+- `mt-halfspace`;
+- `mt-gapped-boundary-2d`;
+- `mt-gapped-boundary-3d`;
+- `mt-defect`;
+- `mt-cheshire`.
+
+`mobility-toolkit service-catalog` is the authoritative operation and schema
+discovery endpoint. `mobility-toolkit service` executes one request.
+`mobility-toolkit service-stream` emits complete `ServiceExecution` envelopes
+as NDJSON for the currently streamable 2D-completion and symbolic-3D
+enumerators.
+
+Streaming is transport-level pagination, not a stronger completeness claim.
+The last incomplete page retains a sealed checkpoint. Optional persistence is
+provided by the explicitly constructed, caller-owned
+`SQLiteCheckpointStore(path)`: package import creates no database or global
+store. The store binds a session to its canonical base request and rejects
+foreign, tampered, completed, or non-progressing chains.
+
 ## Four evidence layers
 
 | Layer | Required meaning |
@@ -64,6 +98,30 @@ be `bounded_exact` while the broader research operation remains experimental.
 | `generic_full_halfspace_boundary_module` | No general certified full module/secondary closure constructor |
 | `arbitrary_code_anyon_extraction` | No general saturation and period-certificate pipeline |
 | `cheshire_dynamic_phase_and_circuits` | Static stabilizer quotients do not determine phase equivalence or minimum circuit depth |
+
+## Verified architecture versus future research
+
+The following are architecture/transport facts, not physics promotion claims:
+
+- canonical finite and periodic representations are both accepted;
+- explicit finite cellular pairs have an exact relative-homology operation;
+- capability, exactness, assumptions, certificate, provenance, resource use,
+  and warnings travel through every public transport;
+- bounded enumerators can yield deterministic resumable pages;
+- old per-algorithm CLI commands and legacy runtime schemas are not public
+  fallbacks.
+
+The following remain research work even though the transport can represent an
+experimental or unsupported result:
+
+- generic full half-space modules, secondary closure, and boundary-to-bulk
+  maps;
+- arbitrary-code anyon extraction, saturation, and thermodynamic 2D
+  completion;
+- E3 saturation, anomaly, completion, and stable-equivalence quotients;
+- automatic Cheshire condensation discovery, endpoint/junction completion,
+  dynamic circuits, and thermodynamic species completeness;
+- general X-cube orientations and Haah/checkerboard boundary classification.
 
 ## Promotion rule
 

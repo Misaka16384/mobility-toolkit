@@ -12,7 +12,10 @@ experimental operation.
 - [ ] Capability claims are operation-scoped; coefficient domain, geometry,
       search domain, and resource bounds are visible.
 - [ ] No runtime compatibility layer was reintroduced for deleted tuple,
-      polynomial-string, blocked/interleaved, or `prime_bypass` semantics.
+      polynomial-text, flat-matrix/vector, or coefficient-bypass semantics.
+- [ ] `service-catalog` lists only native registrations and exactly the
+      intended public operations.
+- [ ] The installed skill inventory is exactly the approved eight skills.
 
 ## 2. Verify the machine-readable dashboard
 
@@ -59,6 +62,17 @@ missing declared development dependency are release failures, not passes.
       one-shot run.
 - [ ] Dense materialization, work units, result count, and wall-time limits
       fail or truncate explicitly.
+- [ ] `service-stream` emits one complete `ServiceExecution` envelope per
+      NDJSON line and retains a sealed checkpoint when the transport page
+      ceiling stops an incomplete run.
+- [ ] Stream and one-shot transports agree page by page for the supported 2D
+      completion and symbolic-3D operations.
+- [ ] `SQLiteCheckpointStore` is created only by an explicit caller-supplied
+      path; importing the package creates no database or process-global store.
+- [ ] Checkpoint persistence rejects foreign request identities, completed
+      pages, tampered envelopes, sequence regressions, and non-progress.
+- [ ] Closing and reopening the caller-owned store yields an executable
+      canonical resume request.
 
 ## 6. Physics claim audit
 
@@ -82,11 +96,16 @@ missing declared development dependency are release failures, not passes.
 - [ ] The same canonical request reaches one versioned service operation from
       Python, CLI, MCP, and each relevant skill.
 - [ ] All transports serialize the same result schema and capability fields.
+- [ ] CLI exposes `service`, `service-catalog`, and `service-stream` as the
+      computational transports; no deleted per-algorithm command reappears.
 - [ ] Skills contain no copied algorithm dispatcher or divergent validation.
 - [ ] The skill structure validator passes for every bundled skill.
 - [ ] Wheel package data contains each skill's Markdown, Python, JSON, and YAML
       assets.
 - [ ] Installation tests confirm the exact supported skill inventory.
+- [ ] The package root exports only the intended versioned service and
+      streaming API; checkpoint persistence is explicitly imported from the
+      service package and remains caller-owned.
 
 ## 8. Final release record
 

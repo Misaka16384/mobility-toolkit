@@ -46,6 +46,7 @@
         "-m",
         "pytest",
         "tests/test_boundary_literature_models.py::test_real_space_cut_has_complete_literal_primary_image",
+        "tests/test_boundary_literature_models.py::test_fish_toric_cut_has_exact_primary_coverage_and_secondary_classes",
         "tests/test_anyons2d_literature_models.py::test_zd_toric_raw_lagrangian_counts",
         "tests/test_cheshire.py::test_open_segment_matches_eq8_gsd_termination_and_dual_representation",
         "-q"

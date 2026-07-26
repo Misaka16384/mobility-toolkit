@@ -1,111 +1,181 @@
-# Theorem scope and conventions
+# Theorem and research scope
 
-This document states exactly which parts of Ruba and Yang, *Homological
-Invariants of Pauli Stabilizer Codes*, are implemented by the homology path.
-The implementation targets the uniform prime-qudit, free-Pauli-module case.
-The paper itself is more general than this backend.
+This document separates theorem-backed bulk invariants, exact finite algebra,
+bounded searches, and research-only boundary/defect conclusions. Exactness is
+owned by each service operation; it is not a package-wide label.
 
-## Algebraic convention
+## Public representation
 
-Let
+The public periodic representation is a canonical quasi-free Pauli-module
+presentation. It contains:
+
+- a finitely generated translation group;
+- structured Laurent terms rather than polynomial text;
+- Pauli basis elements with explicit species, component, axis, and local order;
+- local-order relations;
+- phase-aware stabilizer-image columns;
+- a coefficient and phase modulus.
+
+The public finite representation is phase-aware, site-labelled sparse
+generalized-Pauli data over explicit local cyclic factors. Geometry,
+identifications, restriction policy, and strata are separate canonical data.
+
+Legacy row matrices and free-form polynomial strings may remain only inside
+private regression fixtures. They are not accepted as canonical service input.
+
+## Ruba--Yang charge-module invariant
+
+For the supported uniform-prime, free-translation execution domain, the
+periodic charge-module operation implements the convention of Ruba and Yang,
+*Homological Invariants of Pauli Stabilizer Codes*. With
 
 ```text
 R = F_p[x1^+-1, ..., xD^+-1]
 P = R^(2q)
+L = image(sigma)
 ```
 
-and let each input row be one stabilizer generator in the coordinate order
+the implemented invariant is
 
 ```text
-[X1, ..., Xq, Z1, ..., Zq].
+Q^i = Ext_R^(i+1)(bar(P/L), R).
 ```
 
-The translator transposes those rows to obtain the column map `sigma: F -> P`.
-The Laurent antipode is `bar(x_i) = x_i^-1`; the adjoint is transpose followed
-by this antipode. A physical stabilizer input is accepted only when `2q` is even
-and
+The Laurent antipode is part of the computation. A physical stabilizer request
+is validated against the appropriate phase/commutation condition before it is
+given a stabilizer-code interpretation. An explicitly algebraic module request
+does not inherit that interpretation.
 
-```text
-sigma^dagger lambda sigma = 0.
-```
-
-Callers working with an arbitrary module presentation, rather than a physical
-stabilizer code, must opt out explicitly with `validate_stabilizer=False`. Such a
-result is labelled algebra-only and receives no stabilizer-code interpretation.
-
-## Implemented invariant
-
-For a validated stabilizer code, the homology command computes Definition 22:
-
-```text
-Q^i = Ext_R^(i+1)(bar(P/L), R),    L = image(sigma).
-```
-
-The bar is part of the computation, not only a display convention. Returned
-annihilator generators therefore use the translation directions of `Q^i` in the
-paper's convention.
-
-The result also checks the universal parts of Proposition 25:
+The implementation checks the universal consequences used from Proposition
+25:
 
 - `Q^i = 0` for `i >= D`;
 - `dim Q^i <= D - 1 - i` for a nonzero module;
-- when the caller independently supplies `saturated=True`, the stronger bound
-  `dim Q^i <= D - 2 - i` is checked.
+- the stronger bound `dim Q^i <= D - 2 - i` only when saturation is supplied
+  independently.
 
-The zero module is represented by `krull_dimension = -1`, corresponding to the
-paper's `-infinity` convention. It means only that this charge module vanishes;
-it does not say that the whole code or phase is trivial.
+The zero module uses `krull_dimension = -1`, representing the paper's
+`-infinity` convention. This says that the particular charge module vanishes;
+it does not say that the whole phase is trivial.
 
-## What Krull dimension proves about mobility
+## What Krull dimension proves
 
-For `Q^0`, Proposition 36 and Corollary 37 prove that `dim Q^0 = 0` exactly when
-all local point-charge classes are mobile in every noncompact lattice direction.
-For `dim Q^0 > 0`, Krull dimension alone says that not all point-charge classes
-are fully mobile. It does not identify an individual excitation as a planon,
-lineon, or immobile fracton, and there is no theorem equating a mobility count
-with `D - dim Q^0`.
+For `Q^0`, Proposition 36 and Corollary 37 show that `dim Q^0 = 0` exactly when
+all local point-charge classes are mobile in every noncompact lattice
+direction. If `dim Q^0 > 0`, not every point-charge class is fully mobile.
 
-For `Q^i` with `i > 0`, a direct mobility interpretation is not established by
-the paper. The API therefore labels it conjectural/undetermined rather than
-reusing the point-charge theorem.
+Krull dimension alone does not:
 
-Topological order is also not inferred from Krull dimension alone. That phrase
-requires additional physical hypotheses (for example the relevant Lagrangian,
-saturation, and absence-of-symmetry-breaking conditions) supplied and justified
-outside the Ext calculation.
+- classify an individual excitation as a planon, lineon, or fracton;
+- prove a formula equating a mobility count with `D - dim Q^0`;
+- establish a mobility interpretation for `Q^i`, `i > 0`;
+- establish topological order without the additional physical hypotheses.
 
-## Exact translation-lattice subproblem
+An exact individual translation lattice requires an element annihilator. The
+annihilator of the whole module instead describes translations common to every
+charge class. General non-binomial annihilators remain inconclusive unless an
+operation supplies a certified binomial-part calculation.
 
-For an individual charge with annihilator `J`, a lattice displacement `a` is
-certified when `x^a - 1` belongs to `J`. The mobility helper implements the exact
-rank of this translation lattice for Laurent binomial ideals. Forward and inverse
-symbols such as `x1` and `t1` are one spatial axis, not independent variables.
+## Coefficient-domain scope
 
-Homology returns `Ann(Q^p)`, not the annihilator of a chosen element `q`. Feeding
-that module annihilator to the helper computes translations common to every
-charge class. An individual mobility claim requires the separately computed
-element annihilator `Ann(q)`.
+The canonical periodic IR represents uniform prime, uniform composite, and
+nonuniform local orders. Representation support is not execution support.
 
-An arbitrary non-binomial generating set can hide additional binomials. Until a
-general binomial-part algorithm is implemented, the helper reports
-`inconclusive` for that case instead of claiming an exact physical answer.
+The production Macaulay2 Ext execution path currently covers the
+uniform-prime/free-translation domain declared by its capability response.
+Composite and nonuniform requests are never coerced into that domain. Each
+operation returns its own structured experimental or unsupported result when a
+validated backend is unavailable.
 
-## Backend limitations, not theory limitations
+Ruba and Yang's theory is broader: it works over `Z_n[Lambda]`, permits
+nonuniform local dimensions and quasi-free modules, and contains composite
+examples. Missing executable support is therefore an implementation limit, not
+a limitation of the paper.
 
-The current Ext backend supports a uniform prime qudit dimension and a free Pauli
-module. Ruba and Yang work over `Z_n[Lambda]`, allow nonuniform qudit dimensions
-and quasi-free modules, and include composite examples such as a `Z_4` toric-code
-phase. Composite and nonuniform support is therefore an implementation gap.
-`prime_bypass` can be useful to other toolkit paths, but it does not make the
-Macaulay2 Ext path valid over a composite coefficient ring.
+## Exact finite and relative calculations
 
-## Deliberately separate features
+Finite generalized-Pauli computations use finite abelian-group presentations
+and explicit phase conventions. Within the declared dense/resource budget,
+centralizers, quotients, logical groups, pairings, and GSD can be certified
+exactly. Their certificates concern the supplied finite code only.
 
-The GSD, finite-torus periodicity, annihilator-fusion, and boundary-gauge
-algorithms have independent provenance. In particular, the existing fusion API
-is not the paper's Cech-cocycle braiding construction. The toolkit currently does
-not implement the paper's `S` and `Z` modules, coarse-graining theorem, Cech
-representatives, higher-form symmetry construction, or braiding pairing.
+For an explicit finite cellular pair `(X, A)`, the relative-homology service
+computes the homology of
 
-Primary source:
+```text
+C_*(X, A) = C_*(X) / C_*(A).
+```
+
+That is exact relative homology of the supplied pair. It is not the same object
+as a Laurent half-space boundary module, and it does not by itself classify an
+infinite gapped boundary. Cross-representation tests compare CSS interval
+relative homology with an independently constructed finite symplectic logical
+quotient.
+
+## Boundary and half-space scope
+
+A real-space half-space is represented by a primitive rational normal and a
+one-sided support condition. It is not modeled by simply quotienting a Laurent
+ring by a normal-direction equation.
+
+Current production slices include finite primary boundary algebra, supplied
+pairing invariants, orientation-aware half-space compilers, and source-locked
+benchmarks. The following remain unsupported as general operations:
+
+- a certified full boundary module for arbitrary codes;
+- generic secondary closure and a general boundary-to-bulk map;
+- arbitrary-code anyon extraction and saturation;
+- a thermodynamic gap theorem from finite local completion.
+
+The 2D completion service is exact or bounded-exact only for the supplied
+metric group, lifts, Hamiltonian, locality domain, and finite search. It is not
+automatic all-boundary classification.
+
+## 3D enumeration scope
+
+The three enumeration levels are deliberately distinct:
+
+- E1 exhausts a supplied finite boundary algebra;
+- E2 exhausts an explicitly bounded periodic family, support/depth window, and
+  equivalence relation;
+- E3 enumerates symbolic seeds inside a finite exponent/rank box and remains
+  experimental without saturation, anomaly, and completion proofs.
+
+No E1/E2/E3 result is a general classification of 3D topological or fracton
+boundaries. Local-Clifford, trivial-ancilla, stacking, and foliated
+equivalences are not silently assumed.
+
+## Defect and Cheshire scope
+
+Stratified finite geometry can represent boundary components, tubes, line
+cores, open-segment endpoints, and junction incidence. Cheshire operations
+certify static finite data for explicit or supplied candidates, including
+local centralizers/logicals, defect-local pairings, termination checks,
+tube-to-line finite invariant comparisons, and replayable static fusion data.
+
+These static calculations do not prove:
+
+- a finite-depth creation or fusion circuit;
+- minimum sequential depth;
+- phase equivalence under tube shrinking;
+- a gapped thermodynamic completion;
+- completeness of Cheshire species outside the supplied finite candidate
+  family;
+- a general fracton Cheshire classification.
+
+The axial X-cube reference remains a finite experimental slice; other
+orientations require their own registered convention and evidence.
+
+## Independent provenance
+
+Finite GSD, relative homology, half-space boundary algebra, bounded
+enumeration, 2D condensation, and Cheshire operations have independent
+mathematical and literature provenance. They must not be described as direct
+consequences of the bulk Ext invariant merely because they share a canonical
+service transport.
+
+Primary bulk source:
 [Ruba--Yang, arXiv:2204.06023v3](https://arxiv.org/abs/2204.06023).
+
+The source-locked boundary and defect references are listed in the
+[roadmap](BOUNDARY_DEFECT_ROADMAP.md) and benchmark manifests.
