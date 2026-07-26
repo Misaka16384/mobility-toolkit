@@ -30,14 +30,14 @@ def test_install_skills_only_by_default(tmp_path):
     assert run_install(targets=_ALL, project_dir=str(tmp_path), log=_QUIET)
 
     # skills copied into each agent's directory
-    assert (tmp_path / ".claude" / "skills" / "mt-translate" / "SKILL.md").exists()
-    assert (tmp_path / ".agents" / "skills" / "mt-homology" / "SKILL.md").exists()
-    assert (tmp_path / ".opencode" / "skills" / "mt-models" / "SKILL.md").exists()
+    assert (tmp_path / ".claude" / "skills" / "mt-finite-code" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "mt-relative-homology" / "SKILL.md").exists()
+    assert (tmp_path / ".opencode" / "skills" / "mt-defect" / "SKILL.md").exists()
     for name in SKILL_NAMES:
         assert (tmp_path / ".claude" / "skills" / name).is_dir()
 
     # bootstrap injected so the copied script can import the core
-    script = tmp_path / ".claude" / "skills" / "mt-translate" / "scripts" / "mt-translate.py"
+    script = tmp_path / ".claude" / "skills" / "mt-finite-code" / "scripts" / "mt-finite-code.py"
     assert _BOOTSTRAP_MARKER in script.read_text(encoding="utf-8")
 
     # AGENTS.md managed block present
@@ -100,7 +100,7 @@ def test_uninstall_removes_entries(tmp_path):
     run_install(targets=["claude", "codex", "opencode"], project_dir=proj, with_mcp=True, log=_QUIET)
     run_uninstall(targets=["claude", "codex", "opencode"], project_dir=proj, log=_QUIET)
 
-    assert not (tmp_path / ".claude" / "skills" / "mt-translate").exists()
+    assert not (tmp_path / ".claude" / "skills" / "mt-finite-code").exists()
     mcp = json.loads((tmp_path / ".mcp.json").read_text(encoding="utf-8"))
     assert MCP_NAME not in mcp.get("mcpServers", {})
     toml_text = (tmp_path / ".codex" / "config.toml").read_text(encoding="utf-8")
@@ -145,7 +145,7 @@ def test_self_update_refreshes_only_installed_agents(tmp_path, monkeypatch):
     assert run_self_update(project_dir=proj, log=_QUIET)
 
     # claude refreshed; the other agents were NOT introduced
-    assert (tmp_path / ".claude" / "skills" / "mt-translate" / "SKILL.md").exists()
+    assert (tmp_path / ".claude" / "skills" / "mt-finite-code" / "SKILL.md").exists()
     assert not (tmp_path / ".opencode").exists()
     assert not (tmp_path / ".agents").exists()
     # MCP setup preserved (was off) -> still off

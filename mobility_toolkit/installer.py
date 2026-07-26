@@ -27,26 +27,18 @@ PACKAGE_DIR = Path(__file__).resolve().parent          # .../mobility_toolkit/mo
 REPO_ROOT = PACKAGE_DIR.parent                         # importable root (clone root or site-packages)
 SKILLS_SRC = PACKAGE_DIR / "skills"                    # skills ship inside the package (wheel-installable)
 
-# Skills, grouped by the three-layer model (see AGENTS.md):
-#   L1 model -> L2 algebra -> L3 physics.
+# Public skills are grouped by user-facing use case.  Low-level algorithms and
+# CLI commands remain internal building blocks behind this deliberately small
+# inventory.
 SKILL_NAMES = [
-    "mt-translate",   # L1->L2  stabilizer model -> ring/matrix/variables
-    "mt-homology",    # L1->L2  validated barred Ext module + Krull dim
-    "mt-classify",    # L2->L3  theorem-scoped Krull interpretation (pure)
-    "mt-mobility",    # L2->L3  Laurent-binomial annihilator -> translation lattice
-    "mt-gsd",         # L1->L3  GSD + periodicities on a torus
-    "mt-fusion",      # L1->L3  fusion interference under shifts
-    "mt-models",      # L1<->L3 model/property registry
-    "mt-doctor",      # infra   Macaulay2 backend diagnostic
-    "mt-boundary",    # L1->L3  boundary gauge operators
-    "mt-finite-code",  # canonical service facade for finite Pauli/stabilizer arithmetic
-    "mt-boundary-algebra",  # canonical service facade for finite boundary algebra
-    "mt-relative-homology",  # canonical finite-pair relative homology service
-    "mt-halfspace",   # L1->L2/L3 exact oriented half-space algebra
-    "mt-gapped-boundary-2d",  # L2/L1->L3 metric condensation + local completion
-    "mt-gapped-boundary-3d",  # E1/E2/E3 bounded 3D boundary enumeration
-    "mt-defect",      # finite stratified defects and capability discovery
-    "mt-cheshire",    # L1->L3  finite static Cheshire defect analysis
+    "mt-finite-code",
+    "mt-boundary-algebra",
+    "mt-relative-homology",
+    "mt-halfspace",
+    "mt-gapped-boundary-2d",
+    "mt-gapped-boundary-3d",
+    "mt-defect",
+    "mt-cheshire",
 ]
 
 # --- MCP server invocation -------------------------------------------------
@@ -196,21 +188,23 @@ def _agents_block() -> str:
     return (
         f"{AGENTS_BLOCK_START}\n"
         "## mobility_toolkit\n\n"
-        "Homological-algebra toolkit for validated Ruba--Yang charge-module "
-        "invariants of translation-invariant stabilizer codes (backed by "
-        "Macaulay2). Krull dimension is interpreted only within the theorem's "
-        "stated scope.\n\n"
-        "Skills are organized by three layers -- L1 model, L2 algebra, L3 physics -- "
-        "each skill being an edge between two layers:\n"
-        "- L1->L2: `mt-translate`, `mt-homology`\n"
-        "- L2->L3: `mt-classify`, `mt-mobility`\n"
-        "- L1->L3: `mt-gsd`, `mt-fusion`\n"
-        "- store/infra: `mt-models`, `mt-doctor`\n"
-        "Each skill bundles a script run directly, e.g. `python scripts/<name>.py < input.json`.\n\n"
+        "Boundary-aware stabilizer-code toolkit with finite generalized-Pauli "
+        "arithmetic, exact cellular relative homology, oriented Laurent "
+        "half-spaces, bounded boundary enumeration, and finite defect analysis. "
+        "Every operation reports its own exactness and scope; finite-window "
+        "results are not thermodynamic classifications.\n\n"
+        "Choose one public skill by use case:\n"
+        "- finite foundations: `mt-finite-code`, `mt-relative-homology`\n"
+        "- finite and Laurent boundary algebra: `mt-boundary-algebra`, `mt-halfspace`\n"
+        "- gapped-boundary candidates: `mt-gapped-boundary-2d`, `mt-gapped-boundary-3d`\n"
+        "- stratified and Cheshire defects: `mt-defect`, `mt-cheshire`\n"
+        "The shared service registry owns canonical operation contracts, "
+        "capability declarations, exactness, certificates, provenance, and "
+        "warnings. Query the relevant capability operation before requesting a "
+        "stronger physical conclusion.\n\n"
         "Optionally also available as MCP server `mobility_toolkit` "
         "(install with `mobility-toolkit install --mcp`).\n\n"
-        "Run `mobility-toolkit doctor` to verify the Macaulay2 backend; "
-        "`mobility-toolkit self-update` to pull the latest version and refresh "
+        "Run `mobility-toolkit self-update` to pull the latest version and refresh "
         "these skills.\n"
         f"{AGENTS_BLOCK_END}"
     )

@@ -191,7 +191,7 @@ def test_query_vector_db_sync():
 
 
 # ==============================================================================
-# 5. Parameter Forwarding and Skill Script Integration Tests
+# 5. Parameter Forwarding Tests
 # ==============================================================================
 
 def test_translate_to_algebra_prime_bypass():
@@ -223,104 +223,3 @@ def test_compute_homology_prime_bypass():
             p_ext=0,
             prime_bypass=True
         )
-
-def test_skill_translate_forwarding():
-    """Verify mt-translate.py script forwards spatial_dim and prime_bypass."""
-    import subprocess
-    # Run mt-translate script using subprocess
-    script_path = os.path.join(PROJECT_ROOT, "mobility_toolkit", "skills", "mt-translate", "scripts", "mt-translate.py")
-    
-    # 1. prime_bypass=False should fail with ValueError
-    input_data_fail = {
-        "stabilizer_matrix": [["1 - x", "1 - y"]],
-        "qudit_dim": 4,
-        "prime_bypass": False,
-        "spatial_dim": 3
-    }
-    proc = subprocess.Popen(
-        [sys.executable, script_path],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-    stdout, stderr = proc.communicate(json.dumps(input_data_fail))
-    assert proc.returncode == 1
-    res = json.loads(stdout)
-    assert res["status"] == "error"
-    assert "ValueError" in res["error"]
-
-    # 2. prime_bypass=True should succeed
-    input_data_success = {
-        "stabilizer_matrix": [["1 - x", "1 - y"]],
-        "qudit_dim": 4,
-        "prime_bypass": True,
-        "spatial_dim": 3,
-        "validate_stabilizer": False
-    }
-    proc = subprocess.Popen(
-        [sys.executable, script_path],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-    stdout, stderr = proc.communicate(json.dumps(input_data_success))
-    assert proc.returncode == 0
-    res = json.loads(stdout)
-    assert res["status"] == "success"
-    # Should use 3 variables and support prime_bypass=True
-    assert res["variables"] == ["x", "t", "y", "u", "z", "w"]
-    assert "ZZ/4" in res["ring_definition"]
-
-def test_skill_homology_forwarding():
-    """Verify mt-homology.py script forwards prime_bypass."""
-    import subprocess
-    script_path = os.path.join(PROJECT_ROOT, "mobility_toolkit", "skills", "mt-homology", "scripts", "mt-homology.py")
-    
-    # 1. prime_bypass=False should fail with ValueError
-    input_data_fail = {
-        "stabilizer_matrix": [
-            *TORIC_CODE_2D
-        ],
-        "qudit_dim": 4,
-        "p_ext": 0,
-        "prime_bypass": False,
-        "spatial_dim": 2
-    }
-    proc = subprocess.Popen(
-        [sys.executable, script_path],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-    stdout, stderr = proc.communicate(json.dumps(input_data_fail))
-    assert proc.returncode == 1
-    res = json.loads(stdout)
-    assert res["status"] == "error"
-    assert "ValueError" in res["error"]
-
-    # 2. prime_bypass=True still reports the explicit backend limitation.
-    input_data_bypass = {
-        "stabilizer_matrix": [
-            *TORIC_CODE_2D
-        ],
-        "qudit_dim": 4,
-        "p_ext": 0,
-        "prime_bypass": True,
-        "spatial_dim": 2
-    }
-    proc = subprocess.Popen(
-        [sys.executable, script_path],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-    stdout, stderr = proc.communicate(json.dumps(input_data_bypass))
-    assert proc.returncode == 1
-    res = json.loads(stdout)
-    assert res["status"] == "error"
-    assert "NotImplementedError" in res["error"]
-
