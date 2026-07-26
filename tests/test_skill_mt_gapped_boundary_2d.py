@@ -30,93 +30,164 @@ def _run(request):
     return json.loads(completed.stdout)
 
 
+def _request(operation, input_data=None, certificate_level="full"):
+    return {
+        "schema": "mobility_toolkit.service_request.v1",
+        "schema_version": "1",
+        "operation": operation,
+        "input_data": {} if input_data is None else input_data,
+        "requested_certificate_level": certificate_level,
+    }
+
+
+def _assert_execution(response, operation):
+    assert response["schema"] == "mobility_toolkit.service_execution.v1"
+    assert response["capability"]["operation"] == operation
+    assert response["capability"]["supported"]
+    assert response["request"]["schema"] == "mobility_toolkit.service_request.v1"
+    assert response["request"]["operation"] == operation
+    assert response["result"]["schema"] == "mobility_toolkit.computation_result.v1"
+    assert response["result"]["operation"] == operation
+    assert (
+        response["result"]["canonical_input_hash"]
+        == response["request"]["canonical_input_hash"]
+    )
+    return response["result"]
+
+
 def test_skill_reports_honest_capabilities():
-    result = _run({"operation": "capabilities"})
-    assert result["status"] == "success"
-    assert result["metric_group_condensation"] == "certified_exact"
-    assert result["finite_local_completion"] == "bounded_exact"
-    assert result["automatic_stabilizer_anyon_extraction"].startswith("unsupported")
+    response = _run(
+        _request(
+            "boundary.completion2d.capabilities",
+            certificate_level="standard",
+        )
+    )
+    result = _assert_execution(
+        response, "boundary.completion2d.capabilities"
+    )
+    value = result["value"]
+    assert result["exactness"] == "certified_exact"
+    assert value["metric_group_condensation"] == "certified_exact"
+    assert value["finite_local_completion"] == "bounded_exact"
+    assert value["automatic_stabilizer_anyon_extraction"] == "unsupported"
+    assert value["thermodynamic_gap_proof"] == "unsupported"
+    assert "no gapped-boundary theorem" in result["theorem_scope"].lower()
 
 
 def test_skill_enumerates_double_semion_lagrangian():
-    result = _run({"operation": "enumerate", "model": "double-semion"})
-    assert result["status"] == "success"
+    response = _run(
+        _request(
+            "boundary.completion2d.enumerate",
+            {"model": "double-semion"},
+        )
+    )
+    result = _assert_execution(response, "boundary.completion2d.enumerate")
+    value = result["value"]
     assert result["exactness"] == "certified_exact"
-    assert sum(item["lagrangian"] for item in result["bosonic_candidates"]) == 1
+    assert value["next_checkpoint"] is None
+    assert sum(item["lagrangian"] for item in value["candidates"]) == 1
     assert result["certificate"]["lagrangian_subgroups"] == 1
+    assert dict(result["verification"])["output_complete"]
+    assert "raw bosonic subgroups" in result["theorem_scope"]
+    assert any(
+        "No microscopic completion" in warning
+        for warning in result["warnings"]
+    )
 
 
 @pytest.mark.parametrize("model", ("z2-toric", "z4-toric"))
 @pytest.mark.parametrize("boundary_kind", ("rough", "smooth"))
 def test_skill_runs_source_locked_toric_completion(model, boundary_kind):
-    result = _run(
-        {
-            "operation": "completion-benchmark",
-            "model": model,
-            "boundary_kind": boundary_kind,
-        }
-    )
     modulus = 2 if model == "z2-toric" else 4
-    assert result["status"] == "success"
+    response = _run(
+        _request(
+            "boundary.completion2d.toric_cut",
+            {
+                "modulus": modulus,
+                "boundary_kind": boundary_kind,
+            },
+        )
+    )
+    result = _assert_execution(response, "boundary.completion2d.toric_cut")
+    value = result["value"]
     assert result["exactness"] == "bounded_exact"
-    assert result["fusion_invariant_factors"] == [modulus, modulus]
-    assert result["condensate_invariant_factors"] == [modulus]
-    assert result["verification"]["short_string_termination_verified"]
+    assert value["anyon_fusion_invariant_factors"] == [modulus, modulus]
+    assert value["condensate_invariant_factors"] == [modulus]
+    assert value["certificate"]["termination_verified"]
+    assert dict(result["verification"])["short_string_termination_verified"]
+    assert "finite 2d patch" in result["theorem_scope"].lower()
+    assert any(
+        "no completeness claim" in warning
+        for warning in result["warnings"]
+    )
 
 
 def test_skill_parses_and_verifies_explicit_uniform_composite_completion():
-    result = _run(
-        {
-            "operation": "verify-completion",
-            "model": "z4-toric",
-            "sites": [
-                {
-                    "site_id": "remote",
-                    "dimension": 4,
-                    "coordinate": [0, 0],
-                    "depth": 1,
-                },
-                {
-                    "site_id": "boundary",
-                    "dimension": 4,
-                    "coordinate": [1, 0],
-                    "depth": 0,
-                },
-            ],
-            "bulk_terms": [
-                {
-                    "term_id": "bulk:remote",
-                    "terms": [{"site_id": "remote", "x": 1}],
-                }
-            ],
-            "boundary_terms": [
-                {
-                    "term_id": "boundary:pin",
-                    "terms": [{"site_id": "boundary", "z": 1}],
-                }
-            ],
-            "string_lifts": [
-                {
-                    "label": "electric",
-                    "anyon": [1, 0],
-                    "operator": {
-                        "terms": [{"site_id": "remote", "z": 1}]
+    response = _run(
+        _request(
+            "boundary.completion2d.verify",
+            {
+                "model": "z4-toric",
+                "sites": [
+                    {
+                        "site_id": "remote",
+                        "dimension": 4,
+                        "coordinate": [0, 0],
+                        "depth": 1,
                     },
-                    "remote_excitation_term_ids": ["bulk:remote"],
-                }
-            ],
-            "locality": {
-                "window_label": "explicit-z4-two-site-test",
-                "boundary_site_ids": ["boundary"],
-                "max_completion_depth": 1,
-                "max_boundary_term_sites": 1,
-                "max_boundary_term_diameter": 0,
-                "max_short_string_sites": 1,
+                    {
+                        "site_id": "boundary",
+                        "dimension": 4,
+                        "coordinate": [1, 0],
+                        "depth": 0,
+                    },
+                ],
+                "bulk_terms": [
+                    {
+                        "term_id": "bulk:remote",
+                        "terms": [{"site_id": "remote", "x": 1}],
+                    }
+                ],
+                "boundary_terms": [
+                    {
+                        "term_id": "boundary:pin",
+                        "terms": [{"site_id": "boundary", "z": 1}],
+                    }
+                ],
+                "string_lifts": [
+                    {
+                        "label": "electric",
+                        "anyon": [1, 0],
+                        "operator": {
+                            "terms": [{"site_id": "remote", "z": 1}]
+                        },
+                        "remote_excitation_term_ids": ["bulk:remote"],
+                    }
+                ],
+                "locality": {
+                    "window_label": "explicit-z4-two-site-test",
+                    "boundary_site_ids": ["boundary"],
+                    "max_completion_depth": 1,
+                    "max_boundary_term_sites": 1,
+                    "max_boundary_term_diameter": 0,
+                    "max_short_string_sites": 1,
+                },
+                "source_scope": "explicit parser regression",
             },
-            "source_scope": "explicit parser regression",
-        }
+        )
     )
-    assert result["status"] == "success"
+    result = _assert_execution(response, "boundary.completion2d.verify")
+    value = result["value"]
     assert result["exactness"] == "bounded_exact"
-    assert result["codespace_dimension"] == 1
-    assert result["termination"][0]["exact_remote_syndrome_verified"]
+    assert value["codespace_dimension"] == 1
+    assert value["certificate"]["termination_witnesses"][0][
+        "exact_remote_syndrome_verified"
+    ]
+    assert dict(result["verification"])["short_string_termination_verified"]
+    assert "does not prove a thermodynamic spectral gap" in result[
+        "theorem_scope"
+    ].lower()
+    assert any(
+        "no completeness claim" in warning
+        for warning in result["warnings"]
+    )

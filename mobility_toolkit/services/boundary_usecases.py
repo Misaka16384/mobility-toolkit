@@ -957,7 +957,7 @@ def symbolic3d_xcube_preflight(request: ServiceRequest) -> ComputationResult:
 
     data = _input_object(request)
     return _native_result(
-        request, xcube_symbolic_orientation_crosscheck(tuple(data["normal"]))
+        request, xcube_symbolic_orientation_crosscheck(_normal(data["normal"]))
     )
 
 
