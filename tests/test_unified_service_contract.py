@@ -53,9 +53,9 @@ def test_default_catalog_is_machine_readable_and_honest_about_adapters():
         item["operation"]["operation"]: item for item in catalog["operations"]
     }
     assert {
-        "homology.ext",
-        "periodic.gsd",
-        "boundary.gauge.algorithm1",
+        "periodic.presentation",
+        "periodic.ext",
+        "periodic.charge_module",
         "boundary.halfspace.toric2d",
         "boundary.halfspace.toric3d_primary",
         "boundary.halfspace.xcube_orientation",
@@ -70,19 +70,17 @@ def test_default_catalog_is_machine_readable_and_honest_about_adapters():
         "defects.cheshire.xcube_axial_reference",
     } <= set(by_name)
     assert (
-        by_name["homology.ext"]["operation"]["adapter_kind"]
-        == "legacy_dict_adapter"
-    )
-    assert (
         by_name["boundary.halfspace.toric2d"]["operation"]["adapter_kind"]
         == "native"
     )
-    assert (
-        by_name["homology.ext"]["capability"]["maximum_certificate_level"]
-        == "none"
-    )
+    assert {
+        item["operation"]["adapter_kind"] for item in catalog["operations"]
+    } == {"native"}
     encoded = json.dumps(catalog, sort_keys=True)
     assert "prime_bypass" not in encoded
+    assert "legacy_dict_adapter" not in encoded
+    assert "boundary.gauge.algorithm1" not in encoded
+    assert "homology.ext" not in encoded
     assert "maximum_exactness" in encoded
     assert "input_schema" in encoded
 
@@ -118,7 +116,7 @@ def test_relative_homology_service_decodes_and_certifies_an_explicit_pair():
     assert response["capability"]["maximum_exactness"] == "certified_exact"
 
 
-def test_executor_cache_revalidates_full_request_and_skips_random_search():
+def test_executor_cache_revalidates_full_request_and_backend_sensitive_rules():
     executor = ServiceExecutor()
     request = ServiceRequest(
         "boundary.halfspace.capabilities",
@@ -139,25 +137,22 @@ def test_executor_cache_revalidates_full_request_and_skips_random_search():
         ("different assumption",),
     )
     assert executor.execute(changed).cache_hit is False
-    assert build_default_registry().is_cacheable("models.search") is False
+    assert build_default_registry().is_cacheable("periodic.ext") is False
 
 
-def test_legacy_dict_adapter_does_not_invent_a_math_certificate():
-    response = execute_service_payload(
-        {
-            "operation": "mobility.classify",
-            "input_data": {"krull_dim": 0, "spatial_dim": 3, "p_ext": 0},
-        }
-    )
-    assert response["schema"] == "mobility_toolkit.service_execution.v1"
-    assert response["result"]["exactness"] == "experimental"
-    assert response["result"]["certificate_level"] == "none"
-    assert response["result"]["certificate"] is None
-    assert response["result"]["verification"] == [
-        ["legacy_dict_faithfully_wrapped", True],
-        ["mathematical_certificate_added_by_adapter", False],
-    ]
-    assert response["capability"]["maximum_certificate_level"] == "none"
+@pytest.mark.parametrize(
+    "operation",
+    (
+        "homology.ext",
+        "mobility.classify",
+        "periodic.gsd",
+        "fusion.interference",
+        "boundary.gauge.algorithm1",
+    ),
+)
+def test_removed_legacy_operations_are_not_registered(operation):
+    with pytest.raises(KeyError, match="unknown service operation"):
+        execute_service_payload({"operation": operation, "input_data": {}})
 
 
 def test_native_boundary_adapter_preserves_exactness_and_full_certificate():

@@ -249,8 +249,8 @@ class ServiceCatalogEntry:
             raise ValueError("summary must be a nonempty string")
         if not isinstance(self.output_schema, str) or not self.output_schema:
             raise ValueError("output_schema must be a nonempty string")
-        if self.adapter_kind not in {"native", "legacy_dict_adapter"}:
-            raise ValueError("adapter_kind must be native or legacy_dict_adapter")
+        if self.adapter_kind != "native":
+            raise ValueError("adapter_kind must be native")
         if not isinstance(self.cacheable, bool):
             raise TypeError("cacheable must be boolean")
 

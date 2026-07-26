@@ -49,7 +49,7 @@ def test_python_cli_and_mcp_share_the_same_service_schema_and_execute_function()
         )
 
 
-def test_cli_rejects_removed_prime_bypass_option():
+def test_cli_rejects_removed_homology_convenience_command():
     argv = [
         "mobility-toolkit",
         "homology",
@@ -67,10 +67,10 @@ def test_cli_rejects_removed_prime_bypass_option():
         "".join(call.args[0] for call in stdout.write.call_args_list)
     )
     assert payload["status"] == "error"
-    assert "unrecognized arguments" in payload["error"]
+    assert "invalid choice" in payload["error"]
 
 
-def test_computational_convenience_command_preserves_full_execution_envelope():
+def test_cli_rejects_removed_classify_convenience_command():
     argv = [
         "mobility-toolkit",
         "classify",
@@ -82,14 +82,12 @@ def test_computational_convenience_command_preserves_full_execution_envelope():
     with patch("sys.argv", argv), patch("sys.stdout") as stdout:
         with pytest.raises(SystemExit) as exit_info:
             main()
-    assert exit_info.value.code == 0
+    assert exit_info.value.code == 1
     payload = json.loads(
         "".join(call.args[0] for call in stdout.write.call_args_list)
     )
-    assert payload["schema"] == "mobility_toolkit.service_execution.v1"
-    assert payload["request"]["operation"] == "mobility.classify"
-    assert payload["result"]["operation"] == "mobility.classify"
-    assert "capability" in payload
+    assert payload["status"] == "error"
+    assert "invalid choice" in payload["error"]
 
 
 def test_mcp_surface_exposes_only_generic_service_tools():
