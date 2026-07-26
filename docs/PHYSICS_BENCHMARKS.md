@@ -135,6 +135,7 @@ fusion claims.
 | literal left-square cut of a 2-by-1 Z2/Z4 toric patch | every crossing check is covered modulo bulk-trivial operators | exact finite FGA plus cut-provenance witness |
 | electric Z string at rough cut | two parent endpoints become one retained bulk endpoint | finite commutation syndrome / relative-homology interpretation |
 | magnetic X string at smooth cut | two parent endpoints become one retained bulk endpoint | finite commutation syndrome / relative-homology interpretation |
+| canonical Z2 fish-toric `5x2` periodic parent, three-column finite cut | paper templates equal the recorded two-monomial CNOT shear of the canonical toric differential; boundary algebra `(Z2)^16`, zero radical, primary order `2^14` inside full order `2^16`; a `Z_h` segment has two parent endpoints and one retained endpoint | `LIT_DIRECT` Eqs. (12)--(13), Fig. 4 and Sec. 5.2 of [Liang--Yang--Iosue--Chen](https://arxiv.org/abs/2410.11942), plus canonical compiler and exact finite FGA |
 | small paired FGA E1 | every isotropic subgroup once | exhaustive subgroup BFS and brute-force cross-check |
 | E2 period-two qutrit Fourier action | `T^2 H = H`, `T H != H`, fundamental period 2 | exact finite automorphism and subgroup membership |
 | E2 support bound | single-site translation orbit accepted; intrinsically two-site seed rejected at `max_sites=1` | exact translated support-image intersections |
@@ -144,6 +145,18 @@ prefix. E2 additionally binds adapted site coordinates, the microscopic
 translation actions, anchor and translated support-image hashes, period,
 coefficient domain, candidate family, and resource accounting. These are
 finite-domain completeness statements only.
+
+The fish fixture is independent of the former legacy `GeneratorTerm` rows: it
+starts from source-locked `OperatorTemplate` objects and checks the paper's
+stated finite-depth-Clifford equivalence explicitly.  In Laurent notation its
+X shear is
+`U = [[1,0],[y^-2(1+x),1]]`; the inverse-antipode Z action is replayed as
+well.  The order-four full/primary quotient is a finite witness for two
+independent secondary classes, but the benchmark does not identify its
+chosen quotient basis with the paper's diagram labels 5 and 6.  The endpoint
+count is for the explicit raw cut.  It does not certify topological-order
+completion, a gapped fish boundary, or a thermodynamic boundary
+classification.
 
 ## Phase 6 half-space benchmarks
 

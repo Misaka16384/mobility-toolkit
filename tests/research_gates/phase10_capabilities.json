@@ -133,6 +133,15 @@
       ]
     },
     {
+      "id": "fish-cut-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_boundary_literature_models.py::test_fish_toric_cut_has_exact_primary_coverage_and_secondary_classes",
+      "assertion": "The source-locked fish-toric finite cut has exact primary coverage and a nontrivial order-four secondary quotient, matching the qualitative Fig. 4 distinction.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
       "id": "e1-bruteforce-crosscheck",
       "layer": "cross_backend",
       "nodeid": "tests/test_boundary_enumeration_e1.py::test_e1_exhaustion_matches_independent_bruteforce_subgroups",
@@ -384,6 +393,7 @@
       "evidence": [
         "e1-certificate-correctness",
         "finite-cut-literature",
+        "fish-cut-literature",
         "e1-bruteforce-crosscheck",
         "e1-resume-scale"
       ],
