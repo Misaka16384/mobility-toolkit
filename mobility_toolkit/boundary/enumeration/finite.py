@@ -344,6 +344,45 @@ def _digits(index: int, base: int, length: int) -> Tuple[int, ...]:
     return tuple(values)
 
 
+def materialize_paired_group_elements(
+    paired: PairedFiniteAbelianGroup,
+    backend: FiniteIntegerBackend,
+) -> Tuple[Tuple[int, ...], ...]:
+    """Materialize group elements in the canonical E1 index order.
+
+    E1 indices use the little-endian coordinate traversal implemented by
+    :func:`_digits`.  Keeping this helper shared is important: Python's
+    ``itertools.product`` traverses the same coordinate cube in a different
+    order, so interpreting an ``element_indices`` tuple against a product
+    traversal silently maps subgroups to the wrong elements.
+    """
+
+    space = _ElementSpace(paired)
+    exponent = (
+        paired.group.invariant_factors[-1]
+        if paired.group.invariant_factors
+        else 1
+    )
+    rank = paired.group.presentation_rank
+    coordinate_limit = exponent ** rank
+    vectors = []
+    keys = set()
+    target_order = paired.group.order(backend)
+    for index in range(coordinate_limit):
+        vector = _digits(index, exponent, rank)
+        key = space.key(vector)
+        if key not in keys:
+            keys.add(key)
+            vectors.append(vector)
+        if len(vectors) == target_order:
+            break
+    if len(vectors) != target_order:
+        raise ArithmeticError(
+            "finite-group element materialization contradicts its certified order"
+        )
+    return tuple(vectors)
+
+
 def _closure(
     subgroup: IndexSubgroup,
     element_index: int,
@@ -521,6 +560,25 @@ def _replay_output_transcript(
     for output_index, entry in enumerate(prefix):
         digest = _output_transcript_step(digest, output_index, entry)
     return digest
+
+
+def replay_e1_output_transcript(
+    algebra_input_hash: str,
+    candidate_transcript_hash: str,
+    candidates: Sequence[E1SubgroupCandidate],
+) -> str:
+    """Replay the certified E1 output chain for an ordered candidate prefix."""
+
+    prefix = tuple(
+        (
+            candidate.element_indices,
+            canonical_hash("e1-subgroup-output-v1", candidate),
+        )
+        for candidate in candidates
+    )
+    return _replay_output_transcript(
+        algebra_input_hash, candidate_transcript_hash, prefix
+    )
 
 
 def _checkpoint_payload(checkpoint: E1EnumerationCheckpoint) -> dict:
@@ -1097,18 +1155,12 @@ def reduce_e1_orbits(
         )
         if any(value % paired.modulus for _, _, value in difference.entries):
             raise ValueError("orbit action does not preserve the pairing")
-    # Candidate vectors collectively contain every group element only when the
-    # trivial/nonisotropic elements are absent, so materialize the finite group.
-    exponent = paired.group.invariant_factors[-1] if paired.group.invariant_factors else 1
-    vectors = []
-    keys: Dict[ElementKey, int] = {}
-    for values in itertools.product(range(exponent), repeat=paired.group.presentation_rank):
-        key = space.key(values)
-        if key not in keys:
-            keys[key] = len(vectors)
-            vectors.append(tuple(values))
-        if len(vectors) == paired.group.order(backend):
-            break
+    # Candidate vectors collectively omit nonisotropic elements, so materialize
+    # the finite group using exactly the same ordering that defines E1 indices.
+    vectors = materialize_paired_group_elements(paired, backend)
+    keys: Dict[ElementKey, int] = {
+        space.key(vector): index for index, vector in enumerate(vectors)
+    }
     candidate_map = {candidate.element_indices: candidate for candidate in candidates}
     remaining = set(candidate_map)
     orbits = []
@@ -1160,6 +1212,8 @@ __all__ = [
     "PhaseLiftPage",
     "enumerate_e1_subgroups",
     "enumerate_phase_lifts",
+    "materialize_paired_group_elements",
     "paired_boundary_presentation",
+    "replay_e1_output_transcript",
     "reduce_e1_orbits",
 ]

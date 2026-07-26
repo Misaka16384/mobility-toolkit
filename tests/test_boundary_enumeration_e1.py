@@ -158,6 +158,45 @@ def test_orbit_reduction_rejects_nonautomorphism(backend):
         reduce_e1_orbits(lagrangians, (zero,), algebra, backend)
 
 
+def test_orbit_reduction_preserves_e1_index_order_for_nonsymmetric_qutrit_action(
+    backend,
+):
+    module = PauliModule.from_dimensions((3,), ("q",))
+    analysis = analyze_finite_stabilizer(module, (), backend)
+    window = support_window_from_sites(
+        analysis, ("q",), backend, "qutrit-window"
+    )
+    algebra = analyze_finite_boundary_algebra(analysis, window, backend)
+    page = enumerate_e1_subgroups(algebra, backend)
+    lagrangians = tuple(
+        candidate
+        for candidate in page.candidates
+        if candidate.self_orthogonal_lagrangian
+    )
+    paired = paired_boundary_presentation(algebra, backend)
+    shear = FiniteGroupHomomorphism.create(
+        paired.group,
+        paired.group,
+        SparseIntMatrix.from_rows(((1, 1), (0, 1))),
+        backend,
+    )
+    orbits = reduce_e1_orbits(lagrangians, (shear,), algebra, backend)
+    x_line = next(
+        candidate
+        for candidate in lagrangians
+        if {
+            tuple(value % 3 for value in generator)
+            for generator in candidate.generator_vectors
+        }
+        == {(1, 0)}
+    )
+    x_orbit = next(
+        orbit for orbit in orbits if x_line.element_indices in orbit.members
+    )
+    assert len(x_orbit.members) == 1
+    assert sorted(len(orbit.members) for orbit in orbits) == [1, 3]
+
+
 def _brute_subgroups_z4_squared():
     elements = tuple(itertools.product(range(4), repeat=2))
     zero = (0, 0)

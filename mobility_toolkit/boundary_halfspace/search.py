@@ -304,17 +304,23 @@ class HalfSpaceCapabilityReport:
     exact_lattice_geometry: bool
     bounded_periodic_domain_schema: bool
     bounded_periodic_enumerator: bool
+    bounded_periodic_supported_families: Tuple[str, ...]
+    bounded_periodic_ancilla_max_sites: int
     uniform_prime_lh_contraction: bool
     uniform_prime_primary_subquotient: bool
     symbolic_halfspace_modules: bool
     unsupported_symbolic_outputs: Tuple[str, ...]
 
-    SCHEMA_ID = "mobility_toolkit.halfspace_capability_report.v2"
+    SCHEMA_ID = "mobility_toolkit.halfspace_capability_report.v3"
 
     def to_canonical_dict(self) -> dict:
         return {
             "bounded_periodic_domain_schema": self.bounded_periodic_domain_schema,
             "bounded_periodic_enumerator": self.bounded_periodic_enumerator,
+            "bounded_periodic_supported_families":
+                self.bounded_periodic_supported_families,
+            "bounded_periodic_ancilla_max_sites":
+                self.bounded_periodic_ancilla_max_sites,
             "exact_lattice_geometry": self.exact_lattice_geometry,
             "schema": self.SCHEMA_ID,
             "symbolic_halfspace_modules": self.symbolic_halfspace_modules,
@@ -331,7 +337,11 @@ def halfspace_capability_report() -> HalfSpaceCapabilityReport:
     return HalfSpaceCapabilityReport(
         exact_lattice_geometry=True,
         bounded_periodic_domain_schema=True,
-        bounded_periodic_enumerator=False,
+        bounded_periodic_enumerator=True,
+        bounded_periodic_supported_families=(
+            "translation_compatible_submodules",
+        ),
+        bounded_periodic_ancilla_max_sites=0,
         uniform_prime_lh_contraction=True,
         uniform_prime_primary_subquotient=True,
         symbolic_halfspace_modules=False,
