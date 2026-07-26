@@ -1,10 +1,21 @@
 """Explicit, phase-aware compilation of finite primary boundary images.
 
 Primary operators are not inferred from a support-minimization heuristic.  A
-caller supplies an exact parent stabilizer presentation and identifies every
-cut stabilizer together with its projected operator.  If support is dropped,
+caller supplies an exact parent stabilizer presentation and identifies cut
+stabilizers together with their projected operators.  If support is dropped,
 the dropped sites must be declared exactly and the projected phase must agree
 with literal tensor-factor restriction.
+
+There are two separate claims:
+
+* every supplied projection is checked exactly; and
+* the supplied projected subgroup is the complete primary image, modulo
+  retained bulk-trivial operators.
+
+The second claim is certified only when the literal restrictions of every
+generator in the declared parent presentation are covered.  An incomplete
+list remains a useful, exactly checked subgroup, but is never passed to the
+primary/secondary classifier as though it were the complete primary image.
 
 Current ``geometry.FiniteCode`` provenance records missing addresses but does
 not retain a common ambient Pauli module containing the missing sites and the
@@ -98,27 +109,72 @@ class PrimaryProjectionRecord:
 
 
 @dataclass(frozen=True)
-class PrimaryImageCompilationCertificate:
-    source_validation: StabilizerValidation
-    records: Tuple[PrimaryProjectionRecord, ...]
-    source_generator_count: int
-    projected_generator_count: int
-    exactness: Exactness = Exactness.BOUNDED_EXACT
-    theorem_scope: str = (
-        "literal, phase-aware projection of explicitly supplied finite source "
-        "stabilizers into the declared finite support window"
-    )
+class PrimaryCoverageRecord:
+    """Coverage of one declared parent generator after literal restriction."""
 
-    SCHEMA_ID = "mobility_toolkit.primary_image_compilation_certificate.v1"
+    source_generator_index: int
+    source_operator: PauliOperator
+    literal_restriction: PauliOperator
+    restriction_is_identity: bool
+    restriction_is_projective_identity: bool
+    centralizer_membership_verified: bool
+    covered_by_supplied_projected_subgroup: bool
+    covered_by_bulk_trivial: bool
+    covered_modulo_bulk_trivial: bool
+
+    SCHEMA_ID = "mobility_toolkit.primary_coverage_record.v1"
 
     def to_canonical_dict(self) -> dict:
         return {
+            "centralizer_membership_verified": self.centralizer_membership_verified,
+            "covered_by_bulk_trivial": self.covered_by_bulk_trivial,
+            "covered_by_supplied_projected_subgroup": (
+                self.covered_by_supplied_projected_subgroup
+            ),
+            "covered_modulo_bulk_trivial": self.covered_modulo_bulk_trivial,
+            "literal_restriction": self.literal_restriction,
+            "restriction_is_identity": self.restriction_is_identity,
+            "restriction_is_projective_identity": (
+                self.restriction_is_projective_identity
+            ),
+            "schema": self.SCHEMA_ID,
+            "source_generator_index": self.source_generator_index,
+            "source_operator": self.source_operator,
+        }
+
+
+@dataclass(frozen=True)
+class PrimaryImageCompilationCertificate:
+    source_validation: StabilizerValidation
+    records: Tuple[PrimaryProjectionRecord, ...]
+    coverage_records: Tuple[PrimaryCoverageRecord, ...]
+    coverage_complete: bool
+    source_generator_count: int
+    projected_generator_count: int
+    exactness: Exactness
+    supplied_projected_subgroup_exactness: Exactness = Exactness.BOUNDED_EXACT
+    theorem_scope: str = (
+        "literal, phase-aware verification of the supplied finite projections; "
+        "completeness means that every generator of the declared parent "
+        "presentation is covered after restriction, modulo retained "
+        "bulk-trivial operators"
+    )
+
+    SCHEMA_ID = "mobility_toolkit.primary_image_compilation_certificate.v2"
+
+    def to_canonical_dict(self) -> dict:
+        return {
+            "coverage_complete": self.coverage_complete,
+            "coverage_records": self.coverage_records,
             "exactness": self.exactness,
             "projected_generator_count": self.projected_generator_count,
             "records": self.records,
             "schema": self.SCHEMA_ID,
             "source_generator_count": self.source_generator_count,
             "source_validation": self.source_validation,
+            "supplied_projected_subgroup_exactness": (
+                self.supplied_projected_subgroup_exactness
+            ),
             "theorem_scope": self.theorem_scope,
         }
 
@@ -135,6 +191,16 @@ class CompiledPrimaryImage:
     def __post_init__(self) -> None:
         if not self.source_description:
             raise ValueError("source_description must be nonempty")
+
+    @property
+    def supplied_projected_subgroup(self) -> FiniteSubgroup:
+        """The exactly checked subgroup generated by supplied projections."""
+
+        return self.image
+
+    @property
+    def coverage_complete(self) -> bool:
+        return self.certificate.coverage_complete
 
     def to_canonical_dict(self) -> dict:
         return {
@@ -277,11 +343,50 @@ def compile_projected_primary_image(
 
     generator_matrix = analysis.coordinates.generator_matrix(tuple(projected))
     image = analysis.ambient_projective_paulis.subgroup(generator_matrix, backend)
+    bulk_trivial = analysis.stabilizer.intersection(window.paulis, backend)
+    supplied_or_bulk = image.sum(bulk_trivial, backend)
+    coverage_records = []
+    for source_index, source_operator in enumerate(source_bulk_generators):
+        restriction = _literal_site_restriction(source_operator, window.site_ids)
+        restriction_vector = analysis.coordinates.vector(restriction)
+        central = analysis.centralizer.contains(restriction_vector, backend)
+        covered_by_supplied = image.contains(restriction_vector, backend)
+        covered_by_bulk = bulk_trivial.contains(restriction_vector, backend)
+        covered_modulo_bulk = supplied_or_bulk.contains(restriction_vector, backend)
+        coverage_records.append(
+            PrimaryCoverageRecord(
+                source_index,
+                source_operator,
+                restriction,
+                restriction.is_identity,
+                restriction.is_projective_identity,
+                central,
+                covered_by_supplied,
+                covered_by_bulk,
+                covered_modulo_bulk,
+            )
+        )
+    coverage_complete = all(
+        record.restriction_is_identity
+        or (
+            not record.restriction_is_projective_identity
+            and record.centralizer_membership_verified
+            and record.covered_modulo_bulk_trivial
+        )
+        for record in coverage_records
+    )
     certificate = PrimaryImageCompilationCertificate(
         source_analysis.validation,
         tuple(records),
+        tuple(coverage_records),
+        coverage_complete,
         len(source_bulk_generators),
         len(projected),
+        (
+            Exactness.BOUNDED_EXACT
+            if coverage_complete
+            else Exactness.EXPERIMENTAL
+        ),
     )
     return CompiledPrimaryImage(
         image,
@@ -309,6 +414,24 @@ def compile_and_analyze_finite_boundary(
         backend,
         source_description=source_description,
     )
+    if not compilation.coverage_complete:
+        uncovered = tuple(
+            record.source_generator_index
+            for record in compilation.certificate.coverage_records
+            if not (
+                record.restriction_is_identity
+                or (
+                    not record.restriction_is_projective_identity
+                    and record.centralizer_membership_verified
+                    and record.covered_modulo_bulk_trivial
+                )
+            )
+        )
+        raise ValueError(
+            "primary/secondary classification requires a coverage-complete "
+            "projected primary image; uncovered parent generator indices: "
+            + ", ".join(str(index) for index in uncovered)
+        )
     algebra = analyze_finite_boundary_algebra(
         analysis,
         window,
@@ -324,6 +447,7 @@ __all__ = [
     "CompiledFiniteBoundaryAlgebra",
     "CompiledPrimaryImage",
     "CutStabilizerProjection",
+    "PrimaryCoverageRecord",
     "PrimaryImageCompilationCertificate",
     "PrimaryProjectionRecord",
     "ProjectionPolicy",

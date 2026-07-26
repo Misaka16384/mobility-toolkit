@@ -51,10 +51,88 @@ def test_explicit_site_restriction_compiles_primary_image_exactly(backend):
         source_description="explicit Bell-pair cut projection",
     )
     assert result.compilation.certificate.exactness is Exactness.BOUNDED_EXACT
+    assert result.compilation.certificate.supplied_projected_subgroup_exactness is Exactness.BOUNDED_EXACT
+    assert result.compilation.certificate.coverage_complete
+    assert result.compilation.coverage_complete
     assert result.compilation.image.order(backend) == 2
     assert result.compilation.certificate.records[0].dropped_site_ids == ("b",)
+    coverage = result.compilation.certificate.coverage_records[0]
+    assert coverage.covered_by_supplied_projected_subgroup
+    assert not coverage.covered_by_bulk_trivial
+    assert coverage.covered_modulo_bulk_trivial
     vector = retained.coordinates.vector(projected)
     assert result.algebra.classify(vector, backend).kind is BoundaryOperatorKind.PRIMARY_CANDIDATE
+
+
+def test_incomplete_supplied_projection_is_not_a_complete_primary_image(backend):
+    _, source, retained, window, _ = _two_qubit_cut_fixture(backend)
+    compilation = compile_projected_primary_image(
+        retained,
+        window,
+        (source,),
+        (),
+        backend,
+        source_description="deliberately incomplete empty projection list",
+    )
+    assert compilation.image.order(backend) == 1
+    assert compilation.certificate.supplied_projected_subgroup_exactness is Exactness.BOUNDED_EXACT
+    assert compilation.certificate.exactness is Exactness.EXPERIMENTAL
+    assert not compilation.certificate.coverage_complete
+    coverage = compilation.certificate.coverage_records[0]
+    assert not coverage.restriction_is_projective_identity
+    assert coverage.centralizer_membership_verified
+    assert not coverage.covered_by_supplied_projected_subgroup
+    assert not coverage.covered_by_bulk_trivial
+    assert not coverage.covered_modulo_bulk_trivial
+
+    with pytest.raises(ValueError, match="coverage-complete"):
+        compile_and_analyze_finite_boundary(
+            retained,
+            window,
+            (source,),
+            (),
+            backend,
+            source_description="incomplete lists cannot define secondary classes",
+        )
+
+
+def test_coverage_is_checked_for_every_parent_generator(backend):
+    module = PauliModule.from_dimensions((2, 2), ("a", "b"))
+    source_x = module.operator(
+        (
+            LocalPauliTerm.cyclic("a", x=1),
+            LocalPauliTerm.cyclic("b", x=1),
+        )
+    )
+    source_z = module.operator(
+        (
+            LocalPauliTerm.cyclic("a", z=1),
+            LocalPauliTerm.cyclic("b", z=1),
+        )
+    )
+    retained = analyze_finite_stabilizer(module, (), backend)
+    window = support_window_from_sites(retained, ("a",), backend, "left-cut")
+    projected_x = module.operator((LocalPauliTerm.cyclic("a", x=1),))
+    spec = CutStabilizerProjection(
+        "cut-xx-only",
+        source_x,
+        projected_x,
+        ProjectionPolicy.EXPLICIT_SITE_RESTRICTION,
+        ("b",),
+    )
+    compilation = compile_projected_primary_image(
+        retained,
+        window,
+        (source_x, source_z),
+        (spec,),
+        backend,
+        source_description="one of two commuting parent generators omitted",
+    )
+    assert not compilation.coverage_complete
+    assert tuple(
+        record.covered_modulo_bulk_trivial
+        for record in compilation.certificate.coverage_records
+    ) == (True, False)
 
 
 def test_ambiguous_or_inexact_dropped_support_is_rejected(backend):
