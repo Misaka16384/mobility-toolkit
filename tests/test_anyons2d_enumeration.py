@@ -1,10 +1,12 @@
 import itertools
+from dataclasses import replace
 from functools import lru_cache
 
 import pytest
 
 pytest.importorskip("flint")
 
+import mobility_toolkit.anyons2d.enumeration as enumeration_module
 from mobility_toolkit.anyons2d import (
     CondensateEnumerationBudget,
     FiniteMetricGroup,
@@ -227,6 +229,7 @@ def test_resource_limits_never_claim_completeness_and_can_resume(backend):
     )
     assert blocked.candidates == ()
     assert blocked.checkpoint is not None
+    assert blocked.checkpoint.output_transcript_hash
     assert not blocked.certificate.certified_complete
     assert blocked.certificate.exactness == Exactness.EXPERIMENTAL
     assert blocked.certificate.limit_reason == "group order exceeds max_elements=3"
@@ -259,3 +262,89 @@ def test_resource_limits_never_claim_completeness_and_can_resume(backend):
     )
     assert resumed_candidates
     assert resumed_certificate.certified_complete
+
+
+def test_checkpoint_rejects_tampered_scan_cursor_output_prefix_and_chain(backend):
+    metric = _metric(
+        (2, 2), 2, ((0, 1), (1, 0)), (0, 0), backend
+    )
+    checkpoint = None
+    while checkpoint is None or not checkpoint.output_prefix:
+        page = enumerate_condensates(
+            metric,
+            backend,
+            CondensateEnumerationBudget(
+                max_work_units=1,
+                max_results=1,
+                max_elements=16,
+                max_subgroups=64,
+            ),
+            checkpoint,
+        )
+        checkpoint = page.checkpoint
+        assert checkpoint is not None
+
+    assert checkpoint.candidate_scan_cursor == len(checkpoint.candidate_transcript)
+    assert checkpoint.output_cursor == len(checkpoint.output_prefix)
+    assert checkpoint.output_transcript_hash
+
+    tampered = (
+        replace(
+            checkpoint,
+            candidate_scan_cursor=checkpoint.candidate_scan_cursor + 1,
+        ),
+        replace(checkpoint, output_cursor=checkpoint.output_cursor + 1),
+        replace(checkpoint, output_prefix=()),
+        replace(checkpoint, output_transcript_hash="0" * 64),
+    )
+    for bad_checkpoint in tampered:
+        with pytest.raises(ValueError):
+            enumerate_condensates(
+                metric,
+                backend,
+                CondensateEnumerationBudget(max_elements=16, max_subgroups=64),
+                bad_checkpoint,
+            )
+
+
+def test_candidate_scan_consumes_budget_and_never_replays_prior_candidates(
+    backend, monkeypatch
+):
+    metric = _metric(
+        (2, 2), 2, ((0, 1), (1, 0)), (0, 0), backend
+    )
+    original = enumeration_module.test_condensation
+    calls = []
+
+    def counted(*args, **kwargs):
+        calls.append(1)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(enumeration_module, "test_condensation", counted)
+    checkpoint = None
+    candidates = []
+    while True:
+        before = len(calls)
+        page = enumerate_condensates(
+            metric,
+            backend,
+            CondensateEnumerationBudget(
+                max_work_units=1,
+                max_results=64,
+                max_elements=16,
+                max_subgroups=64,
+            ),
+            checkpoint,
+        )
+        calls_this_page = len(calls) - before
+        assert page.certificate.page_work_units <= 1
+        assert calls_this_page <= page.certificate.page_work_units
+        candidates.extend(page.candidates)
+        if page.checkpoint is None:
+            break
+        checkpoint = page.checkpoint
+
+    assert candidates
+    assert page.certificate.certified_complete
+    assert len(calls) == page.certificate.distinct_subgroups
+    assert len(calls) == page.certificate.candidate_subgroups_scanned

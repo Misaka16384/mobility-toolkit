@@ -9,7 +9,7 @@ No local commuting-projector completion is constructed or implied.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fractions import Fraction
 from typing import Dict, Optional, Sequence, Tuple
 
@@ -27,6 +27,13 @@ from mobility_toolkit.finite import FiniteIntegerBackend, FiniteSubgroup
 
 ElementKey = Tuple[Tuple[int, int], ...]
 IndexSubgroup = Tuple[int, ...]
+CandidateTranscriptEntry = Tuple[IndexSubgroup, str, str]
+OutputPrefixEntry = Tuple[IndexSubgroup, str]
+
+_NOT_BOSONIC = "not_bosonic"
+_BOSONIC = "bosonic"
+_LAGRANGIAN = "lagrangian"
+_TRANSCRIPT_OUTCOMES = frozenset((_NOT_BOSONIC, _BOSONIC, _LAGRANGIAN))
 
 
 def _positive(value: int, name: str) -> int:
@@ -125,18 +132,26 @@ class CondensateEnumerationCheckpoint:
     active_element_cursor: int = 0
     subgroup_join_tests: int = 0
     subgroup_search_complete: bool = False
+    candidate_scan_cursor: int = 0
+    candidate_transcript: Tuple[CandidateTranscriptEntry, ...] = ()
     output_cursor: int = 0
+    output_prefix: Tuple[OutputPrefixEntry, ...] = ()
+    output_transcript_hash: str = ""
 
-    SCHEMA_ID = "mobility_toolkit.condensate_enumeration_checkpoint.v1"
+    SCHEMA_ID = "mobility_toolkit.condensate_enumeration_checkpoint.v2"
 
     def to_canonical_dict(self) -> dict:
         return {
             "active_element_cursor": self.active_element_cursor,
             "active_subgroup": self.active_subgroup,
+            "candidate_scan_cursor": self.candidate_scan_cursor,
+            "candidate_transcript": self.candidate_transcript,
             "element_cursor": self.element_cursor,
             "element_vectors": self.element_vectors,
             "metric_hash": self.metric_hash,
             "output_cursor": self.output_cursor,
+            "output_prefix": self.output_prefix,
+            "output_transcript_hash": self.output_transcript_hash,
             "pending_subgroups": self.pending_subgroups,
             "schema": self.SCHEMA_ID,
             "seen_subgroups": self.seen_subgroups,
@@ -190,8 +205,12 @@ class CondensateCompletenessCertificate:
     distinct_elements: int
     subgroup_join_tests: int
     distinct_subgroups: int
+    candidate_subgroups_scanned: int
     bosonic_subgroups: int
     lagrangian_subgroups: int
+    output_prefix_length: int
+    output_transcript_hash: str
+    page_work_units: int
     exactness: Exactness
     verification: Tuple[str, ...]
     limit_reason: Optional[str] = None
@@ -200,7 +219,7 @@ class CondensateCompletenessCertificate:
         "no quotient by automorphisms and no local Hamiltonian completion"
     )
 
-    SCHEMA_ID = "mobility_toolkit.condensate_completeness_certificate.v1"
+    SCHEMA_ID = "mobility_toolkit.condensate_completeness_certificate.v2"
 
     @property
     def certified_complete(self) -> bool:
@@ -211,6 +230,7 @@ class CondensateCompletenessCertificate:
             "bosonic_subgroups": self.bosonic_subgroups,
             "certified_complete": self.certified_complete,
             "coordinate_tuples_scanned": self.coordinate_tuples_scanned,
+            "candidate_subgroups_scanned": self.candidate_subgroups_scanned,
             "distinct_elements": self.distinct_elements,
             "distinct_subgroups": self.distinct_subgroups,
             "domain": self.domain,
@@ -218,7 +238,10 @@ class CondensateCompletenessCertificate:
             "exactness": self.exactness,
             "lagrangian_subgroups": self.lagrangian_subgroups,
             "limit_reason": self.limit_reason,
+            "output_prefix_length": self.output_prefix_length,
+            "output_transcript_hash": self.output_transcript_hash,
             "output_complete": self.output_complete,
+            "page_work_units": self.page_work_units,
             "schema": self.SCHEMA_ID,
             "subgroup_join_tests": self.subgroup_join_tests,
             "subgroup_search_complete": self.subgroup_search_complete,
@@ -356,37 +379,92 @@ def _verify_subgroup_family(
                     raise ArithmeticError("claimed subgroup exhaustion is incomplete")
 
 
-def _candidate_records(
-    subgroups: Sequence[IndexSubgroup],
+def _candidate_record(
+    member_indices: IndexSubgroup,
     vectors: Sequence[Tuple[int, ...]],
     keys: Dict[ElementKey, int],
     space: _ElementSpace,
     metric: FiniteMetricGroup,
     backend: FiniteIntegerBackend,
     metric_hash: str,
-) -> Tuple[CondensateCandidate, ...]:
-    records = []
-    for member_indices in sorted(subgroups):
-        generators = _canonical_generators(member_indices, vectors, keys, space)
-        generator_vectors = tuple(vectors[index] for index in generators)
-        subgroup = metric.group.subgroup(
-            _matrix_from_columns(generator_vectors, metric.group.presentation_rank),
-            backend,
-        )
-        condensation = test_condensation(metric, subgroup, backend)
-        if condensation.bosonic:
-            records.append(
-                CondensateCandidate(
-                    metric_hash,
-                    member_indices,
-                    generators,
-                    generator_vectors,
-                    subgroup,
-                    subgroup.invariant_factors(backend),
-                    condensation,
-                )
-            )
-    return tuple(records)
+) -> Optional[CondensateCandidate]:
+    generators = _canonical_generators(member_indices, vectors, keys, space)
+    generator_vectors = tuple(vectors[index] for index in generators)
+    subgroup = metric.group.subgroup(
+        _matrix_from_columns(generator_vectors, metric.group.presentation_rank),
+        backend,
+    )
+    condensation = test_condensation(metric, subgroup, backend)
+    if not condensation.bosonic:
+        return None
+    return CondensateCandidate(
+        metric_hash,
+        member_indices,
+        generators,
+        generator_vectors,
+        subgroup,
+        subgroup.invariant_factors(backend),
+        condensation,
+    )
+
+
+def _transcript_genesis(metric_hash: str) -> str:
+    return canonical_hash(
+        "condensate-output-transcript-genesis-v1",
+        {"metric_hash": metric_hash},
+    )
+
+
+def _transcript_step(
+    previous_hash: str,
+    scan_index: int,
+    entry: CandidateTranscriptEntry,
+) -> str:
+    subgroup, outcome, candidate_hash = entry
+    return canonical_hash(
+        "condensate-output-transcript-step-v1",
+        {
+            "candidate_hash": candidate_hash,
+            "outcome": outcome,
+            "previous_hash": previous_hash,
+            "scan_index": scan_index,
+            "subgroup": subgroup,
+        },
+    )
+
+
+def _replay_transcript_hash(
+    metric_hash: str,
+    transcript: Sequence[CandidateTranscriptEntry],
+) -> str:
+    digest = _transcript_genesis(metric_hash)
+    for scan_index, entry in enumerate(transcript):
+        digest = _transcript_step(digest, scan_index, entry)
+    return digest
+
+
+def _transcript_entry(
+    subgroup: IndexSubgroup,
+    candidate: Optional[CondensateCandidate],
+) -> CandidateTranscriptEntry:
+    if candidate is None:
+        return (subgroup, _NOT_BOSONIC, "")
+    outcome = _LAGRANGIAN if candidate.lagrangian else _BOSONIC
+    return (
+        subgroup,
+        outcome,
+        canonical_hash("condensate-candidate-output-v1", candidate),
+    )
+
+
+def _output_prefix_from_transcript(
+    transcript: Sequence[CandidateTranscriptEntry],
+) -> Tuple[OutputPrefixEntry, ...]:
+    return tuple(
+        (subgroup, candidate_hash)
+        for subgroup, outcome, candidate_hash in transcript
+        if outcome != _NOT_BOSONIC
+    )
 
 
 def _validate_checkpoint(
@@ -399,6 +477,7 @@ def _validate_checkpoint(
         checkpoint.element_cursor,
         checkpoint.active_element_cursor,
         checkpoint.subgroup_join_tests,
+        checkpoint.candidate_scan_cursor,
         checkpoint.output_cursor,
     )
     if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in scalar_fields):
@@ -411,8 +490,13 @@ def _validate_checkpoint(
         checkpoint.pending_subgroups or checkpoint.active_subgroup is not None
     ):
         raise ValueError("completed condensate checkpoint still has pending work")
-    if not checkpoint.subgroup_search_complete and checkpoint.output_cursor:
-        raise ValueError("condensate checkpoint emitted output before search completion")
+    if not checkpoint.subgroup_search_complete and (
+        checkpoint.candidate_scan_cursor
+        or checkpoint.candidate_transcript
+        or checkpoint.output_cursor
+        or checkpoint.output_prefix
+    ):
+        raise ValueError("condensate checkpoint scanned output before search completion")
     if len(set(checkpoint.seen_subgroups)) != len(checkpoint.seen_subgroups):
         raise ValueError("condensate checkpoint repeats a seen subgroup")
     if len(set(checkpoint.pending_subgroups)) != len(checkpoint.pending_subgroups):
@@ -422,6 +506,40 @@ def _validate_checkpoint(
         raise ValueError("condensate checkpoint has unseen pending work")
     if checkpoint.active_subgroup is not None and checkpoint.active_subgroup not in seen:
         raise ValueError("condensate checkpoint has an unseen active subgroup")
+    if checkpoint.candidate_scan_cursor > len(seen):
+        raise ValueError("condensate checkpoint candidate cursor is out of range")
+    if len(checkpoint.candidate_transcript) != checkpoint.candidate_scan_cursor:
+        raise ValueError("condensate checkpoint transcript length disagrees with its cursor")
+    expected_subgroups = tuple(sorted(seen))[: checkpoint.candidate_scan_cursor]
+    transcript_subgroups = []
+    for entry in checkpoint.candidate_transcript:
+        if not isinstance(entry, tuple) or len(entry) != 3:
+            raise ValueError("condensate checkpoint has a malformed transcript entry")
+        subgroup, outcome, candidate_hash = entry
+        transcript_subgroups.append(subgroup)
+        if outcome not in _TRANSCRIPT_OUTCOMES:
+            raise ValueError("condensate checkpoint has an invalid transcript outcome")
+        if outcome == _NOT_BOSONIC and candidate_hash:
+            raise ValueError("non-bosonic transcript entry carries an output hash")
+        if outcome != _NOT_BOSONIC and not candidate_hash:
+            raise ValueError("bosonic transcript entry omits its output hash")
+    if tuple(transcript_subgroups) != expected_subgroups:
+        raise ValueError("condensate checkpoint transcript does not match its scan prefix")
+    expected_output_prefix = _output_prefix_from_transcript(
+        checkpoint.candidate_transcript
+    )
+    if checkpoint.output_prefix != expected_output_prefix:
+        raise ValueError("condensate checkpoint output prefix does not match its transcript")
+    if checkpoint.output_cursor != len(expected_output_prefix):
+        raise ValueError("condensate checkpoint output cursor does not match its prefix")
+    expected_hash = _replay_transcript_hash(
+        domain.metric_hash, checkpoint.candidate_transcript
+    )
+    if checkpoint.output_transcript_hash:
+        if checkpoint.output_transcript_hash != expected_hash:
+            raise ValueError("condensate checkpoint output transcript hash is invalid")
+    elif checkpoint.candidate_transcript:
+        raise ValueError("condensate checkpoint omits its output transcript hash")
 
 
 def enumerate_condensates(
@@ -443,20 +561,34 @@ def enumerate_condensates(
     _validate_checkpoint(checkpoint, domain)
 
     if domain.group_order > budget.max_elements:
+        transcript_hash = (
+            checkpoint.output_transcript_hash
+            or _transcript_genesis(domain.metric_hash)
+        )
+        checkpoint = replace(
+            checkpoint, output_transcript_hash=transcript_hash
+        )
         certificate = CondensateCompletenessCertificate(
-            domain,
-            False,
-            False,
-            False,
-            checkpoint.element_cursor,
-            len(checkpoint.element_vectors),
-            checkpoint.subgroup_join_tests,
-            len(checkpoint.seen_subgroups),
-            0,
-            0,
-            Exactness.EXPERIMENTAL,
-            (),
-            f"group order exceeds max_elements={budget.max_elements}",
+            domain=domain,
+            elements_complete=False,
+            subgroup_search_complete=False,
+            output_complete=False,
+            coordinate_tuples_scanned=checkpoint.element_cursor,
+            distinct_elements=len(checkpoint.element_vectors),
+            subgroup_join_tests=checkpoint.subgroup_join_tests,
+            distinct_subgroups=len(checkpoint.seen_subgroups),
+            candidate_subgroups_scanned=checkpoint.candidate_scan_cursor,
+            bosonic_subgroups=len(checkpoint.output_prefix),
+            lagrangian_subgroups=sum(
+                outcome == _LAGRANGIAN
+                for _, outcome, _ in checkpoint.candidate_transcript
+            ),
+            output_prefix_length=len(checkpoint.output_prefix),
+            output_transcript_hash=transcript_hash,
+            page_work_units=0,
+            exactness=Exactness.EXPERIMENTAL,
+            verification=(),
+            limit_reason=f"group order exceeds max_elements={budget.max_elements}",
         )
         return CondensateEnumerationPage(domain, (), checkpoint, certificate)
 
@@ -532,26 +664,48 @@ def enumerate_condensates(
     if subgroup_complete:
         _verify_subgroup_family(tuple(seen), element_vectors, keys, space, True)
 
-    all_candidates: Tuple[CondensateCandidate, ...] = ()
+    scan_cursor = checkpoint.candidate_scan_cursor
+    transcript = list(checkpoint.candidate_transcript)
+    output_prefix = list(checkpoint.output_prefix)
+    transcript_hash = (
+        checkpoint.output_transcript_hash
+        or _transcript_genesis(domain.metric_hash)
+    )
     output_cursor = checkpoint.output_cursor
-    page_candidates: Tuple[CondensateCandidate, ...] = ()
+    page_candidates_list = []
     output_complete = False
     if subgroup_complete:
-        all_candidates = _candidate_records(
-            tuple(seen),
-            tuple(element_vectors),
-            keys,
-            space,
-            metric,
-            backend,
-            domain.metric_hash,
-        )
-        if output_cursor > len(all_candidates):
-            raise ValueError("condensate checkpoint output cursor is out of range")
-        end = min(output_cursor + budget.max_results, len(all_candidates))
-        page_candidates = all_candidates[output_cursor:end]
-        output_cursor = end
-        output_complete = output_cursor == len(all_candidates)
+        ordered_subgroups = tuple(sorted(seen))
+        if scan_cursor > len(ordered_subgroups):
+            raise ValueError("condensate checkpoint candidate cursor is out of range")
+        while (
+            scan_cursor < len(ordered_subgroups)
+            and work < budget.max_work_units
+            and len(page_candidates_list) < budget.max_results
+        ):
+            member_indices = ordered_subgroups[scan_cursor]
+            work += 1
+            candidate = _candidate_record(
+                member_indices,
+                tuple(element_vectors),
+                keys,
+                space,
+                metric,
+                backend,
+                domain.metric_hash,
+            )
+            entry = _transcript_entry(member_indices, candidate)
+            transcript.append(entry)
+            transcript_hash = _transcript_step(
+                transcript_hash, scan_cursor, entry
+            )
+            scan_cursor += 1
+            if candidate is not None:
+                page_candidates_list.append(candidate)
+                output_prefix.append((member_indices, entry[2]))
+                output_cursor += 1
+        output_complete = scan_cursor == len(ordered_subgroups)
+    page_candidates = tuple(page_candidates_list)
 
     complete = elements_complete and subgroup_complete and output_complete
     verification = []
@@ -561,8 +715,13 @@ def enumerate_condensates(
         verification.append(
             "the subgroup family contains the trivial subgroup and is closed under adjoining every group element"
         )
-        verification.append("every candidate was replay-checked by its quadratic condensation certificate")
     if output_complete:
+        verification.append(
+            "every subgroup was scanned exactly once and every emitted candidate was checked by its quadratic condensation certificate"
+        )
+        verification.append(
+            "the output prefix and scan cursor are committed by the replayed transcript chain hash"
+        )
         verification.append("every raw bosonic subgroup record was emitted across the checkpoint sequence")
     limit_reason = None
     if not elements_complete and work >= budget.max_work_units:
@@ -571,36 +730,49 @@ def enumerate_condensates(
         limit_reason = f"subgroup state reached max_subgroups={budget.max_subgroups}"
     elif not subgroup_complete and work >= budget.max_work_units:
         limit_reason = f"page reached max_work_units={budget.max_work_units}"
+    elif subgroup_complete and not output_complete and work >= budget.max_work_units:
+        limit_reason = f"page reached max_work_units={budget.max_work_units}"
     elif subgroup_complete and not output_complete:
         limit_reason = f"page reached max_results={budget.max_results}"
+    lagrangian_count = sum(
+        outcome == _LAGRANGIAN for _, outcome, _ in transcript
+    )
     certificate = CondensateCompletenessCertificate(
-        domain,
-        elements_complete,
-        subgroup_complete,
-        output_complete,
-        element_cursor,
-        len(element_vectors),
-        join_tests,
-        len(seen),
-        len(all_candidates) if subgroup_complete else 0,
-        sum(candidate.lagrangian for candidate in all_candidates) if subgroup_complete else 0,
-        Exactness.CERTIFIED_EXACT if complete else Exactness.EXPERIMENTAL,
-        tuple(verification),
-        limit_reason,
+        domain=domain,
+        elements_complete=elements_complete,
+        subgroup_search_complete=subgroup_complete,
+        output_complete=output_complete,
+        coordinate_tuples_scanned=element_cursor,
+        distinct_elements=len(element_vectors),
+        subgroup_join_tests=join_tests,
+        distinct_subgroups=len(seen),
+        candidate_subgroups_scanned=scan_cursor,
+        bosonic_subgroups=len(output_prefix),
+        lagrangian_subgroups=lagrangian_count,
+        output_prefix_length=len(output_prefix),
+        output_transcript_hash=transcript_hash,
+        page_work_units=work,
+        exactness=Exactness.CERTIFIED_EXACT if complete else Exactness.EXPERIMENTAL,
+        verification=tuple(verification),
+        limit_reason=limit_reason,
     )
     next_checkpoint = None
     if not complete:
         next_checkpoint = CondensateEnumerationCheckpoint(
-            domain.metric_hash,
-            element_cursor,
-            tuple(element_vectors),
-            tuple(pending),
-            tuple(sorted(seen)),
-            active,
-            active_cursor,
-            join_tests,
-            subgroup_complete,
-            output_cursor,
+            metric_hash=domain.metric_hash,
+            element_cursor=element_cursor,
+            element_vectors=tuple(element_vectors),
+            pending_subgroups=tuple(pending),
+            seen_subgroups=tuple(sorted(seen)),
+            active_subgroup=active,
+            active_element_cursor=active_cursor,
+            subgroup_join_tests=join_tests,
+            subgroup_search_complete=subgroup_complete,
+            candidate_scan_cursor=scan_cursor,
+            candidate_transcript=tuple(transcript),
+            output_cursor=output_cursor,
+            output_prefix=tuple(output_prefix),
+            output_transcript_hash=transcript_hash,
         )
     return CondensateEnumerationPage(
         domain, page_candidates, next_checkpoint, certificate
