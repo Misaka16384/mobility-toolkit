@@ -14,7 +14,7 @@ NAME_RE = re.compile(r"^mt-[a-z0-9-]+$")
 EXPECTED = {
     "mt-translate", "mt-homology", "mt-classify", "mt-mobility",
     "mt-gsd", "mt-fusion", "mt-models", "mt-doctor", "mt-boundary",
-    "mt-cheshire",
+    "mt-halfspace", "mt-cheshire",
 }
 
 
@@ -34,7 +34,7 @@ def test_skill_names_match_disk():
     on_disk = {p.name for p in SKILLS_SRC.iterdir() if p.is_dir()}
     assert on_disk == EXPECTED
     assert set(SKILL_NAMES) == EXPECTED
-    assert len(SKILL_NAMES) == len(set(SKILL_NAMES)) == 10
+    assert len(SKILL_NAMES) == len(set(SKILL_NAMES)) == 11
 
 
 @pytest.mark.parametrize("name", sorted(EXPECTED))
