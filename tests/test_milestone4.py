@@ -4,7 +4,7 @@ import sqlite3
 import json
 from mobility_toolkit.registry import ModelRegistry, DB_PATH
 from mobility_toolkit.homology import compute_ext_krull
-from mobility_toolkit.mobility import compute_true_mobility_dimension
+from mobility_toolkit.mobility import compute_translation_lattice
 from mobility_toolkit.search import search_koszul_models
 from mobility_toolkit.reference_models import TORIC_CODE_2D
 
@@ -89,7 +89,7 @@ def test_properties_caching(clean_db):
 
     # The corrected algorithm uses a versioned, ambient-ring-sensitive cache
     # and therefore must ignore this legacy registry row.
-    res = compute_true_mobility_dimension(generators, qudit_dim)
+    res = compute_translation_lattice(generators, qudit_dim)
     assert res["mobility_dimension"] == 2
     assert res["method"].startswith("laurent-binomial-character")
     assert res["variables"] == ["x", "y"]

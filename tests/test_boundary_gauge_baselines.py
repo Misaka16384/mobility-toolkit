@@ -15,8 +15,8 @@ os.environ.setdefault("SYMPY_GROUND_TYPES", "python")
 
 from mobility_toolkit.boundary_gauge.algebra.support import get_support_weight
 from mobility_toolkit.boundary_gauge.boundary.pipeline import (
-    run_algorithm_1_boundary_ops_2d,
-    run_algorithm_1_boundary_ops_3d,
+    _run_algorithm_1_boundary_ops_2d,
+    _run_algorithm_1_boundary_ops_3d,
 )
 from mobility_toolkit.boundary_gauge.models.models_2d import (
     POSITIONS_2D_EDGE_POSITIVE,
@@ -41,7 +41,7 @@ def _quiet_call(fn, *args, **kwargs):
 
 def test_2d_toric_smooth_bottom_support_reduction_uses_physical_rows():
     bulk, ops, s_mat = _quiet_call(
-        run_algorithm_1_boundary_ops_2d,
+        _run_algorithm_1_boundary_ops_2d,
         Lx=5,
         Ly=5,
         q=2,
@@ -64,7 +64,7 @@ def test_2d_toric_smooth_bottom_support_reduction_uses_physical_rows():
 
 def test_z4_toric_rough_top_legacy_baseline():
     bulk, ops, s_mat = _quiet_call(
-        run_algorithm_1_boundary_ops_2d,
+        _run_algorithm_1_boundary_ops_2d,
         Lx=5,
         Ly=5,
         q=2,
@@ -87,7 +87,7 @@ def test_z4_toric_rough_top_legacy_baseline():
 
 def test_z4_double_semion_smooth_bottom_legacy_baseline():
     bulk, ops, s_mat = _quiet_call(
-        run_algorithm_1_boundary_ops_2d,
+        _run_algorithm_1_boundary_ops_2d,
         Lx=5,
         Ly=5,
         q=2,
@@ -110,7 +110,7 @@ def test_z4_double_semion_smooth_bottom_legacy_baseline():
 
 def test_3d_toric_smooth_bottom_legacy_baseline():
     bulk, ops, s_mat = _quiet_call(
-        run_algorithm_1_boundary_ops_3d,
+        _run_algorithm_1_boundary_ops_3d,
         Lx=3,
         Ly=3,
         Lz=4,

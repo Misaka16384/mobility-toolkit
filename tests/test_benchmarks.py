@@ -15,7 +15,8 @@ Known results validated here:
 import pytest
 
 from mobility_toolkit.engine import describe_m2_backend
-from mobility_toolkit import compute_gsd_and_periodicity, compute_ext_krull
+from mobility_toolkit.grobner import compute_gsd_and_periodicity
+from mobility_toolkit.homology import compute_ext_krull
 
 pytestmark = pytest.mark.skipif(
     not describe_m2_backend()["available"],
@@ -58,13 +59,13 @@ def test_bivariate_bicycle_dcy_gsd():
 
 
 # --- Point-charge mobility (Krull dimension of the p=0 charge module) ---------
-@pytest.mark.parametrize("matrix,N,bypass,expected", [
-    (TORIC, 2, False, 0),
-    (XCUBE, 2, False, 1),
-    (CHAMON, 2, False, 1),
+@pytest.mark.parametrize("matrix,N,expected", [
+    (TORIC, 2, 0),
+    (XCUBE, 2, 1),
+    (CHAMON, 2, 1),
 ])
-def test_point_charge_krull_dimension(matrix, N, bypass, expected):
-    res = compute_ext_krull(matrix, N, p_ext=0, prime_bypass=bypass)
+def test_point_charge_krull_dimension(matrix, N, expected):
+    res = compute_ext_krull(matrix, N, p_ext=0)
     assert res["krull_dimension"] == expected
 
 

@@ -297,7 +297,6 @@ def generate_ring_definition(d: int, qudit_dim: int) -> tuple[List[str], str]:
 def translate_stabilizers(
     stabilizer_matrix: List[List[str]],
     qudit_dim: int,
-    prime_bypass: bool = False,
     spatial_dim: Optional[int] = None,
     validate_stabilizer: bool = True,
 ) -> Dict[str, Any]:
@@ -318,7 +317,7 @@ def translate_stabilizers(
                 raise ValueError("All elements of stabilizer_matrix must be strings")
 
     # 2. Validate qudit_dim using verify_qudit_dim
-    verify_qudit_dim(qudit_dim, prime_bypass=prime_bypass)
+    verify_qudit_dim(qudit_dim)
     
     # Check max limit 100000
     if qudit_dim > 100000:
@@ -476,21 +475,6 @@ def translate_stabilizers(
         },
         "stabilizer_validation": validation_metadata,
     }
-
-def translate_to_algebra(
-    stabilizer_matrix: List[List[str]],
-    qudit_dim: int,
-    spatial_dim: Optional[int] = None,
-    prime_bypass: bool = False,
-    validate_stabilizer: bool = True,
-) -> Dict[str, Any]:
-    return translate_stabilizers(
-        stabilizer_matrix,
-        qudit_dim,
-        prime_bypass=prime_bypass,
-        spatial_dim=spatial_dim,
-        validate_stabilizer=validate_stabilizer,
-    )
 
 def map_variables_to_legacy(elem: str) -> str:
     elem = re.sub(r'\bx1\b', 'x', elem)

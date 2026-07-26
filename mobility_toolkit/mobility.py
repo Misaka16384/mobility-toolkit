@@ -461,25 +461,3 @@ def compute_translation_lattice(
         result,
     )
     return result
-
-
-def compute_true_mobility_dimension(
-    generators: List[str], qudit_dim: int, all_vars: List[str] = None
-) -> Dict[str, Any]:
-    """Deprecated compatibility alias for :func:`compute_translation_lattice`.
-
-    The old name suggested a general physical-mobility oracle.  The returned
-    object now states its exact Laurent-binomial scope explicitly.
-    """
-
-    return compute_translation_lattice(generators, qudit_dim, all_vars)
-
-
-def solve_nullspace_fraction(valuation_matrix: List[List[int]], num_vars: int) -> List[List[int]]:
-    """Deprecated compatibility helper for callers of the old implementation."""
-
-    matrix = Matrix(valuation_matrix) if valuation_matrix else Matrix.zeros(0, num_vars)
-    return [
-        [int(value * math.lcm(*(entry.q for entry in vector))) for value in vector]
-        for vector in matrix.nullspace()
-    ]

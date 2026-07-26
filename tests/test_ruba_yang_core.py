@@ -90,19 +90,17 @@ def test_validation_can_be_explicitly_disabled_for_arbitrary_presentations():
     assert translated["stabilizer_validation"]["enabled"] is False
 
 
-def test_composite_homology_fails_before_backend_even_with_bypass():
-    translated = translate_stabilizers(
-        [["x - 1", "0"]],
-        qudit_dim=4,
-        prime_bypass=True,
-    )
-    assert "ZZ/4" in translated["ring_definition"]
+def test_composite_translation_and_homology_are_rejected_before_backend():
+    with pytest.raises(ValueError, match="must be prime"):
+        translate_stabilizers(
+            [["x - 1", "0"]],
+            qudit_dim=4,
+        )
 
-    with pytest.raises(NotImplementedError, match="uniform prime field"):
+    with pytest.raises(ValueError, match="must be prime"):
         compute_ext_krull(
             [["x - 1", "0"]],
             qudit_dim=4,
-            prime_bypass=True,
         )
 
 

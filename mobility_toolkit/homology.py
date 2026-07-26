@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from mobility_toolkit.bridge import run_m2_script
 from mobility_toolkit.translate import translate_stabilizers
-from mobility_toolkit.utils import is_prime, log_python_run, save_discovery
+from mobility_toolkit.utils import log_python_run, save_discovery
 
 
 _INVARIANT_VERSION = "ruba-yang-qbar-v2"
@@ -150,7 +150,6 @@ def compute_ext_krull(
     stabilizer_matrix: List[List[str]],
     qudit_dim: int,
     p_ext: int = 0,
-    prime_bypass: bool = False,
     spatial_dim: Optional[int] = None,
     validate_stabilizer: bool = True,
     saturated: Optional[bool] = None,
@@ -166,24 +165,15 @@ def compute_ext_krull(
         raise ValueError("p_ext must be a non-negative integer")
     if saturated is not None and not isinstance(saturated, bool):
         raise ValueError("saturated must be True, False, or None")
-    if prime_bypass and isinstance(qudit_dim, int) and not is_prime(qudit_dim):
-        raise NotImplementedError(
-            "Ruba--Yang's theory supports Z_n coefficients, but this homology "
-            "backend currently implements Ext only for a uniform prime field; "
-            "prime_bypass is available for translation, not homology"
-        )
-
     translation = translate_stabilizers(
         stabilizer_matrix,
         qudit_dim,
-        prime_bypass=prime_bypass,
         spatial_dim=spatial_dim,
         validate_stabilizer=validate_stabilizer,
     )
 
     log_kwargs = {
         "p_ext": p_ext,
-        "prime_bypass": prime_bypass,
         "spatial_dim": spatial_dim,
         "validate_stabilizer": validate_stabilizer,
         "saturated": saturated,
@@ -275,28 +265,3 @@ print toString(generators gb I)
     save_discovery(discovery_name, result)
     save_discovery("homological_discovery", result)
     return result
-
-
-def compute_homology_and_mobility(
-    stabilizer_matrix: List[List[str]],
-    qudit_dim: int,
-    p_ext: int = 0,
-    prime_bypass: bool = False,
-    spatial_dim: Optional[int] = None,
-    validate_stabilizer: bool = True,
-    saturated: Optional[bool] = None,
-) -> Dict[str, Any]:
-    """Deprecated compatibility alias for :func:`compute_ext_krull`.
-
-    The core function computes an algebraic charge module; it does not by
-    itself determine an excitation mobility class.
-    """
-    return compute_ext_krull(
-        stabilizer_matrix,
-        qudit_dim,
-        p_ext,
-        prime_bypass=prime_bypass,
-        spatial_dim=spatial_dim,
-        validate_stabilizer=validate_stabilizer,
-        saturated=saturated,
-    )

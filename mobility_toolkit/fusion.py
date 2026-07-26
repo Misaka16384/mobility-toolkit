@@ -4,7 +4,7 @@ import itertools
 from typing import List, Dict, Any, Optional
 from fractions import Fraction
 from mobility_toolkit.bridge import run_m2_script, run_macaulay2
-from mobility_toolkit.translate import translate_to_algebra
+from mobility_toolkit.translate import translate_stabilizers
 from mobility_toolkit import utils
 
 class GF2Poly:
@@ -663,7 +663,7 @@ def analyze_fusion_interference(stabilizer_matrix: List[List[str]], qudit_dim: i
 
     # 1. Translate matrix
     shift_dim = max(len(s) for s in shifts) if shifts else 0
-    translation = translate_to_algebra(stabilizer_matrix, qudit_dim, spatial_dim=shift_dim)
+    translation = translate_stabilizers(stabilizer_matrix, qudit_dim, spatial_dim=shift_dim)
     ring_def = translation["ring_definition"]
     # Use the same barred presentation as the corrected Ruba--Yang Q^0 path.
     matrix_def = translation["antipode_matrix_definition"]
@@ -754,7 +754,12 @@ def analyze_fusion_interference(stabilizer_matrix: List[List[str]], qudit_dim: i
     
     return result
 
-def solve_sset_fusion(poly_f: str, poly_g: str, qudit_dim: int = 2, variables: Optional[List[str]] = None, prime_bypass: bool = False) -> Dict[str, Any]:
+def solve_sset_fusion(
+    poly_f: str,
+    poly_g: str,
+    qudit_dim: int = 2,
+    variables: Optional[List[str]] = None,
+) -> Dict[str, Any]:
     """Solves SSET characteristic polynomial, LFSR periodicities, and fusion rules.
 
     Args:
@@ -762,12 +767,18 @@ def solve_sset_fusion(poly_f: str, poly_g: str, qudit_dim: int = 2, variables: O
         poly_g (str): Second polynomial.
         qudit_dim (int): Qudit dimension.
         variables (list): Active variables list.
-        prime_bypass (bool): Bypass prime validation.
-
     Returns:
         Dict[str, Any]: SSET fusion properties and characteristic polynomials.
     """
-    utils.log_python_run("mobility_toolkit.fusion", "solve_sset_fusion", (poly_f, poly_g), {"qudit_dim": qudit_dim, "variables": variables, "prime_bypass": prime_bypass}, "PENDING")
+    utils.verify_qudit_dim(qudit_dim)
+    log_kwargs = {"qudit_dim": qudit_dim, "variables": variables}
+    utils.log_python_run(
+        "mobility_toolkit.fusion",
+        "solve_sset_fusion",
+        (poly_f, poly_g),
+        log_kwargs,
+        "PENDING",
+    )
     
     class_fusion_mode = any(cls in poly_g for cls in ["beta_", "alpha", "gamma"])
     
@@ -965,10 +976,20 @@ print ("G_RESULT:" | toString g)
         }
         
     utils.save_discovery("hoca_discovery", result)
-    utils.log_python_run("mobility_toolkit.fusion", "solve_sset_fusion", (poly_f, poly_g), {"qudit_dim": qudit_dim, "variables": variables, "prime_bypass": prime_bypass}, result)
+    utils.log_python_run(
+        "mobility_toolkit.fusion",
+        "solve_sset_fusion",
+        (poly_f, poly_g),
+        log_kwargs,
+        result,
+    )
     return result
 
-def analyze_annihilator_fusion(generators: List[str], qudit_dim: int, variables: Optional[List[str]] = None, prime_bypass: bool = False) -> Dict[str, Any]:
+def analyze_annihilator_fusion(
+    generators: List[str],
+    qudit_dim: int,
+    variables: Optional[List[str]] = None,
+) -> Dict[str, Any]:
     """
     L2 -> L3: Direct computation of mobility fusion rules from annihilator generators.
     """
@@ -981,7 +1002,6 @@ def analyze_annihilator_fusion(generators: List[str], qudit_dim: int, variables:
     translation = translate_stabilizers(
         dummy_matrix,
         qudit_dim,
-        prime_bypass=prime_bypass,
         validate_stabilizer=False,
     )
     ring_def = translation["ring_definition"]
@@ -993,7 +1013,12 @@ def analyze_annihilator_fusion(generators: List[str], qudit_dim: int, variables:
         
     normalized_gen = normalize_laurent_poly(gen)
     
-    result = solve_sset_fusion(normalized_gen, "1", qudit_dim=qudit_dim, variables=detected_vars, prime_bypass=prime_bypass)
+    result = solve_sset_fusion(
+        normalized_gen,
+        "1",
+        qudit_dim=qudit_dim,
+        variables=detected_vars,
+    )
     return {
         "is_principal": True,
         "normalized_generator": normalized_gen,

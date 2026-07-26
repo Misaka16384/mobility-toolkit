@@ -48,8 +48,8 @@ CODE_ORDER = OrderedDict(
 
 from mobility_toolkit.boundary_gauge.algebra.support import get_support_weight
 from mobility_toolkit.boundary_gauge.boundary.pipeline import (
-    run_algorithm_1_boundary_ops_2d,
-    run_algorithm_1_boundary_ops_3d,
+    _run_algorithm_1_boundary_ops_2d,
+    _run_algorithm_1_boundary_ops_3d,
 )
 from mobility_toolkit.boundary_gauge.models.models_2d import (
     POSITIONS_2D_EDGE_NEGATIVE,
@@ -134,8 +134,8 @@ def case_kwargs(case: Case, *, visualize: bool) -> dict:
 def run_case(case: Case, *, visualize: bool = False):
     kwargs = case_kwargs(case, visualize=visualize)
     if case.dimension == 2:
-        return run_algorithm_1_boundary_ops_2d(**kwargs)
-    return run_algorithm_1_boundary_ops_3d(**kwargs)
+        return _run_algorithm_1_boundary_ops_2d(**kwargs)
+    return _run_algorithm_1_boundary_ops_3d(**kwargs)
 
 
 def summarize_result(bulk, ops, s_mat) -> dict[str, object]:
