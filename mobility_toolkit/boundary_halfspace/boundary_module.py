@@ -974,12 +974,14 @@ def toric_z2_y_nonnegative_boundary_module() -> ComputationResult:
 @dataclass(frozen=True)
 class BoundaryModuleCapabilityReport:
     uniform_prime_primary_subquotient: str
+    supplied_free_pairing_invariants: str
+    supplied_free_pairing_outputs: Tuple[str, ...]
     generic_full_boundary_module: str
     generic_secondary_closure: str
     toric_z2_y_nonnegative_full_module: str
     generic_boundary_to_bulk_map: str
 
-    SCHEMA_ID = "mobility_toolkit.boundary_module_capability_report.v1"
+    SCHEMA_ID = "mobility_toolkit.boundary_module_capability_report.v2"
 
     def to_canonical_dict(self) -> dict:
         return {
@@ -987,6 +989,10 @@ class BoundaryModuleCapabilityReport:
             "generic_full_boundary_module": self.generic_full_boundary_module,
             "generic_secondary_closure": self.generic_secondary_closure,
             "schema": self.SCHEMA_ID,
+            "supplied_free_pairing_invariants":
+                self.supplied_free_pairing_invariants,
+            "supplied_free_pairing_outputs":
+                self.supplied_free_pairing_outputs,
             "toric_z2_y_nonnegative_full_module":
                 self.toric_z2_y_nonnegative_full_module,
             "uniform_prime_primary_subquotient":
@@ -999,6 +1005,13 @@ def boundary_module_capability_report() -> BoundaryModuleCapabilityReport:
 
     return BoundaryModuleCapabilityReport(
         uniform_prime_primary_subquotient="certified_exact",
+        supplied_free_pairing_invariants="certified_exact_uniform_prime",
+        supplied_free_pairing_outputs=(
+            "annihilator",
+            "boundary_charge_cokernel",
+            "krull_dimension",
+            "pairing_radical_kernel",
+        ),
         generic_full_boundary_module="unsupported",
         generic_secondary_closure="unsupported",
         toric_z2_y_nonnegative_full_module="certified_exact",

@@ -77,6 +77,12 @@ def _support(column):
 def test_operation_specific_capability_is_honest():
     report = boundary_module_capability_report()
     assert report.uniform_prime_primary_subquotient == "certified_exact"
+    assert (
+        report.supplied_free_pairing_invariants
+        == "certified_exact_uniform_prime"
+    )
+    assert "pairing_radical_kernel" in report.supplied_free_pairing_outputs
+    assert "boundary_charge_cokernel" in report.supplied_free_pairing_outputs
     assert report.toric_z2_y_nonnegative_full_module == "certified_exact"
     assert report.generic_full_boundary_module == "unsupported"
     assert report.generic_secondary_closure == "unsupported"
