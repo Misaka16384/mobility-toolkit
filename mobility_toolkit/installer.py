@@ -41,6 +41,22 @@ SKILL_NAMES = [
     "mt-cheshire",
 ]
 
+# Public skill names retired by the canonical service migration.  They remain
+# listed here only so an upgrade can remove stale project-level copies left by
+# releases <= 0.1.5.  Do not add compatibility shims or copy these from the
+# package: their operations now live behind the unified service registry.
+LEGACY_SKILL_NAMES = [
+    "mt-boundary",
+    "mt-classify",
+    "mt-doctor",
+    "mt-fusion",
+    "mt-gsd",
+    "mt-homology",
+    "mt-mobility",
+    "mt-models",
+    "mt-translate",
+]
+
 # --- MCP server invocation -------------------------------------------------
 MCP_NAME = "mobility_toolkit"
 MCP_COMMAND = sys.executable                           # pin the interpreter that has the package
@@ -74,6 +90,15 @@ def _bootstrap_header() -> str:
 
 def _copy_skills(dest_root: Path, log: Logger) -> int:
     dest_root.mkdir(parents=True, exist_ok=True)
+    removed = 0
+    for name in LEGACY_SKILL_NAMES:
+        stale = dest_root / name
+        if stale.exists():
+            shutil.rmtree(stale)
+            removed += 1
+    if removed:
+        log(f"  - removed {removed} retired skills from {dest_root}")
+
     count = 0
     for name in SKILL_NAMES:
         src = SKILLS_SRC / name
@@ -97,7 +122,7 @@ def _copy_skills(dest_root: Path, log: Logger) -> int:
 
 def _remove_skills(dest_root: Path, log: Logger) -> None:
     removed = 0
-    for name in SKILL_NAMES:
+    for name in SKILL_NAMES + LEGACY_SKILL_NAMES:
         dst = dest_root / name
         if dst.exists():
             shutil.rmtree(dst)
