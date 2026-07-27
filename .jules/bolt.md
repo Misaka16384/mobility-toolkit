@@ -12,3 +12,6 @@
 ## 2024-07-17 - [C-Level Optimization For Multi-Argument Math Methods]
 **Learning:** Manual list loops and `functools.reduce` over math functions like `lcm` or `gcd` are unexpectedly heavy bottlenecks in purely algorithmic workflows like the Grobner basis solver, despite being common Python idioms. `math.gcd` and `math.lcm` (since Python 3.9) accept *args directly and process natively in C.
 **Action:** Always scan numeric arrays for loop-based mathematical reductions (LCM, GCD, Sum) and map them to their Python 3.9+ C-optimized native multi-argument counterparts.
+## 2024-07-27 - [List Comprehension Overhead in Inner Loops]
+**Learning:** Using `all()` with a generator expression (e.g., `all(combo[i] >= mg[i] for i in range(n))`) inside heavily nested loops over large bounding boxes is a major performance bottleneck due to generator instantiation overhead.
+**Action:** Unroll such constructs into explicit `for/break/else` primitive loops in Python when executing mathematically intensive inner loops (like the divisibility checks in `count_quotient_size`), achieving orders of magnitude speedups.
