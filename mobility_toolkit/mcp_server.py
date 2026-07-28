@@ -1,175 +1,59 @@
+"""MCP transport for the canonical mobility-toolkit service envelope.
+
+This module remains importable without the optional FastMCP dependency so
+schema-parity tests and Python clients do not need to install the MCP extra.
+Running it as a server still requires FastMCP.
+"""
+
+from __future__ import annotations
+
 import sys
+from typing import Any, Dict
+
+from mobility_toolkit.services import (
+    default_service_catalog,
+    execute_service_payload,
+)
 
 try:
     from fastmcp import FastMCP
-except ImportError:
-    print("Error: The 'mcp' package with FastMCP is required to run the MCP server.", file=sys.stderr)
-    print("Please install it using: pip install mcp[cli]", file=sys.stderr)
-    sys.exit(1)
+except ImportError:  # pragma: no cover - exercised only without the optional extra
+    FastMCP = None
 
-import json
-from typing import List, Dict, Any, Optional
 
-from mobility_toolkit import (
-    compute_ext_krull,
-    compute_true_mobility_dimension,
-    compute_gsd_and_periodicity,
-    analyze_fusion_interference,
-    solve_sset_fusion,
-    analyze_annihilator_fusion,
-    search_koszul_models
-)
-from mobility_toolkit.boundary_gauge.boundary.pipeline import (
-    run_algorithm_1_boundary_ops_2d,
-    run_algorithm_1_boundary_ops_3d,
-)
+def service(request: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute the same versioned ServiceRequest used by Python and the CLI."""
 
-mcp = FastMCP("mobility-toolkit")
+    return execute_service_payload(request)
 
-@mcp.tool()
-def compute_homology(stabilizer_matrix: List[List[str]], qudit_dim: int, p_ext: int = 0, prime_bypass: bool = False) -> Dict[str, Any]:
-    """
-    Compute the homology Ext modules, Krull dimension, and annihilator generators.
-    
-    Args:
-        stabilizer_matrix: Pauli stabilizer matrix as a list of lists of strings.
-        qudit_dim: Qudit dimension (characteristic N).
-        p_ext: Ext module index (0 for point, 1 for loop excitations).
-        prime_bypass: Set to True to bypass prime characteristic checks (e.g. for composite N=12).
-    """
-    return compute_ext_krull(stabilizer_matrix, qudit_dim, p_ext, prime_bypass)
 
-@mcp.tool()
-def compute_mobility(generators: List[str], qudit_dim: int, variables: Optional[List[str]] = None) -> Dict[str, Any]:
-    """
-    Compute the physical mobility dimension of a given annihilator ideal.
-    
-    Args:
-        generators: List of generator polynomials.
-        qudit_dim: Qudit dimension.
-        variables: Optional list of active variables (defaults to x, t, y, u, z, w).
-    """
-    return compute_true_mobility_dimension(generators, qudit_dim, variables)
+def service_catalog() -> Dict[str, Any]:
+    """Return exactness, certificate, input, backend, and cache capabilities."""
 
-@mcp.tool()
-def compute_grobner(stabilizer_matrix: List[List[str]], qudit_dim: int, Lx: Optional[int] = None, Ly: Optional[int] = None, L: Optional[List[int]] = None) -> Dict[str, Any]:
-    """
-    Compute the Ground State Degeneracy (GSD) and anyon periodicities on a torus.
-    
-    Args:
-        stabilizer_matrix: Pauli stabilizer matrix.
-        qudit_dim: Qudit dimension.
-        Lx: Torus size in the X direction (optional).
-        Ly: Torus size in the Y direction (optional).
-        L: Torus sizes list for arbitrary dimensions (optional).
-    """
-    return compute_gsd_and_periodicity(stabilizer_matrix, Lx, Ly, qudit_dim, L)
+    return default_service_catalog()
 
-@mcp.tool()
-def compute_fusion_interference(stabilizer_matrix: List[List[str]], qudit_dim: int, shifts: List[List[int]]) -> Dict[str, Any]:
-    """
-    Compute dimension drops of point excitations under relative shift-interferences.
-    
-    Args:
-        stabilizer_matrix: Pauli stabilizer matrix.
-        qudit_dim: Qudit dimension.
-        shifts: List of relative shift vectors (each is a list of integers).
-    """
-    return analyze_fusion_interference(stabilizer_matrix, qudit_dim, shifts)
 
-@mcp.tool()
-def search_models(qudit_dim: int, target_dim: int, max_trials: int = 100) -> Dict[str, Any]:
-    """
-    Reverse-search for commuting Koszul stabilizer models matching a target excitation dimension.
-    
-    Args:
-        qudit_dim: Qudit dimension.
-        target_dim: Target Krull dimension.
-        max_trials: Maximum search iterations.
-    """
-    return search_koszul_models(qudit_dim, target_dim, max_trials)
+if FastMCP is not None:
+    mcp = FastMCP("mobility-toolkit")
+    mcp.tool()(service)
+    mcp.tool()(service_catalog)
+else:
+    mcp = None
 
-@mcp.tool()
-def compute_annihilator_fusion(generators: List[str], qudit_dim: int, variables: Optional[List[str]] = None, prime_bypass: bool = False) -> Dict[str, Any]:
-    """
-    Directly compute SSET-style mobility fusion rules from an annihilator ideal's generators.
-    
-    Args:
-        generators: List of generator polynomials.
-        qudit_dim: Qudit dimension.
-        variables: Optional list of active variables.
-        prime_bypass: Set to True to bypass prime characteristic checks.
-    """
-    return analyze_annihilator_fusion(generators, qudit_dim, variables, prime_bypass)
 
-@mcp.tool()
-def compute_boundary_gauge(
-    dim: int,
-    Lx: int,
-    Ly: int,
-    q: int,
-    d: int,
-    wx: int,
-    wy: int,
-    stabilizer_generators: List[List[Any]],
-    qudit_positions: List[List[float]],
-    boundary: str = "bottom",
-    Lz: Optional[int] = None,
-    wz: Optional[int] = None,
-) -> Dict[str, Any]:
-    """
-    Compute boundary gauge operators using Algorithm 1 pipeline.
-    
-    Args:
-        dim: Spatial dimension (2 or 3).
-        Lx: System size Lx.
-        Ly: System size Ly.
-        q: Number of qudits per site.
-        d: Qudit dimension.
-        wx: Patch width wx.
-        wy: Patch width wy.
-        stabilizer_generators: List of lists of generator terms.
-        qudit_positions: List of lists of floats representing qudit positions.
-        boundary: Boundary selection ('bottom' or 'top').
-        Lz: System size Lz (required for 3D).
-        wz: Patch width wz (required for 3D).
-    """
-    if dim == 2:
-        bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_2d(
-            Lx=Lx,
-            Ly=Ly,
-            q=q,
-            d=d,
-            wx=wx,
-            wy=wy,
-            stabilizer_generators=stabilizer_generators,
-            qudit_positions=qudit_positions,
-            boundary=boundary,
+def main() -> None:
+    if mcp is None:
+        print(
+            "Error: the optional FastMCP dependency is required to run the MCP server.",
+            file=sys.stderr,
         )
-    elif dim == 3:
-        if Lz is None or wz is None:
-            raise ValueError("Lz and wz are required for 3D")
-        bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_3d(
-            Lx=Lx,
-            Ly=Ly,
-            Lz=Lz,
-            q=q,
-            d=d,
-            wx=wx,
-            wy=wy,
-            wz=wz,
-            stabilizer_generators=stabilizer_generators,
-            qudit_positions=qudit_positions,
-            boundary=boundary,
-        )
-    else:
-        raise ValueError("dim must be 2 or 3")
-        
-    return {
-        "bulk_stabilizers": [{str(k): list(v) for k, v in stab.items()} for stab in bulk_stabilizers],
-        "boundary_ops": boundary_ops.tolist(),
-        "S_mat": S_mat.tolist()
-    }
+        print('Install it with: pip install "mobility-toolkit[mcp]"', file=sys.stderr)
+        raise SystemExit(1)
+    mcp.run()
+
 
 if __name__ == "__main__":
-    mcp.run()
+    main()
+
+
+__all__ = ["main", "mcp", "service", "service_catalog"]

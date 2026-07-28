@@ -12,6 +12,16 @@
 ## 2024-07-17 - [C-Level Optimization For Multi-Argument Math Methods]
 **Learning:** Manual list loops and `functools.reduce` over math functions like `lcm` or `gcd` are unexpectedly heavy bottlenecks in purely algorithmic workflows like the Grobner basis solver, despite being common Python idioms. `math.gcd` and `math.lcm` (since Python 3.9) accept *args directly and process natively in C.
 **Action:** Always scan numeric arrays for loop-based mathematical reductions (LCM, GCD, Sum) and map them to their Python 3.9+ C-optimized native multi-argument counterparts.
+
 ## 2024-07-27 - [List Comprehension Overhead in Inner Loops]
 **Learning:** Using `all()` with a generator expression (e.g., `all(combo[i] >= mg[i] for i in range(n))`) inside heavily nested loops over large bounding boxes is a major performance bottleneck due to generator instantiation overhead.
 **Action:** Unroll such constructs into explicit `for/break/else` primitive loops in Python when executing mathematically intensive inner loops (like the divisibility checks in `count_quotient_size`), achieving orders of magnitude speedups.
+
+## 2023-10-27 - GF(2) Polynomial Exponentiation Optimization
+
+**Learning:** When dealing with polynomial arithmetic over GF(2) (characteristic 2), the "Freshman's Dream" identity \((A+B)^2 = A^2 + B^2\) allows polynomial squaring to be performed in \(O(N)\) time by simply doubling the exponents of all terms, instead of performing a full \(O(N^2)\) polynomial multiplication.
+**Action:** Always look for algebraic identities that simplify operations in finite fields, especially characteristic 2 (GF(2) or binary), which can reduce time complexity from quadratic to linear.
+
+## 2024-11-20 - Vectorizing NumPy Array Modulo Operations
+**Learning:** Python loops executing NumPy operations row-by-row are significantly slower due to loop overhead. Using array masking (`mask = factors != 0`) and vectorizing column slices (`factors = arr[:, col] % p`) can yield a 3-4x speedup in dense array arithmetic.
+**Action:** When performing matrix row-reductions over finite fields in NumPy, avoid Python-level `for` loops iterating over array rows. Always use vectorized operations utilizing boolean masks and broadcasting.

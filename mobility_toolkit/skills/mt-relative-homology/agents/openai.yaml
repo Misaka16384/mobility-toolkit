@@ -1,0 +1,4 @@
+interface:
+  display_name: "Relative Homology"
+  short_description: "Compute relative finite-complex homology"
+  default_prompt: "Use $mt-relative-homology to run a canonical relative-homology service request."

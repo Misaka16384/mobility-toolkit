@@ -1,0 +1,4 @@
+interface:
+  display_name: "Half-space Boundary Algebra"
+  short_description: "Analyze exact half-space boundary modules"
+  default_prompt: "Use $mt-halfspace to analyze a rational lattice half-space and report only certified supported invariants."

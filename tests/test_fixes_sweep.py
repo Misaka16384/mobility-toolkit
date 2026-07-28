@@ -14,7 +14,9 @@ def test_unified_variable_translation():
         ["x^-2 + x4", "y - 1"],
         ["0", "x1^-2 + t4"]
     ]
-    res = translate_stabilizers(stabilizer, qudit_dim=2)
+    res = translate_stabilizers(
+        stabilizer, qudit_dim=2, validate_stabilizer=False
+    )
     # x^-2 maps to t1^2 (since x is x1, power -2 maps to t1^2)
     # x1^-2 maps to t1^2
     # x4 and t4 exist, so spatial_dim is promoted to max(4, 0, 1) = 4
@@ -111,4 +113,3 @@ def test_inactive_torus_dimension_gsd():
     res = compute_gsd_and_periodicity(stabilizer_2d, qudit_dim=2, L=[2, 2, 2])
     assert res["gsd"] == 16
     assert res["periodicities"]["l_3"] == 0  # Infinite periodicity since x3 is inactive
-

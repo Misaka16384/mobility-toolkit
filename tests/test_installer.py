@@ -14,6 +14,7 @@ from mobility_toolkit.installer import (
     detect_install_mode,
     _update_command,
     GIT_URL,
+    LEGACY_SKILL_NAMES,
     SKILL_NAMES,
     MCP_NAME,
     _BOOTSTRAP_MARKER,
@@ -30,14 +31,14 @@ def test_install_skills_only_by_default(tmp_path):
     assert run_install(targets=_ALL, project_dir=str(tmp_path), log=_QUIET)
 
     # skills copied into each agent's directory
-    assert (tmp_path / ".claude" / "skills" / "mt-translate" / "SKILL.md").exists()
-    assert (tmp_path / ".agents" / "skills" / "mt-homology" / "SKILL.md").exists()
-    assert (tmp_path / ".opencode" / "skills" / "mt-models" / "SKILL.md").exists()
+    assert (tmp_path / ".claude" / "skills" / "mt-finite-code" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "mt-relative-homology" / "SKILL.md").exists()
+    assert (tmp_path / ".opencode" / "skills" / "mt-defect" / "SKILL.md").exists()
     for name in SKILL_NAMES:
         assert (tmp_path / ".claude" / "skills" / name).is_dir()
 
     # bootstrap injected so the copied script can import the core
-    script = tmp_path / ".claude" / "skills" / "mt-translate" / "scripts" / "mt-translate.py"
+    script = tmp_path / ".claude" / "skills" / "mt-finite-code" / "scripts" / "mt-finite-code.py"
     assert _BOOTSTRAP_MARKER in script.read_text(encoding="utf-8")
 
     # AGENTS.md managed block present
@@ -79,6 +80,29 @@ def test_install_is_idempotent(tmp_path):
     assert agents.count("mobility-toolkit:start") == 1
 
 
+def test_install_replaces_retired_skills_without_touching_unrelated_skills(tmp_path):
+    skills = tmp_path / ".agents" / "skills"
+    for name in LEGACY_SKILL_NAMES:
+        stale = skills / name
+        stale.mkdir(parents=True)
+        (stale / "SKILL.md").write_text("stale\n", encoding="utf-8")
+    custom = skills / "personal-research-skill"
+    custom.mkdir(parents=True)
+    (custom / "SKILL.md").write_text("keep\n", encoding="utf-8")
+
+    logs = []
+    assert run_install(
+        targets=["codex"],
+        project_dir=str(tmp_path),
+        log=logs.append,
+    )
+
+    assert all(not (skills / name).exists() for name in LEGACY_SKILL_NAMES)
+    assert all((skills / name / "SKILL.md").exists() for name in SKILL_NAMES)
+    assert (custom / "SKILL.md").read_text(encoding="utf-8") == "keep\n"
+    assert any("removed 9 retired skills" in line for line in logs)
+
+
 def test_status_reflects_install(tmp_path):
     proj = str(tmp_path)
     before = run_status(project_dir=proj, log=_QUIET)
@@ -98,9 +122,13 @@ def test_status_reflects_install(tmp_path):
 def test_uninstall_removes_entries(tmp_path):
     proj = str(tmp_path)
     run_install(targets=["claude", "codex", "opencode"], project_dir=proj, with_mcp=True, log=_QUIET)
+    legacy = tmp_path / ".agents" / "skills" / LEGACY_SKILL_NAMES[0]
+    legacy.mkdir(parents=True)
+    (legacy / "SKILL.md").write_text("stale\n", encoding="utf-8")
     run_uninstall(targets=["claude", "codex", "opencode"], project_dir=proj, log=_QUIET)
 
-    assert not (tmp_path / ".claude" / "skills" / "mt-translate").exists()
+    assert not (tmp_path / ".claude" / "skills" / "mt-finite-code").exists()
+    assert not legacy.exists()
     mcp = json.loads((tmp_path / ".mcp.json").read_text(encoding="utf-8"))
     assert MCP_NAME not in mcp.get("mcpServers", {})
     toml_text = (tmp_path / ".codex" / "config.toml").read_text(encoding="utf-8")
@@ -145,7 +173,7 @@ def test_self_update_refreshes_only_installed_agents(tmp_path, monkeypatch):
     assert run_self_update(project_dir=proj, log=_QUIET)
 
     # claude refreshed; the other agents were NOT introduced
-    assert (tmp_path / ".claude" / "skills" / "mt-translate" / "SKILL.md").exists()
+    assert (tmp_path / ".claude" / "skills" / "mt-finite-code" / "SKILL.md").exists()
     assert not (tmp_path / ".opencode").exists()
     assert not (tmp_path / ".agents").exists()
     # MCP setup preserved (was off) -> still off

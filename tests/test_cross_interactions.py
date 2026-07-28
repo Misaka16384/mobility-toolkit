@@ -3,6 +3,7 @@ from mobility_toolkit.bridge import run_m2_script
 from mobility_toolkit.homology import compute_ext_krull
 from mobility_toolkit.grobner import compute_gsd_and_periodicity
 from mobility_toolkit.fusion import solve_sset_fusion
+from mobility_toolkit.reference_models import TORIC_CODE_2D
 
 # ==============================================================================
 # Tier 3: Cross-Feature Interactions (5 tests)
@@ -15,7 +16,9 @@ def test_cross_bridge_and_homological():
     """
     stabilizer_matrix = [["1 - x", "1 - y"]]
     # This should trigger compute_ext_krull which uses WSL-M2 bridge.
-    result = compute_ext_krull(stabilizer_matrix, qudit_dim=2)
+    result = compute_ext_krull(
+        stabilizer_matrix, qudit_dim=2, validate_stabilizer=False
+    )
     assert "krull_dimension" in result
 
 def test_cross_bridge_and_grobner():
@@ -33,10 +36,7 @@ def test_cross_grobner_and_homological():
     If Krull dimension is 0 (fully mobile), periodicities should be trivial or well-behaved,
     and GSD on a Lx x Ly torus must be qudit_dim^(2 * gcd(Lx, Ly)) etc.
     """
-    stabilizer_matrix = [
-        ["1 - x", "1 - y", "0", "0"],
-        ["0", "0", "1 - y", "1 - x"]
-    ]
+    stabilizer_matrix = TORIC_CODE_2D
     qudit_dim = 2
     
     hom_result = compute_ext_krull(stabilizer_matrix, qudit_dim=qudit_dim)
@@ -75,9 +75,9 @@ def test_cross_full_pipeline():
     assert hoca_res["characteristic_polynomial"] == "1 + y"
     
     # 3. Test Homological
-    hom_res = compute_ext_krull([["1 - x", "1 - y"]], qudit_dim=2)
+    hom_res = compute_ext_krull(TORIC_CODE_2D, qudit_dim=2)
     assert hom_res["krull_dimension"] >= 0
     
     # 4. Test Grobner
-    grob_res = compute_gsd_and_periodicity([["1 - x", "1 - y"]], Lx=2, Ly=2, qudit_dim=2)
+    grob_res = compute_gsd_and_periodicity(TORIC_CODE_2D, Lx=2, Ly=2, qudit_dim=2)
     assert grob_res["gsd"] >= 0

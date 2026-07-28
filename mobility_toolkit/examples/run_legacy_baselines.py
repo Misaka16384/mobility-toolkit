@@ -19,8 +19,8 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from mobility_toolkit.boundary_gauge.algebra.support import get_support_weight
 from mobility_toolkit.boundary_gauge.boundary.pipeline import (
-    run_algorithm_1_boundary_ops_2d,
-    run_algorithm_1_boundary_ops_3d,
+    _run_algorithm_1_boundary_ops_2d,
+    _run_algorithm_1_boundary_ops_3d,
 )
 from mobility_toolkit.boundary_gauge.models.models_2d import (
     POSITIONS_2D_EDGE_POSITIVE,
@@ -40,7 +40,7 @@ def _weights(ops):
 def main() -> None:
     cases = []
 
-    bulk, ops, _ = run_algorithm_1_boundary_ops_2d(
+    bulk, ops, _ = _run_algorithm_1_boundary_ops_2d(
         Lx=5,
         Ly=5,
         q=2,
@@ -56,7 +56,7 @@ def main() -> None:
     )
     cases.append(("Z4 Toric Code rough top", len(bulk), ops.shape[0], _weights(ops)))
 
-    bulk, ops, _ = run_algorithm_1_boundary_ops_2d(
+    bulk, ops, _ = _run_algorithm_1_boundary_ops_2d(
         Lx=5,
         Ly=5,
         q=2,
@@ -72,7 +72,7 @@ def main() -> None:
     )
     cases.append(("Z4 Double Semion smooth bottom", len(bulk), ops.shape[0], _weights(ops)))
 
-    bulk, ops, _ = run_algorithm_1_boundary_ops_3d(
+    bulk, ops, _ = _run_algorithm_1_boundary_ops_3d(
         Lx=3,
         Ly=3,
         Lz=4,

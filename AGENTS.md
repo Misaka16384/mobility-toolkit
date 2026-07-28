@@ -5,58 +5,73 @@ Google Antigravity) working in or with this repository.
 
 ## What this is
 
-`mobility_toolkit` computes **excitation-mobility properties of translation-invariant
-stabilizer codes** using homological algebra. A Pauli stabilizer model is mapped to a
-module over a Laurent polynomial ring; `Ext` modules, Krull dimensions, Gröbner bases,
-and saturations (computed by **Macaulay2**) then classify how excitations move
-(point / lineon / planon / fracton), ground-state degeneracy (GSD), and fusion
-interference.
+`mobility_toolkit` is a boundary-aware generalized-Pauli stabilizer-code
+research toolkit. It combines finite abelian-group algebra, explicit geometry,
+cellular relative homology, canonical periodic Laurent presentations,
+oriented half-spaces, bounded boundary enumeration, stratified defects, and
+finite static Cheshire analysis.
 
-The math backend is an external **Macaulay2** binary. The Python core is pure-stdlib
-and only orchestrates M2 scripts and parses their output.
+The public computational surface is one versioned native service registry.
+Python, CLI, MCP, and the eight use-case skills are transports over that
+registry; they are not separate algorithm APIs. Macaulay2 is an
+operation-specific backend for supported periodic Laurent/Ext requests, not a
+global requirement for finite and relative-homology work.
 
 ## Capabilities
 
-Exposed three ways over the same core (`mobility_toolkit/`):
+The public surface is organized by **use case**, with eight `mt-*` skills over
+one operation registry. Skills are installed into each agent's skill
+directory; the same registry is available through
+`python -m mobility_toolkit.mcp_server` and the package's service API. The CLI
+remains a low-level and maintenance surface.
 
-- **Skills** (`skills/mt-*/SKILL.md`) — installed into each agent's skills directory.
-- **MCP server** — `python -m mobility_toolkit.mcp_server` (needs `fastmcp`).
-- **CLI** — `mobility-toolkit <subcommand>` (JSON in / JSON out).
+| Skill | Primary service operations | Scope |
+|---|---|---|
+| `mt-finite-code` | `finite.code.capabilities` | Finite generalized-Pauli arithmetic, centralizers, logical groups, and GSD |
+| `mt-boundary-algebra` | `boundary.finite.capabilities`, `boundary.enumeration.capabilities` | Explicit finite cuts, paired groups, primary projections, and bounded E1/E2 searches |
+| `mt-relative-homology` | `topology.relative_homology` | Exact cellular relative homology for explicit finite pairs |
+| `mt-halfspace` | `boundary.halfspace.*` | Oriented one-sided Laurent half-spaces and source-locked benchmarks |
+| `mt-gapped-boundary-2d` | `boundary.completion2d.*` | Finite metric condensation and explicitly bounded local completions |
+| `mt-gapped-boundary-3d` | `boundary.symbolic3d.*` | E1/E2 and bounded symbolic E3 candidate searches |
+| `mt-defect` | `defects.capabilities` | Finite stratified boundaries, endpoints, tubes, and junction incidence |
+| `mt-cheshire` | `defects.cheshire.*` | Finite Cheshire static analysis, tube-to-line synthesis, bounded species search, and static fusion |
 
-### Three-layer model
+Every operation owns its input schema, exactness level, certificate,
+provenance, assumptions, and warnings. Query its capability operation before
+using a result. In particular, a finite or bounded-exact result is not a
+thermodynamic classification, and an `unsupported` result must not be replaced
+with a heuristic conclusion.
 
-Skills are named `mt-*` and organized as **edges between three layers** — pick a skill by
-"what I have → what I want":
-
-- **L1 Model** — the Pauli stabilizer matrix over `ZZ/N[x,y,z,…]`.
-- **L2 Algebra** — ring/matrix, `Ext^{p+1}` charge module, annihilator ideal, Gröbner
-  basis, Krull dimension.
-- **L3 Physics** — mobility class (fully-mobile / planon / lineon / fracton; topological
-  vs fracton), GSD, anyon periodicities, fusion interference.
-
-| Skill | Edge | CLI | Purpose |
-|---|---|---|---|
-| `mt-translate` | L1→L2 | — | Stabilizer matrix → Laurent ring + variables + M2 matrix |
-| `mt-homology` | L1→L2 | `homology` | `Ext^{p+1}` module + Krull dim + annihilator (class attached) |
-| `mt-classify` | L2→L3 | `classify` | Krull dimension → mobility class (pure, no backend) |
-| `mt-mobility` | L2→L3 | `mobility` | Annihilator generators → true mobility dimension |
-| `mt-gsd` | L1→L3 | `grobner` | GSD + anyon periodicities on an Lx×Ly torus (any N) |
-| `mt-fusion` | L1→L3 | `fusion-interference` | Dimension drops under relative shift vectors |
-| `mt-models` | L1↔L3 | `db` | SQLite model/property registry (init / seed / sync / query) |
-| `mt-doctor` | infra | `doctor` | Diagnose the Macaulay2 backend (+ live smoke test) |
-
-CLI-only (no skill): `sset-fusion`, `search`, `install`, `self-update`.
+The computational CLI contains only `service`, `service-catalog`, and
+`service-stream`. The streaming command emits NDJSON pages for the registered
+2D-completion and symbolic-3D enumerators. Resume state can optionally be
+persisted by explicitly constructing
+`mobility_toolkit.services.SQLiteCheckpointStore(path)`; there is no default
+database or process-global checkpoint store.
 
 ## Input conventions (IMPORTANT — these cause most errors)
 
-- **`qudit_dim` must be prime** (the ring is `ZZ/N`). For composite `N` (e.g. 12),
-  pass `prime_bypass=True` / `--prime-bypass`.
-- **No parentheses in polynomials.** Inputs are validated against a strict character
-  whitelist. Fully expand everything: use `y + z + x*y + x*z`, never `(1+x)*(y+z)`.
-- **Variables**: spatial `x, y, z`; their Laurent inverses are `t, u, w`
-  (`x*t = y*u = z*w = 1`). Use `x^-1` / `x**-1` in input; it is rewritten to `t`.
-- A stabilizer matrix is a list of rows (lists of polynomial strings). All rows must
-  have equal length.
+- Begin with `mobility-toolkit service-catalog`. Every operation owns a strict
+  JSON input schema; do not infer one operation's fields from another.
+- The only public computational request is
+  `mobility_toolkit.service_request.v1`. Unknown top-level and operation input
+  fields are rejected.
+- Finite operators are phase-aware, site-labelled sparse generalized-Pauli
+  data with explicit local dimensions. Floating-point drawing positions,
+  bare blocked/interleaved vectors, and dimension-specific tuples are not
+  algebraic identities.
+- Periodic requests use the canonical Laurent AST: translation group,
+  structured terms, explicit Pauli basis and local-order relations,
+  stabilizer-image columns, and phase modulus. Free-form polynomial strings
+  and flat stabilizer matrices are not the public IR.
+- Composite and nonuniform periodic presentations are representable, but
+  execution support is operation-specific. The current production Ext path is
+  uniform-prime/free-translation; other domains return structured
+  experimental or unsupported results. There is no bypass switch.
+- Geometry requests state region, identifications, restriction policy, strata,
+  equivalence relation, search domain, and resource budget explicitly.
+- E1/E2/E3, finite, bounded-exact, experimental, and unsupported results must
+  not be promoted beyond the exact domain written in their certificate.
 
 ## Backend / environment
 
@@ -67,8 +82,9 @@ Macaulay2 invocation is resolved per platform (see `engine.resolve_m2_command`):
 3. native `M2` on PATH (Linux/macOS / native Windows).
 4. WSL on Windows — distro from `MOBILITY_M2_WSL_DISTRO` (default `Ubuntu`).
 
-Always run `mobility-toolkit doctor` first when a computation fails — it reports the
-resolved backend and runs a `2+2` smoke test.
+When a capability contract requires Macaulay2 and execution fails, use the
+low-level `mobility-toolkit doctor` CLI command to report the resolved backend
+and run a `2+2` smoke test.
 
 ## Working in this repo
 
@@ -96,16 +112,16 @@ config is also written (`.mcp.json` / `opencode.json` / `.codex/config.toml` /
 <!-- mobility-toolkit:start -->
 ## mobility_toolkit
 
-Homological-algebra toolkit for excitation-mobility properties of translation-invariant stabilizer codes (backed by Macaulay2).
+Boundary-aware stabilizer-code toolkit with finite generalized-Pauli arithmetic, exact cellular relative homology, oriented Laurent half-spaces, bounded boundary enumeration, and finite defect analysis. Every operation reports its own exactness and scope; finite-window results are not thermodynamic classifications.
 
-Skills are organized by three layers -- L1 model, L2 algebra, L3 physics -- each skill being an edge between two layers:
-- L1->L2: `mt-translate`, `mt-homology`
-- L2->L3: `mt-classify`, `mt-mobility`
-- L1->L3: `mt-gsd`, `mt-fusion`
-- store/infra: `mt-models`, `mt-doctor`
-Each skill bundles a script run directly, e.g. `python scripts/<name>.py < input.json`.
+Choose one public skill by use case:
+- finite foundations: `mt-finite-code`, `mt-relative-homology`
+- finite and Laurent boundary algebra: `mt-boundary-algebra`, `mt-halfspace`
+- gapped-boundary candidates: `mt-gapped-boundary-2d`, `mt-gapped-boundary-3d`
+- stratified and Cheshire defects: `mt-defect`, `mt-cheshire`
+The shared service registry owns canonical operation contracts, capability declarations, exactness, certificates, provenance, and warnings. Query the relevant capability operation before requesting a stronger physical conclusion.
 
 Optionally also available as MCP server `mobility_toolkit` (install with `mobility-toolkit install --mcp`).
 
-Run `mobility-toolkit doctor` to verify the Macaulay2 backend; `mobility-toolkit self-update` to pull the latest version and refresh these skills.
+Run `mobility-toolkit self-update` to pull the latest version and refresh these skills.
 <!-- mobility-toolkit:end -->

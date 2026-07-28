@@ -2,6 +2,7 @@ import pytest
 from mobility_toolkit.translate import normalize_laurent_poly
 from mobility_toolkit.fusion import check_ideal_principal, analyze_annihilator_fusion, solve_sset_fusion
 from mobility_toolkit.homology import compute_ext_krull
+from mobility_toolkit.reference_models import TORIC_CODE_2D
 
 def test_normalize_laurent_poly():
     """Verify normalize_laurent_poly clears denominators and normalizes Laurent polynomials."""
@@ -39,24 +40,7 @@ def test_analyze_annihilator_fusion():
     assert "beta_" in res["mobility_class"]
     assert res["fusion_rules"] == [res["mobility_class"]]
 
-def test_l1_l3_automatic_merge():
-    """Verify compute_ext_krull automatically checks and computes SSET properties if principal."""
-    # 2D Toric Code (non-principal annihilator, should NOT have sset_properties)
-    toric_code = [
-        ["1 - x", "1 - y", "0", "0"],
-        ["0", "0", "1 - y", "1 - x"]
-    ]
-    res_toric = compute_ext_krull(toric_code, qudit_dim=2)
+def test_homology_does_not_auto_attach_unrelated_sset_analysis():
+    """The Ruba--Yang Ext path stays separate from the independent SSET API."""
+    res_toric = compute_ext_krull(TORIC_CODE_2D, qudit_dim=2)
     assert "sset_properties" not in res_toric
-    
-    # Model A (principal annihilator, should have sset_properties)
-    # Model A decoration polynomial f = 1 + y. In 2D, stabilizer is:
-    # Plaquette term is 1 - y, coupling is 1 - y.
-    model_a = [
-        ["1 - y", "0"],
-        ["0", "1 - y"]
-    ]
-    res_model_a = compute_ext_krull(model_a, qudit_dim=2)
-    assert "sset_properties" in res_model_a
-    assert res_model_a["sset_properties"]["is_principal"] is True
-    assert "beta_" in res_model_a["sset_properties"]["mobility_class"]

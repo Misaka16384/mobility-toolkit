@@ -1,5 +1,6 @@
 import pytest
 from mobility_toolkit.homology import compute_ext_krull
+from mobility_toolkit.reference_models import TORIC_CODE_2D, XCUBE_EQ98
 
 # ==============================================================================
 # Tier 1: Feature Coverage (5 tests)
@@ -8,11 +9,7 @@ from mobility_toolkit.homology import compute_ext_krull
 def test_homological_toric_ext():
     """Toric code, verifies Ext modules and Krull dimension for electric charge (dimension = 0, fully mobile)."""
     # 2D Toric code stabilizer matrix representation
-    stabilizer_matrix = [
-        ["1 - x", "1 - y", "0", "0"],
-        ["0", "0", "1 - y", "1 - x"]
-    ]
-    result = compute_ext_krull(stabilizer_matrix, qudit_dim=2)
+    result = compute_ext_krull(TORIC_CODE_2D, qudit_dim=2)
     
     assert "krull_dimension" in result
     assert "ext_modules" in result
@@ -20,17 +17,11 @@ def test_homological_toric_ext():
     assert result["krull_dimension"] == 0
 
 def test_homological_xcube_ext():
-    """X-Cube model, verifies Ext modules and Krull dimension (dimension = 2, fractons)."""
-    # X-Cube has 3D excitation properties
-    stabilizer_matrix = [
-        ["1 - x", "1 - y", "1 - z", "0"],
-        ["0", "1 - y", "1 - z", "1 - x"]
-    ]
-    result = compute_ext_krull(stabilizer_matrix, qudit_dim=2)
+    """Full Ruba--Yang Eq. (98) X-Cube presentation has dim Q^0 = 1."""
+    result = compute_ext_krull(XCUBE_EQ98, qudit_dim=2)
     
     assert "krull_dimension" in result
-    # Fractons in X-cube have Krull dimension 2
-    assert result["krull_dimension"] == 2
+    assert result["krull_dimension"] == 1
 
 def test_homological_krull_trivial():
     """Verifies Krull dimension for trivial modules (should be -1 or 0 depending on convention)."""
@@ -38,7 +29,9 @@ def test_homological_krull_trivial():
         ["1", "0"],
         ["0", "1"]
     ]
-    result = compute_ext_krull(stabilizer_matrix, qudit_dim=2)
+    result = compute_ext_krull(
+        stabilizer_matrix, qudit_dim=2, validate_stabilizer=False
+    )
     assert "krull_dimension" in result
     assert result["krull_dimension"] in (-1, 0)
 
@@ -47,7 +40,9 @@ def test_homological_ext_format():
     stabilizer_matrix = [
         ["1 - x", "1 - y"]
     ]
-    result = compute_ext_krull(stabilizer_matrix, qudit_dim=3)
+    result = compute_ext_krull(
+        stabilizer_matrix, qudit_dim=3, validate_stabilizer=False
+    )
     assert isinstance(result, dict)
     assert "krull_dimension" in result
     assert "ext_modules" in result
@@ -55,11 +50,7 @@ def test_homological_ext_format():
 
 def test_homological_qudit_toric():
     """Toric code generalised to qudits (e.g., N=3), verifies Krull dimension of Ext modules."""
-    stabilizer_matrix = [
-        ["1 - x", "1 - y", "0", "0"],
-        ["0", "0", "1 - y", "1 - x"]
-    ]
-    result = compute_ext_krull(stabilizer_matrix, qudit_dim=3)
+    result = compute_ext_krull(TORIC_CODE_2D, qudit_dim=3)
     assert "krull_dimension" in result
     assert result["krull_dimension"] == 0
 
@@ -86,9 +77,10 @@ def test_homological_empty_matrix():
 
 def test_homological_high_dimensional_space():
     """Excitations in higher-dimensional space (e.g. 4D: x, y, z, w), checks dimensions."""
-    stabilizer_matrix = [
-        ["1 - x", "1 - y", "1 - z", "1 - w"]
-    ]
+    stabilizer_matrix = [[
+        "1 - x1", "1 - x2", "1 - x3", "1 - x4",
+        "0", "0", "0", "0",
+    ]]
     result = compute_ext_krull(stabilizer_matrix, qudit_dim=2)
     assert "krull_dimension" in result
     assert result["krull_dimension"] >= 0

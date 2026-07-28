@@ -2,6 +2,7 @@ import pytest
 from mobility_toolkit.homology import compute_ext_krull
 from mobility_toolkit.grobner import compute_gsd_and_periodicity
 from mobility_toolkit.fusion import solve_sset_fusion
+from mobility_toolkit.reference_models import TORIC_CODE_2D, XCUBE_EQ98
 
 # ==============================================================================
 # Tier 4: Real-World Application Scenarios (5 tests)
@@ -12,10 +13,7 @@ def test_real_world_toric_code():
     
     Expectations: GSD = 4 on 2x2 torus, Q^0 Krull dimension = 0 (fully mobile charges).
     """
-    stabilizer_matrix = [
-        ["1 - x", "1 - y", "0", "0"],
-        ["0", "0", "1 - y", "1 - x"]
-    ]
+    stabilizer_matrix = TORIC_CODE_2D
     qudit_dim = 2
     
     # 1. Verify homological Krull dimension of Q^0 module
@@ -29,17 +27,14 @@ def test_real_world_toric_code():
 def test_real_world_xcube_model():
     """E2E verification of 3D X-Cube Model.
     
-    Expectations: Q^0 Krull dimension = 2 (fractons).
+    Expectations: the full Eq. (98) presentation has dim Q^0 = 1.
     """
     # Stabilizer generators for X-cube model
-    stabilizer_matrix = [
-        ["1 - x", "1 - y", "1 - z", "0"],
-        ["0", "1 - y", "1 - z", "1 - x"]
-    ]
+    stabilizer_matrix = XCUBE_EQ98
     qudit_dim = 2
     
     hom_res = compute_ext_krull(stabilizer_matrix, qudit_dim=qudit_dim)
-    assert hom_res["krull_dimension"] == 2
+    assert hom_res["krull_dimension"] == 1
 
 def test_real_world_zhang_ye_models():
     """E2E verification of Zhang & Ye models (a, b, c) from paper.

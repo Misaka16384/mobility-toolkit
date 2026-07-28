@@ -1,4 +1,9 @@
-"""Integrated Algorithm 1 pipeline wrappers."""
+"""Fixture-private legacy Algorithm 1 differential pipeline.
+
+The canonical public replacement is ``boundary.finite.analyze``.  These
+underscored functions survive only to replay historical baseline fixtures;
+their dimension-specific flat arrays and tuple return are not a runtime API.
+"""
 
 from __future__ import annotations
 
@@ -59,7 +64,7 @@ def _visualization_is_enabled(requested: bool) -> bool:
     return True
 
 
-def run_algorithm_1_boundary_ops_2d(
+def _run_algorithm_1_boundary_ops_2d(
     Lx: int,
     Ly: int,
     q: int,
@@ -118,7 +123,7 @@ def run_algorithm_1_boundary_ops_2d(
     return bulk_stabilizers, boundary_ops, S_mat
 
 
-def run_algorithm_1_boundary_ops_3d(
+def _run_algorithm_1_boundary_ops_3d(
     Lx: int,
     Ly: int,
     Lz: int,
@@ -185,7 +190,7 @@ def run_algorithm_1_boundary_ops_3d(
     return bulk_stabilizers, boundary_ops, S_mat
 
 
-def run_and_report_example_2d(
+def _run_and_report_example_2d(
     *,
     example_title: str,
     Lx: int,
@@ -220,7 +225,7 @@ def run_and_report_example_2d(
             title_prefix=f"{example_title} | Bulk Stabilizer Generator",
         )
 
-    bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_2d(
+    bulk_stabilizers, boundary_ops, S_mat = _run_algorithm_1_boundary_ops_2d(
         Lx=Lx,
         Ly=Ly,
         q=q,
@@ -273,7 +278,7 @@ def run_and_report_example_2d(
     return bulk_stabilizers, boundary_ops, S_mat
 
 
-def run_and_report_example_3d(
+def _run_and_report_example_3d(
     *,
     example_title: str,
     Lx: int,
@@ -310,7 +315,7 @@ def run_and_report_example_3d(
             title_prefix=f"{example_title} | Bulk Stabilizer Generator",
         )
 
-    bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_3d(
+    bulk_stabilizers, boundary_ops, S_mat = _run_algorithm_1_boundary_ops_3d(
         Lx=Lx,
         Ly=Ly,
         Lz=Lz,
@@ -368,11 +373,4 @@ def run_and_report_example_3d(
     return bulk_stabilizers, boundary_ops, S_mat
 
 
-__all__ = [
-    "print_boundary_operators_2d",
-    "print_boundary_operators_3d",
-    "run_algorithm_1_boundary_ops_2d",
-    "run_algorithm_1_boundary_ops_3d",
-    "run_and_report_example_2d",
-    "run_and_report_example_3d",
-]
+__all__ = []

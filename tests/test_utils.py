@@ -14,6 +14,7 @@ from mobility_toolkit.bridge import run_m2_script
 from mobility_toolkit.homology import compute_ext_krull
 from mobility_toolkit.grobner import compute_gsd_and_periodicity
 from mobility_toolkit.fusion import solve_sset_fusion
+from mobility_toolkit.reference_models import TORIC_CODE_2D
 
 @pytest.fixture(autouse=True)
 def ensure_dirs():
@@ -206,12 +207,7 @@ def test_homological_integration():
         
     # Toric code stabilizer matrix representation
     # Z1*Z2, X1*X3, etc. represented simple generators
-    stabilizer = [
-        ["x - 1", "0"],
-        ["0", "y - 1"]
-    ]
-    
-    res = compute_ext_krull(stabilizer, 2)
+    res = compute_ext_krull(TORIC_CODE_2D, 2)
     
     # Verify results
     assert "krull_dimension" in res

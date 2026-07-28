@@ -140,13 +140,18 @@ def is_prime(n: int) -> bool:
             return False
     return True
 
-def verify_qudit_dim(qudit_dim: int, prime_bypass: bool = False) -> None:
-    """Validates that qudit_dim is an integer >= 2.
-    Also verifies that qudit_dim is prime, unless prime_bypass is True.
-    """
-    if not isinstance(qudit_dim, int):
-        raise TypeError("qudit_dim must be an integer")
-    if qudit_dim < 2:
-        raise ValueError("qudit_dim must be >= 2")
-    if not prime_bypass and not is_prime(qudit_dim):
-        raise ValueError("qudit_dim must be prime (or enable prime_bypass=True)")
+def verify_modulus(modulus: int) -> None:
+    """Validate an arbitrary finite cyclic modulus."""
+
+    if not isinstance(modulus, int) or isinstance(modulus, bool):
+        raise TypeError("modulus must be an integer")
+    if modulus < 2:
+        raise ValueError("modulus must be >= 2")
+
+
+def verify_qudit_dim(qudit_dim: int) -> None:
+    """Validate the uniform-prime coefficient domain used by Ext routines."""
+
+    verify_modulus(qudit_dim)
+    if not is_prime(qudit_dim):
+        raise ValueError("qudit_dim must be prime")

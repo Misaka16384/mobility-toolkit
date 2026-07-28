@@ -14,16 +14,14 @@ if skills_dir not in sys.path:
 from mobility_toolkit.homology import compute_ext_krull
 from mobility_toolkit.grobner import compute_gsd_and_periodicity
 from mobility_toolkit.fusion import analyze_fusion_interference
+from mobility_toolkit.reference_models import TORIC_CODE_2D
 
 def test_toric_code_point_like_excitations():
     """Test 1: 2D Toric Code point-like excitations.
     
     Verify that point-like excitations (0-excitations) have krull_dimension == 0.
     """
-    stabilizer_matrix = [
-        ["1 - x", "1 - y", "0", "0"],
-        ["0", "0", "1 - y", "1 - x"]
-    ]
+    stabilizer_matrix = TORIC_CODE_2D
     qudit_dim = 2
     
     res = compute_ext_krull(stabilizer_matrix, qudit_dim=qudit_dim)
@@ -60,7 +58,7 @@ def test_high_dimensional_collapse():
     # Stabilizer matrix of a lineon along the x-axis under qudit_dim = 2.
     # Note: 0*x is included to activate the x coordinate to make it a lineon variety
     # of dimension 1, rather than 0.
-    stabilizer_matrix = [["1 - y", "1 - z", "0*x"]]
+    stabilizer_matrix = [["1 - y", "1 - z", "0*x", "0"]]
     shifts = [[0, 1, 0]]
     
     res = analyze_fusion_interference(stabilizer_matrix, qudit_dim=2, shifts=shifts)
