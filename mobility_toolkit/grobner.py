@@ -331,19 +331,33 @@ def count_quotient_size(parsed_gb: List[tuple], vars_list: List[str], qudit_dim:
         v_bounds = []
         for coef, exponents in parsed_gb:
             if coef == 1 and exponents[v] >= 1:
-                if all(exponents[other] == 0 for other in vars_list if other != v):
+                is_pure = True
+                for other in vars_list:
+                    if other != v and exponents[other] != 0:
+                        is_pure = False
+                        break
+                if is_pure:
                     v_bounds.append(exponents[v])
         if not v_bounds:
             raise ValueError("GSD quotient ring is infinite." if is_gsd else "Quotient ring is infinite.")
         bounds[v] = min(v_bounds)
         
+    parsed_gb_tuples = []
+    for coef, exponents in parsed_gb:
+        parsed_gb_tuples.append((coef, tuple(exponents[v] for v in vars_list)))
+
     basis_monomials = []
     ranges = [range(bounds[v]) for v in vars_list]
     for combo in product(*ranges):
         divisible = False
-        for coef, exponents in parsed_gb:
+        for coef, exp_tup in parsed_gb_tuples:
             if coef == 1:
-                if all(combo[i] >= exponents[vars_list[i]] for i in range(len(vars_list))):
+                is_div = True
+                for i in range(len(vars_list)):
+                    if combo[i] < exp_tup[i]:
+                        is_div = False
+                        break
+                if is_div:
                     divisible = True
                     break
         if not divisible:
@@ -352,8 +366,13 @@ def count_quotient_size(parsed_gb: List[tuple], vars_list: List[str], qudit_dim:
     quotient_size = 1
     for combo in basis_monomials:
         dividing_coefs = []
-        for coef, exponents in parsed_gb:
-            if all(combo[i] >= exponents[vars_list[i]] for i in range(len(vars_list))):
+        for coef, exp_tup in parsed_gb_tuples:
+            is_div = True
+            for i in range(len(vars_list)):
+                if combo[i] < exp_tup[i]:
+                    is_div = False
+                    break
+            if is_div:
                 dividing_coefs.append(coef)
         # Bolt: Replaced manual gcd loop with C-optimized math.gcd
         curr_gcd = math.gcd(qudit_dim, *dividing_coefs)

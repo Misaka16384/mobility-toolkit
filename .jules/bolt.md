@@ -12,3 +12,10 @@
 ## 2024-07-17 - [C-Level Optimization For Multi-Argument Math Methods]
 **Learning:** Manual list loops and `functools.reduce` over math functions like `lcm` or `gcd` are unexpectedly heavy bottlenecks in purely algorithmic workflows like the Grobner basis solver, despite being common Python idioms. `math.gcd` and `math.lcm` (since Python 3.9) accept *args directly and process natively in C.
 **Action:** Always scan numeric arrays for loop-based mathematical reductions (LCM, GCD, Sum) and map them to their Python 3.9+ C-optimized native multi-argument counterparts.
+## 2024-07-28 - [Avoiding Generator Expression Overhead in Inner Loops]
+**Learning:** Generator expressions like `all(...)` carry significant overhead in Python due to frame creation. When nested deeply inside loops (like `product(*ranges)` for multidimensional iterations), this overhead becomes the dominant bottleneck. Replacing them with explicit inline `for`/`break` constructs dramatically speeds up execution.
+**Action:** When optimizing tight inner loops in purely algorithmic sections, always replace generator expressions with explicit imperative loops.
+
+## 2024-07-28 - [Tuple Pre-computation for Hot Path Access]
+**Learning:** Dictionary lookups inside extremely tight inner loops create measurable overhead due to repeated hashing. Pre-computing dictionaries into static-ordered tuples before entering nested loops allows fast indexed access, which yields significant speedups in mathematical heavy paths.
+**Action:** Identify expensive data structure accesses (like dynamic dict lookups) inside multi-dimensional hot loops, and pre-extract their values into tuples before the loop begins.
