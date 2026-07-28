@@ -1,0 +1,4 @@
+interface:
+  display_name: "MT Gapped Boundary 3D"
+  short_description: "Bounded 3D and fracton boundary enumeration"
+  default_prompt: "Use $mt-gapped-boundary-3d to enumerate a precisely bounded 3D boundary domain without making thermodynamic completeness claims."

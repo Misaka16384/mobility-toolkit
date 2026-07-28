@@ -7,7 +7,7 @@ name = "mobility-toolkit"
 # Version is the single source of truth in mobility_toolkit/__init__.py
 # (`__version__`); bump it with `python tools/release.py`.
 dynamic = ["version"]
-description = "Homological-algebra toolkit for computing excitation mobility properties of translation-invariant stabilizer codes, backed by Macaulay2."
+description = "Validated homological charge-module invariants for translation-invariant stabilizer codes, backed by Macaulay2."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [{ name = "Misaka16384" }]
@@ -25,15 +25,16 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
-# Core is pure-stdlib Python; all algebra is delegated to an external
-# Macaulay2 binary via the engine. No third-party runtime deps.
+# The finite-lattice and boundary helpers use NumPy/SymPy; homological algebra
+# is delegated to an external Macaulay2 binary via the engine.
 dependencies = ["numpy", "sympy"]
 
 [project.optional-dependencies]
 # MCP transport (used by `mobility-toolkit install` to wire agents that
 # prefer Model Context Protocol over native skill folders).
 mcp = ["fastmcp>=2.0"]
-dev = ["pytest>=7.0"]
+finite = ["python-flint>=0.9"]
+dev = ["pytest>=7.0", "python-flint>=0.9"]
 viz = ["matplotlib"]
 
 [project.scripts]
@@ -48,7 +49,7 @@ version = { attr = "mobility_toolkit.__version__" }
 [tool.setuptools.package-data]
 # Skill bundles (SKILL.md + scripts) ship inside the wheel so a pipx/wheel
 # install from the git URL can wire them into agents.
-mobility_toolkit = ["skills/**/*.md", "skills/**/*.py", "skills/**/*.json"]
+mobility_toolkit = ["skills/**/*.md", "skills/**/*.py", "skills/**/*.json", "skills/**/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

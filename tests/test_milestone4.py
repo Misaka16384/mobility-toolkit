@@ -4,8 +4,9 @@ import sqlite3
 import json
 from mobility_toolkit.registry import ModelRegistry, DB_PATH
 from mobility_toolkit.homology import compute_ext_krull
-from mobility_toolkit.mobility import compute_true_mobility_dimension
+from mobility_toolkit.mobility import compute_translation_lattice
 from mobility_toolkit.search import search_koszul_models
+from mobility_toolkit.reference_models import TORIC_CODE_2D
 
 @pytest.fixture(autouse=True)
 def clean_db():
@@ -26,12 +27,15 @@ def clean_db():
 
 def test_annihilator_caching(clean_db):
     registry = clean_db
-    stabilizer_matrix = [["1 - x", "1 - y"]]
+    stabilizer_matrix = TORIC_CODE_2D
     qudit_dim = 2
     p_ext = 0
 
     # Ensure cache is initially empty
-    assert registry.get_cached_annihilator(stabilizer_matrix, qudit_dim, p_ext) is None
+    cache_kwargs = {"spatial_dim": 2, "invariant_version": "test-fixture-v1"}
+    assert registry.get_cached_annihilator(
+        stabilizer_matrix, qudit_dim, p_ext, **cache_kwargs
+    ) is None
 
     # Cache some mock results
     registry.cache_annihilator(
@@ -40,21 +44,24 @@ def test_annihilator_caching(clean_db):
         p_ext=p_ext,
         krull_dimension=10,
         ext_modules=["mock_ext_module"],
-        annihilator_generators=["gen1", "gen2"]
+        annihilator_generators=["gen1", "gen2"],
+        **cache_kwargs,
     )
 
     # Retrieve from cache
-    cached = registry.get_cached_annihilator(stabilizer_matrix, qudit_dim, p_ext)
+    cached = registry.get_cached_annihilator(
+        stabilizer_matrix, qudit_dim, p_ext, **cache_kwargs
+    )
     assert cached is not None
     assert cached["krull_dimension"] == 10
     assert cached["ext_modules"] == ["mock_ext_module"]
     assert cached["annihilator_generators"] == ["gen1", "gen2"]
 
-    # Verify compute_ext_krull respects the cache (fake value check)
-    res = compute_ext_krull(stabilizer_matrix, qudit_dim, p_ext)
-    assert res["krull_dimension"] == 10
-    assert res["ext_modules"] == ["mock_ext_module"]
-    assert res["annihilator_generators"] == ["gen1", "gen2"]
+    # A differently versioned fake row must not contaminate the theorem-safe
+    # computation cache.
+    res = compute_ext_krull(stabilizer_matrix, qudit_dim, p_ext, spatial_dim=2)
+    assert res["krull_dimension"] == 0
+    assert res["ext_modules"] != ["mock_ext_module"]
 
 def test_properties_caching(clean_db):
     registry = clean_db
@@ -80,11 +87,11 @@ def test_properties_caching(clean_db):
     assert cached["valuation_matrix"] == [[1, 2], [3, 4]]
     assert cached["kernel_basis"] == [[0, 1]]
 
-    # Verify compute_true_mobility_dimension respects the cache (fake value check)
-    res = compute_true_mobility_dimension(generators, qudit_dim)
-    assert res["mobility_dimension"] == 5
-    assert res["valuation_matrix"] == [[1, 2], [3, 4]]
-    assert res["kernel_basis"] == [[0, 1]]
+    # The corrected algorithm uses a versioned, ambient-ring-sensitive cache
+    # and therefore must ignore this legacy registry row.
+    res = compute_translation_lattice(generators, qudit_dim)
+    assert res["mobility_dimension"] == 2
+    assert res["method"].startswith("laurent-binomial-character")
     assert res["variables"] == ["x", "y"]
 
 def test_search_koszul_models(clean_db):

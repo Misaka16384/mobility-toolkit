@@ -3,6 +3,7 @@ import glob
 import sqlite3
 import json
 from typing import List, Dict, Any
+from mobility_toolkit.reference_models import TORIC_CODE_2D, XCUBE_EQ98
 
 # Define the database path relative to this file for self-contained distribution
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mobility_models.db")
@@ -14,7 +15,7 @@ def seed_database(cursor):
             "name": "Toric Code",
             "qudit_dim": 2,
             "spatial_dim": 2,
-            "stabilizer_matrix": "[[\"1 - x\", \"1 - y\", \"0\", \"0\"], [\"0\", \"0\", \"1 - y\", \"1 - x\"]]",
+            "stabilizer_matrix": json.dumps(TORIC_CODE_2D),
             "d0": 0,
             "d1": -1,
             "gsd_val": 4,
@@ -27,14 +28,14 @@ def seed_database(cursor):
             "name": "X-Cube Model",
             "qudit_dim": 2,
             "spatial_dim": 3,
-            "stabilizer_matrix": "[[\"1 - x\", \"1 - y\", \"1 - z\", \"0\"], [\"0\", \"1 - y\", \"1 - z\", \"1 - x\"]]",
-            "d0": 2,
-            "d1": 1,
+            "stabilizer_matrix": json.dumps(XCUBE_EQ98),
+            "d0": 1,
+            "d1": -1,
             "gsd_val": None,
-            "l_x": 1,
-            "l_y": 1,
+            "l_x": None,
+            "l_y": None,
             "is_topological": False,
-            "description": "3D X-Cube model"
+            "description": "3D X-Cube model, full sigma of Ruba-Yang Eq. (98); Q^i=0 for i>0"
         },
         {
             "name": "WCF Code",
@@ -168,6 +169,12 @@ def query_vector_db(action: str, params: dict = None) -> dict:
             
         elif action == "query":
             query_str = params.get("query", "SELECT * FROM models")
+            if not isinstance(query_str, str) or not query_str.strip():
+                raise ValueError("query must be a non-empty SQL SELECT statement")
+            # The skill contract promises read-only queries.  SQLite enforces
+            # this even for writable CTEs or PRAGMAs that a prefix check could
+            # miss.
+            conn.execute("PRAGMA query_only = ON")
             cursor.execute(query_str)
             rows = cursor.fetchall()
             results = [dict(row) for row in rows]
@@ -216,6 +223,10 @@ class ModelRegistry:
                 qudit_dim INTEGER NOT NULL,
                 stabilizer_matrix TEXT NOT NULL,
                 p_ext INTEGER NOT NULL,
+                spatial_dim INTEGER,
+                validate_stabilizer BOOLEAN NOT NULL DEFAULT 0,
+                convention TEXT NOT NULL DEFAULT 'legacy-raw-coker',
+                invariant_version TEXT NOT NULL DEFAULT 'legacy-raw-coker-v0',
                 annihilator_generators TEXT,
                 krull_dimension INTEGER,
                 ext_modules TEXT,
@@ -224,9 +235,35 @@ class ModelRegistry:
                 kernel_basis TEXT
             );
         """)
+        # Existing databases predate the invariant contract.  Mark their rows as
+        # legacy instead of allowing them to satisfy the new theorem-safe key.
+        computation_columns = {
+            row[1] for row in cursor.execute("PRAGMA table_info(computations)").fetchall()
+        }
+        cache_key_columns = {
+            "spatial_dim": "INTEGER",
+            "validate_stabilizer": "BOOLEAN NOT NULL DEFAULT 0",
+            "convention": "TEXT NOT NULL DEFAULT 'legacy-raw-coker'",
+            "invariant_version": "TEXT NOT NULL DEFAULT 'legacy-raw-coker-v0'",
+        }
+        for column, declaration in cache_key_columns.items():
+            if column not in computation_columns:
+                cursor.execute(
+                    f"ALTER TABLE computations ADD COLUMN {column} {declaration}"
+                )
         conn.commit()
 
-    def get_cached_annihilator(self, stabilizer_matrix: List[List[str]], qudit_dim: int, p_ext: int) -> Dict[str, Any]:
+    def get_cached_annihilator(
+        self,
+        stabilizer_matrix: List[List[str]],
+        qudit_dim: int,
+        p_ext: int,
+        *,
+        spatial_dim: int = None,
+        validate_stabilizer: bool = True,
+        convention: str = "generator-rows-x-then-z",
+        invariant_version: str = "ruba-yang-qbar-v2",
+    ) -> Dict[str, Any]:
         """Query computations table for matching qudit_dim, stabilizer_matrix, and p_ext.
         If found, return dictionary containing krull_dimension, ext_modules, and annihilator_generators.
         Otherwise return None.
@@ -240,7 +277,12 @@ class ModelRegistry:
                 SELECT krull_dimension, ext_modules, annihilator_generators 
                 FROM computations 
                 WHERE qudit_dim = ? AND stabilizer_matrix = ? AND p_ext = ?
-            """, (qudit_dim, matrix_str, p_ext))
+                  AND spatial_dim IS ? AND validate_stabilizer = ?
+                  AND convention = ? AND invariant_version = ?
+            """, (
+                qudit_dim, matrix_str, p_ext, spatial_dim, int(validate_stabilizer),
+                convention, invariant_version,
+            ))
             row = cursor.fetchone()
             if row is not None:
                 krull_dimension, ext_modules_str, annihilator_generators_str = row
@@ -255,7 +297,20 @@ class ModelRegistry:
         finally:
             conn.close()
 
-    def cache_annihilator(self, stabilizer_matrix: List[List[str]], qudit_dim: int, p_ext: int, krull_dimension: int, ext_modules: List[str], annihilator_generators: List[str]) -> None:
+    def cache_annihilator(
+        self,
+        stabilizer_matrix: List[List[str]],
+        qudit_dim: int,
+        p_ext: int,
+        krull_dimension: int,
+        ext_modules: List[str],
+        annihilator_generators: List[str],
+        *,
+        spatial_dim: int = None,
+        validate_stabilizer: bool = True,
+        convention: str = "generator-rows-x-then-z",
+        invariant_version: str = "ruba-yang-qbar-v2",
+    ) -> None:
         """Insert/replace row in computations table."""
         matrix_str = json.dumps(stabilizer_matrix)
         ext_modules_str = json.dumps(ext_modules)
@@ -268,7 +323,12 @@ class ModelRegistry:
             cursor.execute("""
                 SELECT id FROM computations 
                 WHERE qudit_dim = ? AND stabilizer_matrix = ? AND p_ext = ?
-            """, (qudit_dim, matrix_str, p_ext))
+                  AND spatial_dim IS ? AND validate_stabilizer = ?
+                  AND convention = ? AND invariant_version = ?
+            """, (
+                qudit_dim, matrix_str, p_ext, spatial_dim, int(validate_stabilizer),
+                convention, invariant_version,
+            ))
             row = cursor.fetchone()
             if row is not None:
                 cursor.execute("""
@@ -279,9 +339,15 @@ class ModelRegistry:
             else:
                 cursor.execute("""
                     INSERT INTO computations 
-                    (qudit_dim, stabilizer_matrix, p_ext, krull_dimension, ext_modules, annihilator_generators)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (qudit_dim, matrix_str, p_ext, krull_dimension, ext_modules_str, annihilator_generators_str))
+                    (qudit_dim, stabilizer_matrix, p_ext, spatial_dim,
+                     validate_stabilizer, convention, invariant_version,
+                     krull_dimension, ext_modules, annihilator_generators)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    qudit_dim, matrix_str, p_ext, spatial_dim,
+                    int(validate_stabilizer), convention, invariant_version,
+                    krull_dimension, ext_modules_str, annihilator_generators_str,
+                ))
             conn.commit()
         finally:
             conn.close()

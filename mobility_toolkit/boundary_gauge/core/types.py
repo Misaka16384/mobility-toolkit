@@ -1,4 +1,4 @@
-"""Shared type aliases for stabilizer and qudit data."""
+"""Fixture-private type aliases for the removed Algorithm 1 transport."""
 
 from __future__ import annotations
 
@@ -9,9 +9,4 @@ GeneratorTerm3D = Tuple[int, int, int, int, int, int]
 QuditCoord3D = Tuple[int, int, int, int]
 StabilizerDict = Dict[int, Tuple[int, int]]
 
-__all__ = [
-    "GeneratorTerm2D",
-    "GeneratorTerm3D",
-    "QuditCoord3D",
-    "StabilizerDict",
-]
+__all__ = []

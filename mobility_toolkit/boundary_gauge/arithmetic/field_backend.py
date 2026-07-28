@@ -34,10 +34,12 @@ def _row_basis_field(mat: np.ndarray, p: int) -> tuple[np.ndarray, list[int]]:
         inv = pow(int(arr[row, col]) % p, -1, p)
         arr[row] = (inv * arr[row]) % p
 
-        for r in range(m):
-            if r != row and arr[r, col] % p != 0:
-                factor = int(arr[r, col]) % p
-                arr[r] = (arr[r] - factor * arr[row]) % p
+        # ⚡ Bolt: Vectorize row elimination over finite field to avoid Python loop overhead
+        factors = arr[:, col] % p
+        factors[row] = 0
+        mask = factors != 0
+        if np.any(mask):
+            arr[mask] = (arr[mask] - factors[mask, np.newaxis] * arr[row]) % p
 
         pivots.append(col)
         row += 1

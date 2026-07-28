@@ -1,0 +1,4 @@
+interface:
+  display_name: "MT Gapped Boundary 2D"
+  short_description: "Enumerate and verify 2D Abelian gapped boundaries"
+  default_prompt: "Use $mt-gapped-boundary-2d to enumerate an Abelian condensate or verify a finite local boundary completion."

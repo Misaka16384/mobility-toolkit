@@ -4,7 +4,7 @@ from itertools import product
 from typing import List, Dict, Any
 from mobility_toolkit.bridge import run_m2_script, validate_input_string
 from mobility_toolkit import utils
-from mobility_toolkit.utils import verify_qudit_dim
+from mobility_toolkit.utils import verify_modulus
 
 def get_prime_factors(n: int) -> List[int]:
     factors = []
@@ -448,8 +448,9 @@ def compute_gsd_and_periodicity(stabilizer_matrix: List[List[str]], Lx: Any = No
         if val > 100000:
             raise ValueError("Torus dimensions exceed the limit of 100000.")
 
-    # Call verify_qudit_dim with prime_bypass=True
-    verify_qudit_dim(qudit_dim, prime_bypass=True)
+    # GSD arithmetic is defined for arbitrary cyclic modulus, including
+    # composite local dimension.
+    verify_modulus(qudit_dim)
 
     # 2. Map legacy variables to unified variables
     from mobility_toolkit.translate import map_variables_to_unified
@@ -672,4 +673,3 @@ def compute_gsd_and_periodicity(stabilizer_matrix: List[List[str]], Lx: Any = No
     utils.log_python_run("mobility_toolkit.grobner", "compute_gsd_and_periodicity", (stabilizer_matrix, Lx, Ly, qudit_dim), {"L": L}, result)
 
     return result
-

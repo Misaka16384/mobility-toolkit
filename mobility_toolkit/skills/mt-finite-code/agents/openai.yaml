@@ -1,0 +1,4 @@
+interface:
+  display_name: "Finite Code Analysis"
+  short_description: "Analyze finite stabilizer code geometry"
+  default_prompt: "Use $mt-finite-code to run a canonical finite-code service request."

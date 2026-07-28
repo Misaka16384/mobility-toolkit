@@ -1,235 +1,174 @@
-import sys
-import json
+"""Command-line transport for canonical services and explicit administration."""
+
+from __future__ import annotations
+
 import argparse
-import os
-from mobility_toolkit import (
-    __version__,
-    compute_ext_krull,
-    compute_true_mobility_dimension,
-    compute_gsd_and_periodicity,
-    analyze_fusion_interference,
-    solve_sset_fusion,
-    analyze_annihilator_fusion,
-    search_koszul_models,
-    query_vector_db,
-    classify_mobility,
-)
+import json
+import sys
+
+from mobility_toolkit import __version__
 from mobility_toolkit.installer import (
-    run_install, run_uninstall, run_status, run_interactive, run_self_update, ALL_TARGETS
+    ALL_TARGETS,
+    run_install,
+    run_interactive,
+    run_self_update,
+    run_status,
+    run_uninstall,
 )
-from mobility_toolkit.boundary_gauge.boundary.pipeline import (
-    run_algorithm_1_boundary_ops_2d,
-    run_algorithm_1_boundary_ops_3d,
+from mobility_toolkit.registry import query_vector_db
+from mobility_toolkit.services import (
+    default_service_catalog,
+    execute_service_payload,
+    stream_service_payload,
 )
+
 
 class JSONArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         raise ValueError(message)
 
-def main():
-    parser = JSONArgumentParser(description="Mobility Fusion Generalization Toolkit CLI")
+
+def _build_parser() -> JSONArgumentParser:
+    parser = JSONArgumentParser(
+        description=(
+            "mobility_toolkit canonical service transport. Computational "
+            "requests use one versioned JSON ServiceRequest."
+        )
+    )
     parser.add_argument(
-        "--version", action="version", version=f"mobility-toolkit {__version__}",
-        help="Show the installed version and exit",
+        "--version",
+        action="version",
+        version=f"mobility-toolkit {__version__}",
     )
-    subparsers = parser.add_subparsers(dest="command", required=True, help="Subcommands")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # homology
-    parser_homology = subparsers.add_parser("homology", help="Compute homology Ext modules and Krull dimension")
-    parser_homology.add_argument("--stabilizer", type=str, required=True, help="JSON list of lists of strings")
-    parser_homology.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
-    parser_homology.add_argument("--p-ext", type=int, default=0, help="Ext parameter p_ext")
-    parser_homology.add_argument("--prime-bypass", action="store_true", help="Bypass prime check for qudit dimension")
-
-    # mobility
-    parser_mobility = subparsers.add_parser("mobility", help="Compute true mobility dimension")
-    parser_mobility.add_argument("--generators", type=str, required=True, help="JSON list of strings")
-    parser_mobility.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
-    parser_mobility.add_argument("--all-vars", type=str, default=None, help="JSON list of strings")
-
-    # classify (Layer 2 -> Layer 3: Krull dimension -> mobility class)
-    parser_classify = subparsers.add_parser("classify", help="Classify mobility from a Krull dimension")
-    parser_classify.add_argument("--krull-dim", type=int, required=True, help="Krull dimension of the charge module")
-    parser_classify.add_argument("--spatial-dim", type=int, default=3, help="Number of spatial dimensions (default 3)")
-
-    # grobner
-    parser_grobner = subparsers.add_parser("grobner", help="Compute GSD and periodicity via Grobner bases")
-    parser_grobner.add_argument("--stabilizer", type=str, required=True, help="JSON list of lists of strings")
-    parser_grobner.add_argument("--Lx", type=int, default=None, help="Torus size Lx")
-    parser_grobner.add_argument("--Ly", type=int, default=None, help="Torus size Ly")
-    parser_grobner.add_argument("--L", type=str, default=None, help="JSON list of torus sizes L")
-    parser_grobner.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
-
-    # fusion-interference
-    parser_fi = subparsers.add_parser("fusion-interference", help="Analyze fusion interference under shift vectors")
-    parser_fi.add_argument("--stabilizer", type=str, required=True, help="JSON list of lists of strings")
-    parser_fi.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
-    parser_fi.add_argument("--shifts", type=str, required=True, help="JSON list of lists of ints")
-
-    # sset-fusion
-    parser_sf = subparsers.add_parser("sset-fusion", help="Solve SSET fusion rules and characteristic polynomials")
-    parser_sf.add_argument("--poly-f", type=str, required=True, help="First polynomial")
-    parser_sf.add_argument("--poly-g", type=str, required=True, help="Second polynomial")
-
-    # annihilator-fusion
-    parser_af = subparsers.add_parser("annihilator-fusion", help="Compute SSET mobility fusion from annihilator generators")
-    parser_af.add_argument("--generators", type=str, required=True, help="JSON list of strings representing annihilator generators")
-    parser_af.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
-    parser_af.add_argument("--variables", type=str, default=None, help="JSON list of strings representing active variables")
-    parser_af.add_argument("--prime-bypass", action="store_true", help="Bypass prime check for qudit dimension")
-
-
-    # search
-    parser_search = subparsers.add_parser("search", help="Search for Koszul models with target dimension")
-    parser_search.add_argument("--qudit-dim", type=int, required=True, help="Qudit dimension")
-    parser_search.add_argument("--target-dim", type=int, required=True, help="Target Krull dimension")
-    parser_search.add_argument("--max-trials", type=int, default=100, help="Maximum number of trials")
-
-    # db
-    parser_db = subparsers.add_parser("db", help="Manage and query the models database")
-    parser_db.add_argument("action", choices=["init", "seed", "sync", "query"], help="Database action")
-    parser_db.add_argument("--query-str", type=str, default="SELECT * FROM models", help="SQL query string for query action")
-
-    # install
-    parser_install = subparsers.add_parser("install", help="Install skills + MCP server into AI agents (project-level by default)")
-    parser_install.add_argument(
-        "--target", action="append", choices=ALL_TARGETS + ["all"], default=None,
-        help="Agent(s) to install for; repeatable. Omit to auto-detect (claude/codex/opencode). Use 'all' to include Antigravity (global).",
+    service = subparsers.add_parser(
+        "service",
+        help="Execute one canonical ServiceRequest (JSON in / JSON out)",
     )
-    parser_install.add_argument("--project-dir", type=str, default=None, help="Project directory to install into (default: CWD)")
-    parser_install.add_argument("--mcp", action="store_true", help="Also wire the MCP server (default: skills-only, scripts called directly)")
-    parser_install.add_argument("--antigravity-global", action="store_true", help="Install Antigravity into global ~/.gemini instead of project .agents/")
-    parser_install.add_argument("--no-agents-md", action="store_true", help="Do not write/update AGENTS.md")
-    parser_install.add_argument("--uninstall", action="store_true", help="Remove installed skills/MCP entries instead of installing")
-    parser_install.add_argument("--list", action="store_true", help="Show install status for each agent and exit")
-    parser_install.add_argument("-y", "--yes", action="store_true", help="Non-interactive: use detected agents + defaults, no prompts")
+    service.add_argument(
+        "--request",
+        required=True,
+        help="ServiceRequest JSON object, or '-' to read stdin",
+    )
+    subparsers.add_parser(
+        "service-catalog",
+        help="Print the machine-readable canonical operation catalog",
+    )
+    stream = subparsers.add_parser(
+        "service-stream",
+        help="Emit resumable ServiceExecution pages as newline-delimited JSON",
+    )
+    stream.add_argument(
+        "--request",
+        required=True,
+        help="Streamable ServiceRequest JSON object, or '-' to read stdin",
+    )
+    stream.add_argument(
+        "--max-pages",
+        type=int,
+        default=1000,
+        help="Transport page ceiling; the last page retains its checkpoint",
+    )
 
-    # self-update
-    parser_su = subparsers.add_parser(
+    database = subparsers.add_parser(
+        "db", help="Explicitly manage the personal model registry"
+    )
+    database.add_argument(
+        "action", choices=["init", "seed", "sync", "query"]
+    )
+    database.add_argument(
+        "--query-str",
+        default="SELECT * FROM models",
+        help="SQL query for the explicit query action",
+    )
+
+    install = subparsers.add_parser(
+        "install", help="Install canonical skills and optional MCP transport"
+    )
+    install.add_argument(
+        "--target",
+        action="append",
+        choices=ALL_TARGETS + ["all"],
+        default=None,
+    )
+    install.add_argument("--project-dir", default=None)
+    install.add_argument("--mcp", action="store_true")
+    install.add_argument("--antigravity-global", action="store_true")
+    install.add_argument("--no-agents-md", action="store_true")
+    install.add_argument("--uninstall", action="store_true")
+    install.add_argument("--list", action="store_true")
+    install.add_argument("-y", "--yes", action="store_true")
+
+    update = subparsers.add_parser(
         "self-update",
-        help="Update the toolkit from GitHub, then refresh the current project's skills",
+        help="Update the package and refresh installed canonical skills",
     )
-    parser_su.add_argument("--project-dir", type=str, default=None, help="Project to refresh (default: CWD)")
-    parser_su.add_argument("--mcp", action="store_true", help="Force-refresh the MCP config too (default: keep the project's existing setup)")
-    parser_su.add_argument("--no-refresh", action="store_true", help="Only update the package; don't touch any project")
-    parser_su.add_argument("--dry-run", action="store_true", help="Show what would run without changing anything")
+    update.add_argument("--project-dir", default=None)
+    update.add_argument("--mcp", action="store_true")
+    update.add_argument("--no-refresh", action="store_true")
+    update.add_argument("--dry-run", action="store_true")
 
-    # doctor
-    parser_doctor = subparsers.add_parser("doctor", help="Diagnose the Macaulay2 backend on this platform")
-    parser_doctor.add_argument("--no-smoke", action="store_true", help="Skip the live M2 '2+2' smoke test")
+    doctor = subparsers.add_parser(
+        "doctor", help="Diagnose the Macaulay2 backend"
+    )
+    doctor.add_argument("--no-smoke", action="store_true")
+    return parser
 
-    # boundary-gauge
-    parser_bg = subparsers.add_parser("boundary-gauge", help="Run boundary-gauge Algorithm 1 pipeline")
-    parser_bg.add_argument("--dim", type=int, required=True, choices=[2, 3], help="Spatial dimension (2 or 3)")
-    parser_bg.add_argument("--Lx", type=int, required=True, help="System size Lx")
-    parser_bg.add_argument("--Ly", type=int, required=True, help="System size Ly")
-    parser_bg.add_argument("--Lz", type=int, default=None, help="System size Lz (required for 3D)")
-    parser_bg.add_argument("--q", type=int, required=True, help="Qudits per site")
-    parser_bg.add_argument("--d", type=int, required=True, help="Qudit dimension")
-    parser_bg.add_argument("--wx", type=int, required=True, help="Patch width wx")
-    parser_bg.add_argument("--wy", type=int, required=True, help="Patch width wy")
-    parser_bg.add_argument("--wz", type=int, default=None, help="Patch width wz (required for 3D)")
-    parser_bg.add_argument("--stabilizer-generators", type=str, required=True, help="JSON stabilizer generators list of lists")
-    parser_bg.add_argument("--qudit-positions", type=str, required=True, help="JSON list of lists of floats for qudit positions")
-    parser_bg.add_argument("--boundary", type=str, choices=["bottom", "top"], default="bottom", help="Boundary boundary ('bottom' or 'top')")
 
+def main() -> None:
+    parser = _build_parser()
     try:
         args = parser.parse_args()
-
-        if args.command == "homology":
-            stabilizer = json.loads(args.stabilizer)
-            result = compute_ext_krull(stabilizer, args.qudit_dim, args.p_ext, args.prime_bypass)
-        elif args.command == "mobility":
-            generators = json.loads(args.generators)
-            all_vars = json.loads(args.all_vars) if args.all_vars is not None else None
-            result = compute_true_mobility_dimension(generators, args.qudit_dim, all_vars)
-        elif args.command == "classify":
-            result = classify_mobility(args.krull_dim, args.spatial_dim)
-        elif args.command == "grobner":
-            stabilizer = json.loads(args.stabilizer)
-            L = json.loads(args.L) if args.L is not None else None
-            result = compute_gsd_and_periodicity(stabilizer, args.Lx, args.Ly, args.qudit_dim, L)
-        elif args.command == "fusion-interference":
-            stabilizer = json.loads(args.stabilizer)
-            shifts = json.loads(args.shifts)
-            result = analyze_fusion_interference(stabilizer, args.qudit_dim, shifts)
-        elif args.command == "sset-fusion":
-            result = solve_sset_fusion(args.poly_f, args.poly_g)
-        elif args.command == "annihilator-fusion":
-            generators = json.loads(args.generators)
-            variables = json.loads(args.variables) if args.variables is not None else None
-            result = analyze_annihilator_fusion(generators, args.qudit_dim, variables, args.prime_bypass)
-        elif args.command == "boundary-gauge":
-            stabilizer_generators = json.loads(args.stabilizer_generators)
-            qudit_positions = json.loads(args.qudit_positions)
-            if args.dim == 2:
-                bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_2d(
-                    Lx=args.Lx,
-                    Ly=args.Ly,
-                    q=args.q,
-                    d=args.d,
-                    wx=args.wx,
-                    wy=args.wy,
-                    stabilizer_generators=stabilizer_generators,
-                    qudit_positions=qudit_positions,
-                    boundary=args.boundary,
-                )
-            elif args.dim == 3:
-                if args.Lz is None or args.wz is None:
-                    raise ValueError("Lz and wz are required for 3D")
-                bulk_stabilizers, boundary_ops, S_mat = run_algorithm_1_boundary_ops_3d(
-                    Lx=args.Lx,
-                    Ly=args.Ly,
-                    Lz=args.Lz,
-                    q=args.q,
-                    d=args.d,
-                    wx=args.wx,
-                    wy=args.wy,
-                    wz=args.wz,
-                    stabilizer_generators=stabilizer_generators,
-                    qudit_positions=qudit_positions,
-                    boundary=args.boundary,
-                )
-            else:
-                raise ValueError("dim must be 2 or 3")
-            result = {
-                "bulk_stabilizers": [{str(k): list(v) for k, v in stab.items()} for stab in bulk_stabilizers],
-                "boundary_ops": boundary_ops.tolist(),
-                "S_mat": S_mat.tolist()
-            }
-
-        elif args.command == "search":
-            result = search_koszul_models(args.qudit_dim, args.target_dim, args.max_trials)
+        if args.command == "service":
+            encoded = (
+                sys.stdin.read() if args.request == "-" else args.request
+            )
+            result = execute_service_payload(json.loads(encoded))
+        elif args.command == "service-catalog":
+            result = default_service_catalog()
+        elif args.command == "service-stream":
+            encoded = (
+                sys.stdin.read() if args.request == "-" else args.request
+            )
+            for page in stream_service_payload(
+                json.loads(encoded), max_pages=args.max_pages
+            ):
+                print(json.dumps(page, sort_keys=True), flush=True)
+            raise SystemExit(0)
         elif args.command == "db":
-            if args.action == "query":
-                result = query_vector_db(args.action, {"query": args.query_str})
-            else:
-                result = query_vector_db(args.action)
+            result = (
+                query_vector_db("query", {"query": args.query_str})
+                if args.action == "query"
+                else query_vector_db(args.action)
+            )
         elif args.command == "install":
             if args.list:
                 run_status(project_dir=args.project_dir)
-                sys.exit(0)
+                raise SystemExit(0)
             if args.uninstall:
-                ok = run_uninstall(targets=args.target, project_dir=args.project_dir)
+                ok = run_uninstall(
+                    targets=args.target, project_dir=args.project_dir
+                )
             else:
-                # interactive wizard when in a TTY and the user didn't pin choices
                 interactive = (
                     not args.yes
                     and args.target is None
                     and not args.mcp
                     and sys.stdin.isatty()
                 )
-                if interactive:
-                    ok = run_interactive(project_dir=args.project_dir)
-                else:
-                    ok = run_install(
+                ok = (
+                    run_interactive(project_dir=args.project_dir)
+                    if interactive
+                    else run_install(
                         targets=args.target,
                         project_dir=args.project_dir,
                         write_agents=not args.no_agents_md,
                         antigravity_global=args.antigravity_global,
                         with_mcp=args.mcp,
                     )
-            sys.exit(0 if ok else 1)
+                )
+            raise SystemExit(0 if ok else 1)
         elif args.command == "self-update":
             ok = run_self_update(
                 project_dir=args.project_dir,
@@ -237,31 +176,42 @@ def main():
                 refresh=not args.no_refresh,
                 dry_run=args.dry_run,
             )
-            sys.exit(0 if ok else 1)
+            raise SystemExit(0 if ok else 1)
         elif args.command == "doctor":
-            from mobility_toolkit.engine import describe_m2_backend, run_macaulay2
-            info = describe_m2_backend()
-            if not args.no_smoke and info["available"]:
-                res = run_macaulay2("2+2", timeout_seconds=20.0)
-                info["smoke_test"] = {
+            from mobility_toolkit.engine import (
+                describe_m2_backend,
+                run_macaulay2,
+            )
+
+            result = describe_m2_backend()
+            if not args.no_smoke and result["available"]:
+                smoke = run_macaulay2("2+2", timeout_seconds=20.0)
+                result["smoke_test"] = {
                     "ran": True,
-                    "ok": res["exit_code"] == 0 and "4" in res["stdout"],
-                    "exit_code": res["exit_code"],
-                    "stderr": res["stderr"].strip()[:300],
+                    "ok": (
+                        smoke["exit_code"] == 0 and "4" in smoke["stdout"]
+                    ),
+                    "exit_code": smoke["exit_code"],
+                    "stderr": smoke["stderr"].strip()[:300],
                 }
             else:
-                info["smoke_test"] = {"ran": False, "ok": None}
-            print(json.dumps(info, indent=2))
-            sys.exit(0 if info["available"] and info["smoke_test"].get("ok") is not False else 1)
+                result["smoke_test"] = {"ran": False, "ok": None}
+            print(json.dumps(result, sort_keys=True))
+            ok = result["available"] and (
+                result["smoke_test"].get("ok") is not False
+            )
+            raise SystemExit(0 if ok else 1)
         else:
-            raise ValueError(f"Unknown command: {args.command}")
+            raise ValueError(f"unknown command: {args.command}")
 
-        print(json.dumps(result))
-        sys.exit(0)
+        print(json.dumps(result, sort_keys=True))
+        raise SystemExit(0)
+    except SystemExit:
+        raise
+    except Exception as exc:
+        print(json.dumps({"status": "error", "error": str(exc)}))
+        raise SystemExit(1)
 
-    except Exception as e:
-        print(json.dumps({"status": "error", "error": str(e)}))
-        sys.exit(1)
 
 if __name__ == "__main__":
     main()

@@ -11,7 +11,7 @@ import sys
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Optional
 
 os.environ.setdefault("MPMATH_NOGMPY", "1")
 os.environ.setdefault("SYMPY_GROUND_TYPES", "python")
@@ -48,8 +48,8 @@ CODE_ORDER = OrderedDict(
 
 from mobility_toolkit.boundary_gauge.algebra.support import get_support_weight
 from mobility_toolkit.boundary_gauge.boundary.pipeline import (
-    run_algorithm_1_boundary_ops_2d,
-    run_algorithm_1_boundary_ops_3d,
+    _run_algorithm_1_boundary_ops_2d,
+    _run_algorithm_1_boundary_ops_3d,
 )
 from mobility_toolkit.boundary_gauge.models.models_2d import (
     POSITIONS_2D_EDGE_NEGATIVE,
@@ -134,8 +134,8 @@ def case_kwargs(case: Case, *, visualize: bool) -> dict:
 def run_case(case: Case, *, visualize: bool = False):
     kwargs = case_kwargs(case, visualize=visualize)
     if case.dimension == 2:
-        return run_algorithm_1_boundary_ops_2d(**kwargs)
-    return run_algorithm_1_boundary_ops_3d(**kwargs)
+        return _run_algorithm_1_boundary_ops_2d(**kwargs)
+    return _run_algorithm_1_boundary_ops_3d(**kwargs)
 
 
 def summarize_result(bulk, ops, s_mat) -> dict[str, object]:
@@ -229,7 +229,11 @@ def figure_title(fig) -> str:
     return "Untitled figure"
 
 
-def write_manifest(path: Path, rows: Iterable[dict[str, str]], fieldnames: list[str] | None = None) -> None:
+def write_manifest(
+    path: Path,
+    rows: Iterable[dict[str, str]],
+    fieldnames: Optional[list[str]] = None,
+) -> None:
     with path.open("w", encoding="utf-8", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames or FIGURE_MANIFEST_FIELDS)
         writer.writeheader()

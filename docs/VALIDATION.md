@@ -1,83 +1,77 @@
-# Validation & Benchmarks
+# Validation and literature benchmarks
 
-This document records the deep-validation pass: the toolkit was exercised on
-real stabilizer-code models with **known literature results**, to confirm it
-behaves as expected. Reproduce with `pytest tests/test_benchmarks.py` (skips
-automatically when no Macaulay2 backend is present).
+This document records the corrected validation suite for the Ruba--Yang charge
+modules. The precise implementation boundary is in
+[THEORY_SCOPE.md](THEORY_SCOPE.md).
 
-**Backend used:** Macaulay2 v1.22 via WSL (Ubuntu). Verify yours with
-`mobility-toolkit doctor`.
+## What is validated
 
-## Theoretical frame
+For generator rows in `[X_1,...,X_q,Z_1,...,Z_q]` coordinates, the homology path
+now verifies
 
-Excitation mobility is read off the **Krull dimension of the p-dimensional
-charge module** `Ext^{p+1}(coker M, R)`. The criterion (from *Homological
-Invariants of Pauli Stabilizer Codes*) is:
+```text
+sigma^dagger lambda sigma = 0
+```
 
-> **Krull dimension 0 ⟺ excitations are mobile** (topological order);
-> Krull dimension > 0 ⟺ restricted mobility (fracton order).
+and computes
 
-Ground-state degeneracy on a torus is computed separately via Gröbner bases
-(`grobner`), valid for any `N`.
+```text
+Q^p = Ext_R^(p+1)(bar(P/L), R).
+```
 
-## Results
+The suite checks the Laurent antipode on the presentation and annihilator,
+ambient `spatial_dim`, Proposition 25 bounds/vanishing, cache isolation by
+invariant convention, and theorem-safe physical output.
 
-### Ground-state degeneracy (GSD)
+## Reference results
 
-| Model | N | Torus | Expected | Toolkit | Source |
-|---|---|---|---|---|---|
-| Z₂ toric code | 2 | 3×3 | 4 = 2² | **4** ✓ | Z_N toric GSD = N² (Kitaev) |
-| Z₃ toric code | 3 | 2×2 | 9 = 3² | **9** ✓ | " |
-| Z₅ toric code | 5 | 4×4 | 25 = 5² | **25** ✓ | " |
-| WCF (bivariate bicycle) | 12 | 2×2 | 144 | **144** ✓ | registry seed / BB codes |
-| DCY (bivariate bicycle) | 12 | 3×3 | 104976 | **104976** ✓ | registry seed / BB codes |
+| Model / case | Expected result | Checked result |
+|---|---:|---:|
+| 2D toric code, `Q^0` | Krull dimension `0` | `0` |
+| Full X-Cube sigma, Ruba--Yang Eq. (98), `Q^0` | Krull dimension `1` | `1` |
+| Full X-Cube, `Q^1` and `Q^2` | zero modules | `-1`, `-1` |
+| Algebra-only `F_5[x^+-1]`, presentation `x-2` | barred annihilator at `x=3` | conjugated ideal returned |
+| Same presentation embedded in `D=3` | unused axes remain in support | dimension reflects the 3D ring |
+| Laurent annihilator `(xy-1)` | translation lattice rank `1`, direction `(1,1)` | rank `1`, basis `(1,1)` |
+| Non-binomial Haah-style annihilator | no supported exact lattice algorithm | structured `inconclusive` |
 
-Fusion-rule factorizations also match: WCF → Z₄²×Z₃² (16·9 = 144),
-DCY → Z₄²×Z₃⁸ (16·6561 = 104976).
+The X-Cube benchmark uses the complete `6 x 3` map, represented by three input
+rows of length six. The old reduced `4 x 2` toy matrix and the old `d1=1` seed
+were removed. Section 7.7 states that the complete sigma is injective and `L` is
+free, hence `Q^i=0` for every `i>0`.
 
-### Point-charge mobility (Krull dimension, p = 0)
+The focused physics/cache/literature suite passes 25 tests, including 11 live
+Macaulay2 benchmarks. Core antipode/validation tests and translation-lattice
+tests are also part of the normal pytest suite.
 
-| Model | N | Krull dim | Class | Matches |
-|---|---|---|---|---|
-| Toric code | 2 | **0** | topological (mobile anyons) | seed `d0=0`, literature ✓ |
-| WCF | 12 | 0 (seed) | topological | seed only — see Finding 2 |
-| DCY | 12 | 0 (seed) | topological | seed only — see Finding 2 |
-| X-Cube | 2 | **2** | fracton (restricted) | seed `d0=2` ✓ |
-| Chamon cubic | 2 | **1** | fracton (restricted) | seed `d0=1` ✓ |
+## Correct physical reading
 
-The mobility criterion is reproduced exactly: the topological model has Krull-0
-point charges; both fracton models have Krull > 0. This also matches the
-registry's `is_topological` flags.
+Ruba--Yang Corollary 37 gives a module-level statement for `Q^0`:
 
-### Fusion interference (qualitative)
+- dimension zero iff every local point-charge class is mobile in every
+  noncompact direction;
+- positive dimension means only that not every point-charge class is fully
+  mobile.
 
-For the 2D lineon `[[1-x, 0*y]]` (mobile along *y*): a relative shift **along
-*x*** (the constrained axis) causes a dimension drop; a shift **along *y*** does
-not. Reproduced ✓.
+It does not imply `mobility_dimension = D - Krull_dimension`, distinguish
+planons/lineons/fractons, or classify individual charges from the support of the
+whole module. Higher `Q^p` mobility is marked conjectural. Topological order is
+only exposed when the caller independently supplies the required physical
+assumptions.
 
-## Findings
+## Composite coefficient rings
 
-**Finding 1 — X-Cube `d1` discrepancy.** The registry seeds X-Cube `d1 = 1`, but
-`compute_ext_krull(XCUBE, 2, p_ext=1)` returns the zero module (Krull −1). All
-other seeded `d0`/`d1` values across the five models reproduce exactly. The
-2-generator X-Cube matrix captures the `p=0` charge module (`d0=2` ✓) but its
-`Ext²` is zero; the seed's `d1=1` likely reflects a fuller X-Cube presentation
-(the model has three stabilizer types). This is a model-representation nuance,
-not a core-engine error — flagged for the maintainer to adjudicate rather than
-silently changed.
+Failure of the current Ext implementation over `ZZ/4` or `ZZ/12` is a backend
+limitation, not a limitation of the theory. Ruba--Yang work over
+`Z_n[Lambda]`, include nonuniform qudits, and give a `Z_4` toric-phase example.
+The homology API therefore raises an explicit `NotImplementedError` before
+calling Macaulay2 for composite `qudit_dim`.
 
-**Finding 2 — homology requires prime N.** `compute_ext_krull` fails in
-Macaulay2 for composite `N` (e.g. the N=12 BB codes): `ZZ/12` is not a field, so
-`coker`/`Ext`/`dim` have no method. `prime_bypass=True` skips the Python-side
-primality check but M2 still cannot evaluate the homology, so the bypass is
-effectively **GSD/Gröbner-only** for composite N. This is consistent with the
-underlying theory, which is defined over fields. The composite-N codes are
-therefore validated by GSD, not by the homological mobility path.
+GSD and finite-torus periodicity are separate algorithms and continue to cover
+composite examples such as the WCF/DCY seeds. Those checks do not validate the
+Ruba--Yang Ext theorem.
 
 ## Sources
 
-- [X-Cube model — Error Correction Zoo](https://errorcorrectionzoo.org/c/xcube)
-  (GSD = 2^(6L−3); fractons & lineons)
-- [Homological Invariants of Pauli Stabilizer Codes — Comm. Math. Phys. (2024)](https://link.springer.com/article/10.1007/s00220-024-04991-y)
-  (Krull-dimension-0 ⟺ mobile excitations)
-- [Fracton stabilizer codes — Error Correction Zoo](https://errorcorrectionzoo.org/c/fracton)
+- [Ruba--Yang, arXiv:2204.06023v3](https://arxiv.org/abs/2204.06023)
+- [Published version, Communications in Mathematical Physics](https://link.springer.com/article/10.1007/s00220-024-04991-y)

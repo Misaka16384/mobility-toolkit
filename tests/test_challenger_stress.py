@@ -1,5 +1,5 @@
 import pytest
-from mobility_toolkit.translate import translate_to_algebra, translate_stabilizers
+from mobility_toolkit.translate import translate_stabilizers
 from mobility_toolkit.fusion import parse_poly_str
 from mobility_toolkit.grobner import compute_gsd_and_periodicity
 
@@ -9,7 +9,10 @@ from mobility_toolkit.grobner import compute_gsd_and_periodicity
 
 def test_extreme_ring_promotion_10():
     """Test dynamic ring promotion with dimension 10 explicitly specified."""
-    res = translate_to_algebra([["x - 1", "y - 1"]], qudit_dim=2, spatial_dim=10)
+    res = translate_stabilizers(
+        [["x - 1", "y - 1"]], qudit_dim=2, spatial_dim=10,
+        validate_stabilizer=False,
+    )
     assert len(res["variables"]) == 20  # x1..x10, t1..t10
     assert "x10" in res["variables"]
     assert "t10" in res["variables"]
@@ -17,7 +20,7 @@ def test_extreme_ring_promotion_10():
 
 def test_extreme_ring_promotion_15_implicit():
     """Test dynamic ring promotion to dimension 15 based on unified variable index in input."""
-    res = translate_to_algebra([["x15 + 1", "0"]], qudit_dim=2)
+    res = translate_stabilizers([["x15 + 1", "0"]], qudit_dim=2)
     assert len(res["variables"]) == 30  # x1..x15, t1..t15
     assert "x15" in res["variables"]
     assert "t15" in res["variables"]
