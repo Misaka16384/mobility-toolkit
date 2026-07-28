@@ -337,28 +337,64 @@ def count_quotient_size(parsed_gb: List[tuple], vars_list: List[str], qudit_dim:
             raise ValueError("GSD quotient ring is infinite." if is_gsd else "Quotient ring is infinite.")
         bounds[v] = min(v_bounds)
         
-    basis_monomials = []
+    num_vars = len(vars_list)
+    monic_gens = []
+    non_monic_gens = []
+
+    # Pre-process generators into tuples and filter out inactive ones
+    for coef, exponents in parsed_gb:
+        exp_tuple = tuple(exponents[v] for v in vars_list)
+        # ⚡ Bolt: If any generator exponent exceeds the variable's upper bound, it can never divide any basis monomial
+        if any(exp_tuple[i] >= bounds[vars_list[i]] for i in range(num_vars)):
+            continue
+        if coef == 1:
+            monic_gens.append(exp_tuple)
+        else:
+            non_monic_gens.append((coef, exp_tuple))
+
+    # Fast path: No active generators below the bounds (rare but perfectly valid)
+    if not monic_gens and not non_monic_gens:
+        basis_count = 1
+        for v in vars_list:
+            basis_count *= bounds[v]
+        return qudit_dim ** basis_count
+
     ranges = [range(bounds[v]) for v in vars_list]
-    for combo in product(*ranges):
-        divisible = False
-        for coef, exponents in parsed_gb:
-            if coef == 1:
-                if all(combo[i] >= exponents[vars_list[i]] for i in range(len(vars_list))):
-                    divisible = True
+
+    # ⚡ Bolt: Fast path for simple monomial ideals without coefficient interference
+    if not non_monic_gens:
+        basis_count = 0
+        for combo in product(*ranges):
+            # Inline for loop is faster than all() generator overhead in Python
+            for mg in monic_gens:
+                for i in range(num_vars):
+                    if combo[i] < mg[i]:
+                        break
+                else:
                     break
-        if not divisible:
-            basis_monomials.append(combo)
-            
+            else:
+                basis_count += 1
+        return qudit_dim ** basis_count
+
     quotient_size = 1
-    for combo in basis_monomials:
-        dividing_coefs = []
-        for coef, exponents in parsed_gb:
-            if all(combo[i] >= exponents[vars_list[i]] for i in range(len(vars_list))):
-                dividing_coefs.append(coef)
-        # Bolt: Replaced manual gcd loop with C-optimized math.gcd
-        curr_gcd = math.gcd(qudit_dim, *dividing_coefs)
-        quotient_size *= curr_gcd
-        
+    for combo in product(*ranges):
+        for mg in monic_gens:
+            for i in range(num_vars):
+                if combo[i] < mg[i]:
+                    break
+            else:
+                break
+        else:
+            dividing_coefs = []
+            for coef, nmg in non_monic_gens:
+                for i in range(num_vars):
+                    if combo[i] < nmg[i]:
+                        break
+                else:
+                    dividing_coefs.append(coef)
+            # Bolt: Replaced manual gcd loop with C-optimized math.gcd
+            quotient_size *= math.gcd(qudit_dim, *dividing_coefs)
+            
     return quotient_size
 
 def compute_fusion_rules_str(qudit_dim: int, quotient_size: int) -> str:
