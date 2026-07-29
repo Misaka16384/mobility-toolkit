@@ -331,7 +331,10 @@ def count_quotient_size(parsed_gb: List[tuple], vars_list: List[str], qudit_dim:
         v_bounds = []
         for coef, exponents in parsed_gb:
             if coef == 1 and exponents[v] >= 1:
-                if all(exponents[other] == 0 for other in vars_list if other != v):
+                for other in vars_list:
+                    if other != v and exponents[other] != 0:
+                        break
+                else:
                     v_bounds.append(exponents[v])
         if not v_bounds:
             raise ValueError("GSD quotient ring is infinite." if is_gsd else "Quotient ring is infinite.")
@@ -345,12 +348,14 @@ def count_quotient_size(parsed_gb: List[tuple], vars_list: List[str], qudit_dim:
     for coef, exponents in parsed_gb:
         exp_tuple = tuple(exponents[v] for v in vars_list)
         # ⚡ Bolt: If any generator exponent exceeds the variable's upper bound, it can never divide any basis monomial
-        if any(exp_tuple[i] >= bounds[vars_list[i]] for i in range(num_vars)):
-            continue
-        if coef == 1:
-            monic_gens.append(exp_tuple)
+        for i in range(num_vars):
+            if exp_tuple[i] >= bounds[vars_list[i]]:
+                break
         else:
-            non_monic_gens.append((coef, exp_tuple))
+            if coef == 1:
+                monic_gens.append(exp_tuple)
+            else:
+                non_monic_gens.append((coef, exp_tuple))
 
     # Fast path: No active generators below the bounds (rare but perfectly valid)
     if not monic_gens and not non_monic_gens:
