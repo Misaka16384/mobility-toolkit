@@ -342,10 +342,17 @@ def count_quotient_size(parsed_gb: List[tuple], vars_list: List[str], qudit_dim:
     non_monic_gens = []
 
     # Pre-process generators into tuples and filter out inactive ones
+    # ⚡ Bolt: Cache bounds to avoid dict lookup in loop and unroll generator expressions
+    bounds_list = [bounds[v] for v in vars_list]
     for coef, exponents in parsed_gb:
         exp_tuple = tuple(exponents[v] for v in vars_list)
         # ⚡ Bolt: If any generator exponent exceeds the variable's upper bound, it can never divide any basis monomial
-        if any(exp_tuple[i] >= bounds[vars_list[i]] for i in range(num_vars)):
+        exceeds = False
+        for i in range(num_vars):
+            if exp_tuple[i] >= bounds_list[i]:
+                exceeds = True
+                break
+        if exceeds:
             continue
         if coef == 1:
             monic_gens.append(exp_tuple)

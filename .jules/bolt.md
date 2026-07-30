@@ -25,3 +25,6 @@
 ## 2024-11-20 - Vectorizing NumPy Array Modulo Operations
 **Learning:** Python loops executing NumPy operations row-by-row are significantly slower due to loop overhead. Using array masking (`mask = factors != 0`) and vectorizing column slices (`factors = arr[:, col] % p`) can yield a 3-4x speedup in dense array arithmetic.
 **Action:** When performing matrix row-reductions over finite fields in NumPy, avoid Python-level `for` loops iterating over array rows. Always use vectorized operations utilizing boolean masks and broadcasting.
+## 2024-12-05 - [Generator Overhead With any()]
+**Learning:** Using `any()` with a generator expression inside heavily nested loops is a major performance bottleneck due to generator instantiation overhead in Python. Furthermore, repeatedly accessing dictionaries in hot inner loops also incurs performance hits.
+**Action:** Unroll such constructs into explicit `for/break` loops and cache dictionary lookups into arrays/lists before the loop, achieving significant speedups.
