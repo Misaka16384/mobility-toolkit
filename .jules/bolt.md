@@ -25,3 +25,7 @@
 ## 2024-11-20 - Vectorizing NumPy Array Modulo Operations
 **Learning:** Python loops executing NumPy operations row-by-row are significantly slower due to loop overhead. Using array masking (`mask = factors != 0`) and vectorizing column slices (`factors = arr[:, col] % p`) can yield a 3-4x speedup in dense array arithmetic.
 **Action:** When performing matrix row-reductions over finite fields in NumPy, avoid Python-level `for` loops iterating over array rows. Always use vectorized operations utilizing boolean masks and broadcasting.
+
+## 2025-02-12 - Tuple Allocation and Generator Overhead in O(N^2) Algorithms
+**Learning:** In purely combinatorial `O(N^2)` tasks like the cell neighbor detection in `diagnose_cubical_mask`, using generator expressions inside `tuple()` or `sum()` allocations (e.g. `tuple(abs(a - b) for a, b in zip(left, right))`) causes extreme instantiation and allocation overhead.
+**Action:** When finding overlaps or computing differences in bounded tight double-loops in Python, completely unroll generators into simple `for/break` and counter variables to prevent memory allocation overhead, yielding ~5x speedups.

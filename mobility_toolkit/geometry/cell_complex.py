@@ -173,14 +173,21 @@ def diagnose_cubical_mask(
     pinched = []
     for index, left in enumerate(cells):
         for right in cells[index + 1 :]:
-            differences = tuple(abs(a - b) for a, b in zip(left, right))
-            if sum(value == 1 for value in differences) == 1 and all(
-                value <= 1 for value in differences
-            ):
-                adjacency[left].add(right)
-                adjacency[right].add(left)
-            elif all(value <= 1 for value in differences):
-                pinched.append((left, right))
+            ones = 0
+            greater = False
+            for a, b in zip(left, right):
+                diff = abs(a - b)
+                if diff > 1:
+                    greater = True
+                    break
+                elif diff == 1:
+                    ones += 1
+            if not greater:
+                if ones == 1:
+                    adjacency[left].add(right)
+                    adjacency[right].add(left)
+                else:
+                    pinched.append((left, right))
     component_count = 0
     unseen = set(cells)
     while unseen:
