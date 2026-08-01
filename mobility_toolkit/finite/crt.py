@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from functools import reduce
-from operator import mul
 from typing import Sequence, Tuple
 
 from sympy import factorint
@@ -37,7 +35,7 @@ def crt_recombine(residues: Sequence[int], moduli: Sequence[int]) -> int:
         for right in moduli[left_index + 1 :]:
             if math.gcd(left, right) != 1:
                 raise ValueError("CRT moduli must be pairwise coprime")
-    total_modulus = reduce(mul, moduli, 1)
+    total_modulus = math.prod(moduli)
     value = 0
     for residue, modulus in zip(residues, moduli):
         cofactor = total_modulus // modulus
@@ -148,10 +146,8 @@ def verify_primary_decomposition(
         combined = combined.sum(component.subgroup, backend)
     if combined != group.whole_subgroup(backend):
         raise ArithmeticError("primary components do not generate the whole group")
-    component_order = reduce(
-        mul,
-        (component.subgroup.order(backend) for component in decomposition.components),
-        1,
+    component_order = math.prod(
+        component.subgroup.order(backend) for component in decomposition.components
     )
     if component_order != group.order(backend):
         raise ArithmeticError("primary component orders do not multiply to the group order")
