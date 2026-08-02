@@ -591,12 +591,15 @@ def _gf2_rank(rows: Iterable[Sequence[int]], width: int) -> int:
 
 
 def _gf2_matmul(left: Sequence[Sequence[int]], right_columns: Sequence[Sequence[int]]) -> Tuple[Tuple[int, ...], ...]:
+    left_packed = tuple(sum((a & 1) << i for i, a in enumerate(row)) for row in left)
+    right_packed = tuple(sum((b & 1) << i for i, b in enumerate(col)) for col in right_columns)
+
     return tuple(
         tuple(
-            sum(a * b for a, b in zip(row, column)) % 2
-            for column in right_columns
+            (r & c).bit_count() & 1
+            for c in right_packed
         )
-        for row in left
+        for r in left_packed
     )
 
 

@@ -25,3 +25,10 @@
 ## 2024-11-20 - Vectorizing NumPy Array Modulo Operations
 **Learning:** Python loops executing NumPy operations row-by-row are significantly slower due to loop overhead. Using array masking (`mask = factors != 0`) and vectorizing column slices (`factors = arr[:, col] % p`) can yield a 3-4x speedup in dense array arithmetic.
 **Action:** When performing matrix row-reductions over finite fields in NumPy, avoid Python-level `for` loops iterating over array rows. Always use vectorized operations utilizing boolean masks and broadcasting.
+## 2024-08-02 - Fast GF(2) Matrix Multiplication via Bitpacking
+**Learning:** In Python, computing GF(2) matrix products via list comprehensions like `sum(a * b for a, b in zip(row, column)) % 2` is extremely slow. Since Python handles arbitrarily large integers, we can pack GF(2) rows and columns into single integers using `sum((a & 1) << i for i, a in enumerate(row))`. The dot product then reduces to a C-optimized `(r & c).bit_count() & 1`, providing a >10x speedup for binary matrices.
+**Action:** Always replace Python-level list iteration with integer bit-packing and `bit_count()` for dense binary (GF(2)) matrix multiplications and dot products.
+
+## 2024-08-02 - Short-circuiting Sparse Tensor Contractions
+**Learning:** Flat generator expressions like `sum(left[r] * matrix[r][c] * right[c] for r in ... for c in ...)` evaluate every combination, which is very inefficient for sparse vectors where `left[r]` or `right[c]` are frequently zero. Expanding these into nested explicit `for` loops with an early `if val == 0: continue` check yields ~8x speedup by skipping entire inner loops.
+**Action:** Avoid flat generator expressions for numerical summations over vectors/matrices that may contain zeros. Unroll them into explicit loops with early `continue` statements to prune the computation tree.

@@ -54,11 +54,15 @@ def _raw_braiding(
     matrix: SparseIntMatrix, left: Sequence[int], right: Sequence[int]
 ) -> int:
     rows = matrix.to_rows()
-    return sum(
-        int(left[row]) * rows[row][column] * int(right[column])
-        for row in range(matrix.nrows)
-        for column in range(matrix.ncols)
-    )
+    result = 0
+    right_ints = tuple(int(x) for x in right)
+    for row in range(matrix.nrows):
+        l_val = int(left[row])
+        if l_val == 0:
+            continue
+        row_vals = rows[row]
+        result += l_val * sum(row_vals[c] * right_ints[c] for c in range(matrix.ncols))
+    return result
 
 
 def _raw_spin(
@@ -70,10 +74,15 @@ def _raw_spin(
     rows = matrix.to_rows()
     result = sum(value * generator_spins[index] for index, value in enumerate(values))
     for index, value in enumerate(values):
+        if value == 0:
+            continue
         result += value * (value - 1) // 2 * rows[index][index]
     for left in range(len(values)):
-        for right in range(left + 1, len(values)):
-            result += values[left] * values[right] * rows[left][right]
+        l_val = values[left]
+        if l_val == 0:
+            continue
+        row_left = rows[left]
+        result += l_val * sum(values[right] * row_left[right] for right in range(left + 1, len(values)))
     return result
 
 
