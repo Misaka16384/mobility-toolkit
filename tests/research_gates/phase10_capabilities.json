@@ -361,6 +361,81 @@
       "dependencies": [
         "python-flint"
       ]
+    },
+    {
+      "id": "cheshire-v2-toric-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_cheshire_lattice_v2.py::test_tampered_gate_or_target_term_fails_replay",
+      "assertion": "Exact phase-aware replay rejects a tampered gate or target Hamiltonian term.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-v2-toric-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_cheshire_classification_v2.py::test_toric_direct_algebra_crosswalk_and_anyon_action_match_eq_638",
+      "assertion": "The six direct algebras and anyon actions reproduce the source-locked Z2 toric crosswalk and Eq. (6.38).",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-v2-toric-crosscheck",
+      "layer": "cross_backend",
+      "nodeid": "tests/test_cheshire_classification_v2.py::test_toric_six_species_come_from_exhaustive_folded_enumerator",
+      "assertion": "The abstract folded-metric enumerator independently produces exactly the six source-labelled toric defects.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-v2-toric-scale",
+      "layer": "scale",
+      "nodeid": "tests/test_cheshire_lattice_v2.py::test_all_six_toric_lattice_realizations_are_exact_and_drawn",
+      "assertion": "Every finite realization records its finite support geometry and Hamiltonian delta without thermodynamic extrapolation.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-v2-pointed-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_cheshire_classification_v2.py::test_pointed_cochain_checker_and_explicit_coboundary_gauge",
+      "assertion": "The finite pointed checker verifies pentagon, d(mu)=omega, and an explicit coboundary gauge transformation while rejecting an obstruction.",
+      "dependencies": []
+    },
+    {
+      "id": "cheshire-v2-pointed-literature",
+      "layer": "literature",
+      "nodeid": "tests/test_cheshire_classification_v2.py::test_generic_pointed_interface_literature_counts",
+      "assertion": "Z2 toric, Z4 toric, double-semion, and three-fermion folded interface counts match the recorded literature benchmarks.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-v2-pointed-scale",
+      "layer": "scale",
+      "nodeid": "tests/test_cheshire_classification_v2.py::test_two_toric_interface_has_270_exact_folded_lagrangians",
+      "assertion": "The isotropic-pruned finite executor exhausts and certifies the 270 two-toric folded Lagrangians.",
+      "dependencies": [
+        "python-flint"
+      ]
+    },
+    {
+      "id": "cheshire-v2-xcube-correctness",
+      "layer": "correctness",
+      "nodeid": "tests/test_cheshire_fracton_v2.py::test_xcube_support_search_is_58_per_axis_but_never_a_complete_classification",
+      "assertion": "The exact GF(2) search returns 58 supports per axis while forcing classification_complete=false.",
+      "dependencies": []
+    },
+    {
+      "id": "cheshire-v2-xcube-scale",
+      "layer": "scale",
+      "nodeid": "tests/test_cheshire_fracton_v2.py::test_xcube_equivalence_counts_keep_the_default_choice_visible",
+      "assertion": "Raw, cubic, planon, and intrinsic-projection counts are reported separately with the default equivalence choice visible.",
+      "dependencies": []
     }
   ],
   "capabilities": [
@@ -482,6 +557,45 @@
       ]
     },
     {
+      "id": "toric2d_cheshire_reference",
+      "title": "Complete 2D Z2 toric Cheshire and descendant-defect reference",
+      "status": "production",
+      "exactness": [
+        "certified_exact",
+        "bounded_exact"
+      ],
+      "operation_scope": "The six oriented toric defects, ordered fusion, anyon action, and emitted finite lattice/circuit witnesses.",
+      "evidence": [
+        "cheshire-v2-toric-correctness",
+        "cheshire-v2-toric-literature",
+        "cheshire-v2-toric-crosscheck",
+        "cheshire-v2-toric-scale"
+      ],
+      "limitations": [
+        "Finite lattice and circuit replay do not prove a thermodynamic spectral gap.",
+        "No optimal circuit-depth conclusion is made."
+      ]
+    },
+    {
+      "id": "pointed_abelian_interfaces",
+      "title": "Finite pointed and Abelian folded-interface classification",
+      "status": "production",
+      "exactness": [
+        "certified_exact"
+      ],
+      "operation_scope": "Explicit finite metric groups after exhaustive folded-Lagrangian search, plus supplied finite pointed cochain verification.",
+      "evidence": [
+        "cheshire-v2-pointed-correctness",
+        "cheshire-v2-pointed-literature",
+        "cheshire-v2-toric-crosscheck",
+        "cheshire-v2-pointed-scale"
+      ],
+      "limitations": [
+        "Metric data alone does not construct a microscopic Hamiltonian or direct algebra multiplication.",
+        "Generic ordered fusion needs explicit pointed cochain and bimodule-composition data."
+      ]
+    },
+    {
       "id": "symbolic_3d_e3_seeds",
       "title": "Bounded symbolic 3D seed enumeration",
       "status": "experimental",
@@ -553,6 +667,23 @@
       ]
     },
     {
+      "id": "xcube_cheshire_support_slice",
+      "title": "Evidence-graded axial X-cube Cheshire support slice",
+      "status": "experimental",
+      "exactness": [
+        "experimental"
+      ],
+      "operation_scope": "The nonzero totally singular subgroups of the fixed five-generator support space for all three coordinate axes.",
+      "evidence": [
+        "cheshire-v2-xcube-correctness",
+        "cheshire-v2-xcube-scale"
+      ],
+      "limitations": [
+        "Support counts are not multiplication or mobility-enriched Morita species counts.",
+        "Slanted directions and the physical foliated-equivalence quotient are unsupported."
+      ]
+    },
+    {
       "id": "generic_full_halfspace_boundary_module",
       "title": "Generic full half-space boundary module and secondary closure",
       "status": "unsupported",
@@ -579,16 +710,16 @@
       ]
     },
     {
-      "id": "cheshire_dynamic_phase_and_circuits",
-      "title": "Cheshire dynamic phase classification and circuit synthesis",
+      "id": "cheshire_minimum_depth_and_gap",
+      "title": "Universal Cheshire minimum-depth and thermodynamic-gap proof",
       "status": "unsupported",
       "exactness": [
         "unsupported"
       ],
-      "operation_scope": "Finite-depth deformation, fusion, and sequential creation circuits.",
+      "operation_scope": "Arbitrary models, system sizes, and microscopic completions.",
       "evidence": [],
       "limitations": [
-        "Static stabilizer data cannot establish minimum circuit depth or phase equivalence."
+        "Finite replay does not establish a universal minimum circuit depth or thermodynamic spectral gap."
       ]
     }
   ]

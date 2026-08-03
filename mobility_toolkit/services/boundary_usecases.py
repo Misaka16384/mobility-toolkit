@@ -17,11 +17,12 @@ from mobility_toolkit.core import (
     LocalPauliTerm,
     PauliModule,
     SparseIntMatrix,
+    canonical_hash,
 )
 from mobility_toolkit.services.contracts import ServiceRequest
 
 
-SERVICE_HANDLER_VERSION = "1"
+SERVICE_HANDLER_VERSION = "2"
 
 
 def _input_object(request: ServiceRequest) -> Mapping[str, Any]:
@@ -391,6 +392,7 @@ def _metric_model(name, backend):
         color_code_metric_model,
         double_semion_metric_model,
         fish_toric_metric_model,
+        three_fermion_metric_model,
         zd_toric_metric_model,
     )
 
@@ -400,6 +402,7 @@ def _metric_model(name, backend):
         "double-semion": lambda: double_semion_metric_model(backend),
         "color-code": lambda: color_code_metric_model(backend),
         "fish-toric": lambda: fish_toric_metric_model(backend),
+        "three-fermion": lambda: three_fermion_metric_model(backend),
     }
     if name not in models:
         raise ValueError("unknown metric model: " + str(name))
@@ -967,15 +970,81 @@ def symbolic3d_xcube_preflight(request: ServiceRequest) -> ComputationResult:
 
 def cheshire_capabilities(request: ServiceRequest) -> ComputationResult:
     value = {
-        "static_toric_open_closed": "certified_exact_finite",
-        "tubular_to_line": "bounded_exact_for_supplied_finite_radii",
-        "species_enumeration": "bounded_complete_only_for_supplied_candidate_list",
-        "static_fusion": "certified_exact_before_after_finite_candidate",
-        "junction_network": "incidence_and_strata_only",
-        "xcube_axial_reference": "experimental_candidate_with_exact_finite_data",
-        "finite_depth_circuit": "unsupported",
-        "phase_equivalence": "unsupported",
-        "thermodynamic_completeness": "unsupported",
+        "api_version": "2",
+        "operations": {
+            "defects.cheshire.classify_abelian": {
+                "scope": "finite pointed/Abelian metric groups",
+                "classification": "exhaustive only after folded Lagrangian search exhaustion",
+                "generic_direct_algebra": "requires pointed cochain input",
+            },
+            "defects.cheshire.toric2d_reference": {
+                "scope": "source-locked Z2 toric code",
+                "classification": "computed_exact_six_oriented_morita_species",
+                "ordered_fusion": "source_theorem_with_exact_table_replay",
+                "anyon_action": "source_theorem_with_exact_crosswalk",
+            },
+            "defects.cheshire.fuse": {
+                "scope": "Z2 toric six-species reference",
+                "coefficient_semantics": "1+1D_TQFT_valued_not_numeric_scalar",
+            },
+            "defects.cheshire.realize_toric2d": {
+                "scope": "explicit finite square-cellular slit",
+                "status": "bounded_exact_commuting_Pauli_realization",
+            },
+            "defects.cheshire.circuit_toric2d": {
+                "scope": "finite defect-chain Clifford templates",
+                "status": "exact_phase_aware_conjugation_replay",
+            },
+            "defects.cheshire.toric3d_finite_reference": {
+                "scope": "explicit finite 3+1D plaquette-qubit toric cellulation",
+                "status": "certified_exact_static",
+            },
+            "defects.cheshire.xcube_candidates": {
+                "scope": "fixed coordinate-axis five-generator support slice",
+                "status": "support_candidate_only",
+                "optional_finite_reference": (
+                    "bounded_exact local q2 z-lineon condensate completion; "
+                    "upgrades only <ell_z> to static_cheshire_candidate"
+                ),
+                "classification_complete": False,
+            },
+        },
+        "evidence_statuses": (
+            "source_theorem",
+            "computed_exact",
+            "bounded_exact",
+            "conditional",
+            "conjectural",
+            "unsupported",
+        ),
+        "fracton_evidence_ladder": (
+            "support_candidate",
+            "static_cheshire_candidate",
+            "mobility_enriched_algebra",
+            "circuit_certified_cheshire",
+        ),
+        "fracton_default_equivalence": (
+            "fixed oriented axis + finite-depth equivalence + retained planon dressing"
+        ),
+        "general_fracton_ir": {
+            "primitive_rational_direction": "implemented_exact_geometry_validation",
+            "stratified_tube_endpoints_junctions": "implemented_geometry_carrier",
+            "equivalence_scopes": (
+                "microscopic",
+                "finite_depth",
+                "foliated",
+                "orientation_reversal",
+                "cubic_symmetry",
+                "planon_dressing",
+            ),
+            "arbitrary_direction_classifier": "unsupported",
+        },
+        "unsupported": (
+            "complete non-Abelian algebra-object solver",
+            "generic thermodynamic gap proof",
+            "slanted X-cube line classification",
+            "automatic foliated quotient from support data",
+        ),
     }
     return _capability_result(
         request,
@@ -1053,7 +1122,9 @@ def _cheshire_network(spec):
     )
 
 
-def cheshire_static(request: ServiceRequest) -> ComputationResult:
+def cheshire_toric3d_finite_reference(
+    request: ServiceRequest,
+) -> ComputationResult:
     from mobility_toolkit.defects import analyze_toric_cheshire
 
     data = _input_object(request)
@@ -1230,6 +1301,390 @@ def cheshire_xcube_reference(request: ServiceRequest) -> ComputationResult:
     return _native_result(request, source)
 
 
+def _cheshire_backend_provenance(backend, algorithm: str) -> BackendProvenance:
+    return BackendProvenance(
+        getattr(backend, "name", "python-flint"),
+        algorithm,
+        getattr(backend, "version", ""),
+    )
+
+
+def cheshire_classify_abelian(request: ServiceRequest) -> ComputationResult:
+    from mobility_toolkit.anyons2d import (
+        CondensateEnumerationBudget,
+        CondensateEnumerationCheckpoint,
+    )
+    from mobility_toolkit.defects import classify_abelian_interfaces
+
+    data = _input_object(request)
+    backend = _finite_backend(data)
+    left = _metric(data["left"], backend)
+    right = _metric(data["right"], backend)
+    budget_data = data.get("budget", {})
+    budget = CondensateEnumerationBudget(
+        max_work_units=int(budget_data.get("max_work_units", 2_000_000)),
+        max_results=int(budget_data.get("max_results", 100_000)),
+        max_elements=int(budget_data.get("max_elements", 4_096)),
+        max_subgroups=int(budget_data.get("max_subgroups", 500_000)),
+    )
+    checkpoint = _condensate_checkpoint(
+        data.get("checkpoint"), CondensateEnumerationCheckpoint
+    )
+    equivalence_relation = (
+        request.equivalence_relation
+        if request.equivalence_relation
+        in {"oriented_morita", "unoriented_morita", "raw_folded_lagrangian"}
+        else str(data.get("classification_scope", "oriented_morita"))
+    )
+    classification = classify_abelian_interfaces(
+        left,
+        right,
+        backend,
+        budget=budget,
+        checkpoint=checkpoint,
+        max_pages=int(data.get("max_pages", 1_000)),
+        equivalence_relation=equivalence_relation,
+    )
+    certificate = classification.certificate
+    return _contract_result(
+        request,
+        classification,
+        exactness=certificate.enumeration.exactness,
+        theorem_scope=(
+            "Exhaustive oriented finite pointed/Abelian interface support "
+            "classification only when classification_complete=true. Abstract "
+            "metric data alone does not construct a microscopic Hamiltonian."
+        ),
+        certificate_level=CertificateLevel.FULL,
+        certificate=certificate,
+        verification=(
+            (
+                "folded_lagrangian_search_complete",
+                certificate.classification_complete,
+            ),
+            (
+                "direct_generic_algebra_multiplication_constructed",
+                all(item.algebra is not None for item in classification.species),
+            ),
+        ),
+        backend=_cheshire_backend_provenance(
+            backend, "finite-pointed-interface-classification-v2"
+        ),
+        warnings=classification.warnings,
+        resource_usage=(
+            ("species_count", len(classification.species)),
+            (
+                "classification_complete",
+                certificate.classification_complete,
+            ),
+        ),
+    )
+
+
+def cheshire_toric2d_reference(request: ServiceRequest) -> ComputationResult:
+    from mobility_toolkit.defects import (
+        toric_2d_defect_classification,
+        toric_2d_fusion_table,
+    )
+
+    data = _input_object(request)
+    backend = _finite_backend(data)
+    equivalence_relation = (
+        request.equivalence_relation
+        if request.equivalence_relation
+        in {"oriented_morita", "unoriented_morita", "raw_folded_lagrangian"}
+        else "oriented_morita"
+    )
+    classification = toric_2d_defect_classification(
+        backend, equivalence_relation=equivalence_relation
+    )
+    fusion_table = toric_2d_fusion_table()
+    certificate = {
+        "classification": classification.certificate,
+        "fusion_table_hash": canonical_hash(
+            "toric-2d-ordered-fusion-table-v2", fusion_table
+        ),
+        "ordered_entry_count": len(fusion_table),
+        "source_equations": (
+            "Roumpedakis--Seifnashri--Shao arXiv:2204.02407 Eq. (6.37)",
+            "Roumpedakis--Seifnashri--Shao arXiv:2204.02407 Eq. (6.38)",
+        ),
+    }
+    return _contract_result(
+        request,
+        {
+            "classification": classification,
+            "ordered_fusion_table": fusion_table,
+        },
+        exactness=Exactness.CERTIFIED_EXACT,
+        theorem_scope=(
+            "Complete six-species oriented-Morita reference for the 2D Z2 "
+            "toric code. The abstract result does not by itself prove a gap "
+            "for every finite lattice realization."
+        ),
+        certificate_level=CertificateLevel.FULL,
+        certificate=certificate,
+        verification=(
+            ("folded_enumerator_returned_exactly_six", len(classification.species) == 6),
+            ("literature_crosswalk_verified", True),
+            ("ordered_fusion_entries_verified", len(fusion_table) == 36),
+            (
+                "all_direct_algebras_associative",
+                all(
+                    item.algebra is not None
+                    and item.algebra.certificate.associativity_verified
+                    for item in classification.species
+                ),
+            ),
+        ),
+        backend=_cheshire_backend_provenance(
+            backend, "toric-2d-six-defect-reference-v2"
+        ),
+        warnings=classification.warnings,
+    )
+
+
+def cheshire_fuse(request: ServiceRequest) -> ComputationResult:
+    from mobility_toolkit.defects import fuse_toric_2d_species
+
+    data = _input_object(request)
+    model = str(data.get("model", "z2-toric"))
+    if model != "z2-toric":
+        missing = (
+            "explicit pointed associator/F-symbol data",
+            "direct algebra multiplications for both ordered inputs",
+            "bimodule composition and Morita-reduction certificate",
+            "1+1D coefficient TQFT identification",
+        )
+        return _contract_result(
+            request,
+            {
+                "status": "unsupported",
+                "model": model,
+                "left_species_id": data["left_species_id"],
+                "right_species_id": data["right_species_id"],
+                "missing_obligations": missing,
+            },
+            exactness=Exactness.UNSUPPORTED,
+            theorem_scope=(
+                "No categorical fusion conclusion is returned outside the "
+                "source-locked Z2 toric executor without explicit pointed "
+                "cochain and bimodule-composition data."
+            ),
+            certificate_level=CertificateLevel.FULL,
+            certificate={
+                "evidence_status": "unsupported",
+                "missing_obligations": missing,
+            },
+            verification=(("fusion_claim_returned", False),),
+            backend=BackendProvenance(
+                "internal-contract",
+                "unsupported-generic-cheshire-fusion-v2",
+                SERVICE_HANDLER_VERSION,
+            ),
+        )
+    fusion = fuse_toric_2d_species(
+        str(data["left_species_id"]),
+        str(data["right_species_id"]),
+    )
+    return _contract_result(
+        request,
+        fusion,
+        exactness=Exactness.CERTIFIED_EXACT,
+        theorem_scope=(
+            "Ordered fusion in the source-locked six-defect 2D Z2 toric "
+            "reference. Coefficients are 1+1D TQFT records, never numeric "
+            "multiplicities."
+        ),
+        certificate_level=CertificateLevel.FULL,
+        certificate={
+            "fusion": fusion,
+            "tqft_coefficients_are_numeric_scalars": False,
+        },
+        verification=(
+            ("ordered_fusion_verified", fusion.verified),
+            (
+                "all_coefficients_tqft_valued",
+                all(
+                    not term.coefficient.numeric_scalar
+                    for term in fusion.terms
+                ),
+            ),
+        ),
+        backend=BackendProvenance(
+            "internal-exact", "toric-2d-ordered-fusion-v2", SERVICE_HANDLER_VERSION
+        ),
+    )
+
+
+def cheshire_realize_toric2d(request: ServiceRequest) -> ComputationResult:
+    from mobility_toolkit.defects import realize_toric_2d_defect
+
+    data = _input_object(request)
+    backend = _finite_backend(data)
+    realization = realize_toric_2d_defect(
+        str(data["species_id"]),
+        int(data.get("line_length_lattice_steps", 2)),
+        backend,
+    )
+    return _contract_result(
+        request,
+        realization,
+        exactness=Exactness.BOUNDED_EXACT,
+        theorem_scope=realization.certificate.theorem_scope,
+        certificate_level=CertificateLevel.FULL,
+        certificate=realization.certificate,
+        verification=(
+            ("finite_realization_verified", realization.certificate.verified),
+            ("diagram_derived_from_operator_support", bool(realization.tikz)),
+        ),
+        backend=_cheshire_backend_provenance(
+            backend, "toric-2d-finite-lattice-realization-v2"
+        ),
+        warnings=realization.warnings,
+        resource_usage=(
+            ("qubit_count", len(realization.pauli_module.local_systems)),
+            ("defect_term_count", len(realization.defect_terms)),
+        ),
+    )
+
+
+def cheshire_circuit_toric2d(request: ServiceRequest) -> ComputationResult:
+    from mobility_toolkit.defects import construct_toric_2d_circuit
+
+    data = _input_object(request)
+    circuit = construct_toric_2d_circuit(
+        str(data["process"]),
+        str(data["left_species_id"]),
+        int(data.get("line_length_lattice_steps", 2)),
+        right_species_id=(
+            None
+            if data.get("right_species_id") is None
+            else str(data["right_species_id"])
+        ),
+    )
+    return _contract_result(
+        request,
+        circuit,
+        exactness=Exactness.BOUNDED_EXACT,
+        theorem_scope=circuit.certificate.theorem_scope,
+        certificate_level=CertificateLevel.FULL,
+        certificate=circuit.certificate,
+        verification=(
+            (
+                "exact_phase_aware_pauli_conjugation_verified",
+                circuit.certificate.exact_pauli_conjugation_verified,
+            ),
+            (
+                "circuit_layer_disjointness_verified",
+                circuit.certificate.layer_disjointness_verified,
+            ),
+            (
+                "endpoint_incidence_verified",
+                circuit.certificate.endpoint_incidence_verified,
+            ),
+            (
+                "fusion_ancilla_decoupling_verified",
+                circuit.certificate.ancilla_decoupling_verified,
+            ),
+            (
+                "fusion_degeneracy_matches_coefficient_shadow",
+                circuit.certificate.fusion_degeneracy_matches_coefficient_shadow,
+            ),
+        ),
+        backend=BackendProvenance(
+            "internal-exact", "finite-clifford-replay-v2", SERVICE_HANDLER_VERSION
+        ),
+        warnings=circuit.warnings,
+        resource_usage=(
+            ("circuit_depth", circuit.circuit.depth),
+            (
+                "gate_count",
+                sum(len(layer.gates) for layer in circuit.circuit.layers),
+            ),
+            (
+                "coefficient_sector_codespace_dimension",
+                circuit.certificate.coefficient_sector_codespace_dimension,
+            ),
+        ),
+    )
+
+
+def cheshire_xcube_candidates(request: ServiceRequest) -> ComputationResult:
+    from mobility_toolkit.defects import xcube_cheshire_candidates
+
+    data = _input_object(request)
+    include_reference = bool(data.get("include_finite_static_reference", False))
+    backend = _finite_backend(data) if include_reference else None
+    catalog = xcube_cheshire_candidates(
+        axis=str(data.get("axis", "all")),
+        orientation=str(data.get("orientation", "+")),
+        include_finite_static_reference=include_reference,
+        finite_reference_line_length=int(
+            data.get("finite_reference_line_length", 1)
+        ),
+        backend=backend,
+    )
+    return _contract_result(
+        request,
+        catalog,
+        exactness=Exactness.EXPERIMENTAL,
+        theorem_scope=(
+            "Exact exhaustion of nonzero totally singular subgroups in the "
+            "recorded five-generator coordinate-axis support slice. This is "
+            "not a complete X-cube Cheshire classification."
+        ),
+        certificate_level=CertificateLevel.FULL,
+        certificate={
+            "support_search_complete": catalog.support_search_complete,
+            "classification_complete": catalog.classification_complete,
+            "transcript_hash": catalog.transcript_hash,
+            "highest_uniform_evidence_tier":
+                catalog.highest_uniform_evidence_tier,
+            "missing_obligations": catalog.missing_obligations,
+        },
+        verification=(
+            (
+                "58_support_candidates_per_selected_axis",
+                len(catalog.candidates) == 58 * len(catalog.selected_axes),
+            ),
+            ("classification_complete", False),
+            (
+                "no_record_above_static_candidate",
+                all(
+                    item.evidence_tier.value
+                    in {"support_candidate", "static_cheshire_candidate"}
+                    for item in catalog.candidates
+                ),
+            ),
+            (
+                "finite_static_upgrade_count",
+                sum(
+                    item.evidence_tier.value == "static_cheshire_candidate"
+                    for item in catalog.candidates
+                )
+                == int(include_reference),
+            ),
+        ),
+        backend=(
+            _cheshire_backend_provenance(
+                backend, "xcube-support-candidates-v2"
+            )
+            if backend is not None
+            else BackendProvenance(
+                "internal-gf2",
+                "xcube-support-candidates-v2",
+                SERVICE_HANDLER_VERSION,
+            )
+        ),
+        warnings=catalog.warnings,
+        resource_usage=(
+            ("candidate_count", len(catalog.candidates)),
+            ("selected_axis_count", len(catalog.selected_axes)),
+        ),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Default-registry contribution
 
@@ -1381,7 +1836,7 @@ def boundary_usecase_service_registrations(
             "checkpoint": {"type": ["object", "null"]},
         },
     )
-    cheshire_static_schema = _object_schema(
+    cheshire_toric3d_finite_reference_schema = _object_schema(
         ("shape", "defects"),
         {
             "shape": _ARRAY,
@@ -1391,46 +1846,64 @@ def boundary_usecase_service_registrations(
             "max_dense_entries": _INTEGER,
         },
     )
-    cheshire_synthesis_schema = _object_schema(
-        ("shape", "defects", "radii"),
+    cheshire_classify_abelian_schema = _object_schema(
+        ("left", "right"),
         {
-            "shape": _ARRAY,
-            "periodic_axes": _ARRAY,
-            "defects": _ARRAY,
-            "radii": _ARRAY,
-            "candidate_id": _STRING,
+            "left": _OBJECT,
+            "right": _OBJECT,
+            "classification_scope": {
+                "enum": [
+                    "oriented_morita",
+                    "unoriented_morita",
+                    "raw_folded_lagrangian",
+                ]
+            },
+            "budget": _OBJECT,
+            "max_pages": _INTEGER,
+            "checkpoint": {"type": ["object", "null"]},
             "max_dense_entries": _INTEGER,
         },
     )
-    cheshire_species_schema = _object_schema(
-        ("shape", "candidate_sets", "radii"),
+    cheshire_fuse_schema = _object_schema(
+        ("left_species_id", "right_species_id"),
         {
-            "shape": _ARRAY,
-            "periodic_axes": _ARRAY,
-            "candidate_sets": _ARRAY,
-            "radii": _ARRAY,
+            "model": _STRING,
+            "left_species_id": _STRING,
+            "right_species_id": _STRING,
+        },
+    )
+    cheshire_realize_toric2d_schema = _object_schema(
+        ("species_id",),
+        {
+            "species_id": {
+                "enum": ["1", "S_e", "S_m", "S_psi", "S_em", "S_me"]
+            },
+            "line_length_lattice_steps": _INTEGER,
             "max_dense_entries": _INTEGER,
         },
     )
-    cheshire_fusion_schema = _object_schema(
-        ("fusion_id", "shape", "before_defects", "after_defects"),
+    cheshire_circuit_toric2d_schema = _object_schema(
+        ("process", "left_species_id"),
         {
-            "fusion_id": _STRING,
-            "shape": _ARRAY,
-            "periodic_axes": _ARRAY,
-            "before_defects": _ARRAY,
-            "after_defects": _ARRAY,
-            "before_network": _OBJECT,
-            "after_network": _OBJECT,
-            "tube_radius_lattice_steps": _INTEGER,
-            "max_dense_entries": _INTEGER,
+            "process": {
+                "enum": ["creation", "deformation", "motion", "fusion"]
+            },
+            "left_species_id": {
+                "enum": ["1", "S_e", "S_m", "S_psi", "S_em", "S_me"]
+            },
+            "right_species_id": {
+                "enum": ["1", "S_e", "S_m", "S_psi", "S_em", "S_me"]
+            },
+            "line_length_lattice_steps": _INTEGER,
         },
     )
     xcube_cheshire_schema = _object_schema(
         (),
         {
-            "line_length_lattice_steps": _INTEGER,
-            "normal": _ARRAY,
+            "axis": {"enum": ["x", "y", "z", "all"]},
+            "orientation": {"enum": ["+", "-"]},
+            "include_finite_static_reference": _BOOLEAN,
+            "finite_reference_line_length": _INTEGER,
             "max_dense_entries": _INTEGER,
         },
     )
@@ -1699,54 +2172,74 @@ def boundary_usecase_service_registrations(
             (),
         ),
         (
-            "defects.cheshire.static_toric",
+            "defects.cheshire.classify_abelian",
+            "Classify folded finite pointed/Abelian interfaces.",
+            cheshire_classify_abelian_schema,
+            cheshire_classify_abelian,
+            Exactness.CERTIFIED_EXACT,
+            CertificateLevel.FULL,
+            "Exact only after exhaustive folded-Lagrangian enumeration.",
+            flint,
+        ),
+        (
+            "defects.cheshire.toric2d_reference",
+            "Complete six-species 2D Z2 toric Cheshire/descendant reference.",
+            empty_schema,
+            cheshire_toric2d_reference,
+            Exactness.CERTIFIED_EXACT,
+            CertificateLevel.FULL,
+            "Source-locked classification, ordered fusion, and anyon action.",
+            flint,
+        ),
+        (
+            "defects.cheshire.fuse",
+            "Ordered categorical fusion with 1+1D TQFT-valued coefficients.",
+            cheshire_fuse_schema,
+            cheshire_fuse,
+            Exactness.CERTIFIED_EXACT,
+            CertificateLevel.FULL,
+            "Currently exact for the six-species 2D Z2 toric reference.",
+            (),
+        ),
+        (
+            "defects.cheshire.realize_toric2d",
+            "Finite square-lattice realization of one toric defect.",
+            cheshire_realize_toric2d_schema,
+            cheshire_realize_toric2d,
+            Exactness.BOUNDED_EXACT,
+            CertificateLevel.FULL,
+            "Exact only for the emitted finite Hamiltonian and support geometry.",
+            flint,
+        ),
+        (
+            "defects.cheshire.circuit_toric2d",
+            "Replayable finite Clifford creation/deformation/motion/fusion witness.",
+            cheshire_circuit_toric2d_schema,
+            cheshire_circuit_toric2d,
+            Exactness.BOUNDED_EXACT,
+            CertificateLevel.FULL,
+            "Exact Pauli conjugation for the emitted finite defect-chain template.",
+            (),
+        ),
+        (
+            "defects.cheshire.toric3d_finite_reference",
             "Finite certified 3+1D Z2 toric Cheshire analysis.",
-            cheshire_static_schema,
-            cheshire_static,
+            cheshire_toric3d_finite_reference_schema,
+            cheshire_toric3d_finite_reference,
             Exactness.CERTIFIED_EXACT,
             CertificateLevel.STANDARD,
             "Exact for the explicitly supplied finite cellulation.",
             flint,
         ),
         (
-            "defects.cheshire.synthesize_toric",
-            "Bounded tube-to-line synthesis over supplied radii.",
-            cheshire_synthesis_schema,
-            cheshire_synthesis,
-            Exactness.BOUNDED_EXACT,
-            CertificateLevel.FULL,
-            "Finite invariant preservation only; no phase equivalence.",
-            flint,
-        ),
-        (
-            "defects.cheshire.enumerate_toric",
-            "Bounded Cheshire species enumeration over a supplied list.",
-            cheshire_species_schema,
-            cheshire_species,
-            Exactness.BOUNDED_EXACT,
-            CertificateLevel.FULL,
-            "Complete only over the supplied candidate list and radii.",
-            flint,
-        ),
-        (
-            "defects.cheshire.fuse_toric_static",
-            "Finite before/after static Cheshire fusion candidate.",
-            cheshire_fusion_schema,
-            cheshire_fusion,
-            Exactness.CERTIFIED_EXACT,
-            CertificateLevel.FULL,
-            "Static finite data only; no finite-depth circuit.",
-            flint,
-        ),
-        (
-            "defects.cheshire.xcube_axial_reference",
-            "Experimental axial X-cube Cheshire candidate.",
+            "defects.cheshire.xcube_candidates",
+            "Three-axis mobility-enriched X-cube support-candidate enumeration.",
             xcube_cheshire_schema,
-            cheshire_xcube_reference,
+            cheshire_xcube_candidates,
             Exactness.EXPERIMENTAL,
-            CertificateLevel.STANDARD,
-            "Finite reference candidate; no condensation or thermodynamic theorem.",
-            flint,
+            CertificateLevel.FULL,
+            "Support enumeration only; classification_complete is always false.",
+            (),
         ),
     )
     output = []
@@ -1776,11 +2269,13 @@ def install_boundary_usecase_service_registrations(registrations):
 
 __all__ = [
     "cheshire_capabilities",
-    "cheshire_fusion",
-    "cheshire_species",
-    "cheshire_static",
-    "cheshire_synthesis",
-    "cheshire_xcube_reference",
+    "cheshire_classify_abelian",
+    "cheshire_circuit_toric2d",
+    "cheshire_fuse",
+    "cheshire_realize_toric2d",
+    "cheshire_toric2d_reference",
+    "cheshire_toric3d_finite_reference",
+    "cheshire_xcube_candidates",
     "completion2d_capabilities",
     "completion2d_enumerate",
     "completion2d_fold",

@@ -170,6 +170,42 @@ def color_code_metric_model(
     )
 
 
+def three_fermion_metric_model(
+    backend: FiniteIntegerBackend,
+) -> LiteratureMetricModel:
+    """Return the pointed three-fermion modular metric group.
+
+    The fusion group is ``Z2 x Z2`` and every nontrivial simple object has
+    fermionic spin.  Consequently the single phase has no nontrivial raw
+    bosonic Lagrangian subgroup, while folding it with its orientation reverse
+    admits the six interfaces used by the Cheshire classification regression.
+    """
+
+    metric = _coordinate_metric(
+        (2, 2),
+        2,
+        ((0, 1), (1, 0)),
+        (1, 1),
+        ("f1", "f2"),
+        backend,
+    )
+    return LiteratureMetricModel(
+        "three_fermion_metric",
+        metric,
+        ("f1", "f2"),
+        0,
+        (
+            "abstract pointed three-fermion modular data; single-phase raw "
+            "bosonic Lagrangian subgroups and doubled oriented interfaces are "
+            "distinct enumeration domains"
+        ),
+        (
+            "standard three-fermion modular data; doubled-interface count "
+            "compared with arXiv:2410.11942"
+        ),
+    )
+
+
 def fish_toric_metric_model(
     backend: FiniteIntegerBackend,
 ) -> LiteratureMetricModel:
@@ -210,5 +246,6 @@ __all__ = [
     "color_code_metric_model",
     "double_semion_metric_model",
     "fish_toric_metric_model",
+    "three_fermion_metric_model",
     "zd_toric_metric_model",
 ]

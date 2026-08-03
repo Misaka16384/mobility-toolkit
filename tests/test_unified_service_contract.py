@@ -48,7 +48,8 @@ def test_transport_request_is_strict_versioned_and_json_roundtrippable():
 
 def test_default_catalog_is_machine_readable_and_honest_about_adapters():
     catalog = default_service_catalog()
-    assert catalog["schema"] == "mobility_toolkit.service_catalog.v1"
+    assert catalog["schema"] == "mobility_toolkit.service_catalog.v2"
+    assert catalog["service_api_version"] == "2"
     by_name = {
         item["operation"]["operation"]: item for item in catalog["operations"]
     }
@@ -64,10 +65,13 @@ def test_default_catalog_is_machine_readable_and_honest_about_adapters():
         "boundary.finite.capabilities",
         "topology.relative_homology",
         "defects.capabilities",
-        "defects.cheshire.static_toric",
-        "defects.cheshire.synthesize_toric",
-        "defects.cheshire.fuse_toric_static",
-        "defects.cheshire.xcube_axial_reference",
+        "defects.cheshire.classify_abelian",
+        "defects.cheshire.toric2d_reference",
+        "defects.cheshire.fuse",
+        "defects.cheshire.realize_toric2d",
+        "defects.cheshire.circuit_toric2d",
+        "defects.cheshire.toric3d_finite_reference",
+        "defects.cheshire.xcube_candidates",
     } <= set(by_name)
     assert (
         by_name["boundary.halfspace.toric2d"]["operation"]["adapter_kind"]

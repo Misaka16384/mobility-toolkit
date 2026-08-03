@@ -20,8 +20,8 @@ from mobility_toolkit.services.contracts import (
 from mobility_toolkit.services.registry import ServiceRegistry
 
 
-SERVICE_API_VERSION = "1"
-SERVICE_CATALOG_SCHEMA_ID = "mobility_toolkit.service_catalog.v1"
+SERVICE_API_VERSION = "2"
+SERVICE_CATALOG_SCHEMA_ID = "mobility_toolkit.service_catalog.v2"
 
 
 def build_default_registry() -> ServiceRegistry:

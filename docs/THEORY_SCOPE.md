@@ -148,23 +148,45 @@ equivalences are not silently assumed.
 ## Defect and Cheshire scope
 
 Stratified finite geometry can represent boundary components, tubes, line
-cores, open-segment endpoints, and junction incidence. Cheshire operations
-certify static finite data for explicit or supplied candidates, including
-local centralizers/logicals, defect-local pairings, termination checks,
-tube-to-line finite invariant comparisons, and replayable static fusion data.
+cores, open-segment endpoints, and junction incidence. Cheshire service API v2
+separates abstract species, direct algebra, categorical fusion, finite lattice
+realization, circuit replay, and fracton evidence tier.
 
-These static calculations do not prove:
+For 2D Z2 toric code, the generic folded metric-group executor exhausts exactly
+six Lagrangians. A source-locked crosswalk attaches the six direct algebras,
+orientation reversal, ordered fusion of Eq. (6.37), and anyon action of
+Eq. (6.38). The `Z2` fusion coefficient is represented as a 1+1D TQFT, not the
+number two. Finite pointed/Abelian inputs can be classified after the recorded
+folded search is exhausted; supplied pointed fusion/associator/cochain data can
+be checked exactly for normalization, pentagon, associativity, and an explicit
+coboundary gauge transformation.
 
-- a finite-depth creation or fusion circuit;
-- minimum sequential depth;
-- phase equivalence under tube shrinking;
-- a gapped thermodynamic completion;
-- completeness of Cheshire species outside the supplied finite candidate
-  family;
-- a general fracton Cheshire classification.
+The finite 2D lattice operation emits bulk, removed, truncated, and added
+Hamiltonian terms plus operator-support-derived TikZ/JSON. Circuit results
+replay phase-aware Pauli conjugation. `S_e` and `S_m` creation use the
+source-locked Pauli-rotation sequences; composed templates say so explicitly.
+The prior 3+1D toric static operation is retained under the unambiguous
+`toric3d_finite_reference` name.
 
-The axial X-cube reference remains a finite experimental slice; other
-orientations require their own registered convention and evidence.
+Fracton records use the ladder `support_candidate`,
+`static_cheshire_candidate`, `mobility_enriched_algebra`, and
+`circuit_certified_cheshire`. Only the fourth is an unqualified certified
+Cheshire. The X-cube executor exhausts 58 nonzero totally singular support
+subgroups for each fixed coordinate axis and reports orientation, cubic, and
+planon-projection summaries. Every catalog remains
+`classification_complete=false`; the conditional 134 and 4590 diagnostics are
+not species counts.
+
+These results do not prove:
+
+- minimum sequential or finite circuit depth;
+- phase equivalence under an unrecorded tube/planon deformation;
+- a gapped thermodynamic completion from a finite patch;
+- a generic non-Abelian algebra-object classification;
+- a physical foliated-equivalence quotient or a general fracton Cheshire
+  classification.
+
+See [Cheshire classification API v2](CHESHIRE_CLASSIFICATION_V2.md).
 
 ## Independent provenance
 

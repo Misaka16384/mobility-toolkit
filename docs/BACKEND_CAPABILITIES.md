@@ -64,30 +64,32 @@ the stated domain; it does not mean every operation is fast.
 | E3 saturation/anomaly/local completion | not implemented | Unsupported |
 | 3D toric half-space | source-frozen bulk and certified primary pairing; finite slab alignment | Primary-only, operation-specific |
 | X-cube orientations | source-locked axial/diagonal conclusions | Experimental oracle; no full boundary module |
-| Toric tubular-to-line static synthesis | supplied finite Hamiltonian family; phase/commutation, logical, pairing/radical and termination replay at explicit radii | `bounded_exact` for supplied samples and declared invariants; no phase equivalence |
-| Cheshire supplied-list enumeration | exhaustive replay of an explicitly declared finite candidate list | `bounded_exact` for that list only; no condensation discovery |
-| Toric static Cheshire fusion candidate | exact finite before/after stabilizers, Hamiltonian deltas, stratum provenance, logical counts and defect-local data | `certified_exact` for the supplied finite comparison; finite-depth circuit unsupported |
+| 2D Z2 toric Cheshire classification | isotropic-pruned folded Lagrangian exhaustion plus source direct-algebra/action/fusion crosswalk | `certified_exact`; six oriented species and 36 ordered products |
+| General finite pointed/Abelian interfaces | folded metric groups; optimized diagonal Lagrangian closure graph with general raw-subgroup fallback | exact after exhaustion; generic direct algebra/fusion needs cochain data |
+| Pointed algebra cochains | finite fusion table, normalized associator, pentagon, `d(mu)=omega`, explicit coboundary gauge | exact for supplied finite data |
+| Toric 2D lattice/circuit realization | finite cellular Pauli Hamiltonian plus exact Clifford/Pauli-rotation conjugation replay | `bounded_exact`; no gap or optimal-depth claim |
 | Cheshire junction/network schema | endpoint binding and incidence coverage | Schema-validated incidence only; junction-local Hamiltonian completion unsupported |
-| X-cube axial finite line candidate | Eq. (140) periodic-x/y open-z compilation, supplied cube-X deletion, GF(2) syndrome/local-algebra/rank/translation scan | `experimental` interpretation; finite algebra exact, no gapped or thermodynamic claim |
+| X-cube axial support catalog | exact GF(2) enumeration of 58 totally singular supports per axis and support-level quotients | all records remain graded candidates; classification incomplete |
+| X-cube axial finite line candidate | Eq. (140) periodic-x/y open-z compilation; add local `X(edge_x)` q2 lineon-condensate terms, delete anticommuting `cross_zx`, and certify the rank-one hidden-charge sector with GF(2) syndrome/local-algebra/rank/translation scans | optional static upgrade for `ell_z`; exact finite commuting completion, but no thermodynamic classification or circuit claim |
 
 The FLINT adapter refuses a single dense materialization above 2,000,000
 entries by default. See `docs/FINITE_BACKEND.md`.
 
-The Phase 4/9 Cheshire workflows are finite and static. Phase 9 can exhaust a
-supplied finite candidate list and replay supplied tube-radius families, but
-it does not derive a Cheshire Hamiltonian from an E1/E2 subgroup certificate.
-It provides no automatic condensation discovery, search-domain-independent
-species completeness, circuit depth, dynamic deformation/fusion, or
-thermodynamic phase equivalence. Static fusion is an exact comparison of
-supplied finite before/after Hamiltonians, not a fusion circuit or a
-superselection fusion law. Junction support is incidence validation only.
+Cheshire API v2 removes the old supplied-list classification semantics. The
+2D Z2 toric reference is complete at the categorical level, and the general
+finite pointed/Abelian executor is complete only when its folded search is
+exhausted. Finite lattice/circuit outputs certify the emitted patch and Pauli
+mapping, not a thermodynamic gap or minimum depth. The retained 3+1D static
+reference is explicitly named as such. Junction support remains incidence
+validation unless a junction-local Hamiltonian is supplied.
 
-The X-cube axial reference uses the Ruba--Yang Eq. (140) presentation and an
-explicit supplied cube-X deletion. Syndrome, rank, translation-scan, and
-defect-window GF(2) quotient data are exact for the finite slab; interpreting
-that deletion as a Cheshire condensate remains `experimental`. No ordinary
-2D anyon Lagrangian criterion, gapped completion, other-orientation
-completeness, or thermodynamic mobility conclusion is supplied.
+The X-cube support executor rotates the five-generator slice across all three
+coordinate axes. Its 58-per-axis and 41-cubic-orbit results are exact support
+counts, not species. The optional Eq. (140) finite deletion/probe reference
+upgrades only `ell_z` to a static candidate. No ordinary 2D anyon Lagrangian
+criterion, mobility-enriched multiplication/Morita theorem, slanted
+orientation, physical foliated quotient, or thermodynamic conclusion is
+supplied.
 
 The Phase 7 local-completion path starts from a supplied finite metric group
 and supplied short-string lifts. Its exact finite verification must not be

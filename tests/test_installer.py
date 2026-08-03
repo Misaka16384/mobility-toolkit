@@ -39,7 +39,24 @@ def test_install_skills_only_by_default(tmp_path):
 
     # bootstrap injected so the copied script can import the core
     script = tmp_path / ".claude" / "skills" / "mt-finite-code" / "scripts" / "mt-finite-code.py"
-    assert _BOOTSTRAP_MARKER in script.read_text(encoding="utf-8")
+    script_text = script.read_text(encoding="utf-8")
+    assert _BOOTSTRAP_MARKER in script_text
+    assert script_text.index("from __future__ import annotations") < script_text.index(
+        _BOOTSTRAP_MARKER
+    )
+    compile(script_text, str(script), "exec")
+
+    # Every installed adapter must remain syntactically valid after injection.
+    for name in SKILL_NAMES:
+        installed = (
+            tmp_path
+            / ".agents"
+            / "skills"
+            / name
+            / "scripts"
+            / f"{name}.py"
+        )
+        compile(installed.read_text(encoding="utf-8"), str(installed), "exec")
 
     # AGENTS.md managed block present
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")

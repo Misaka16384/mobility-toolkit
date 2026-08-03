@@ -83,13 +83,22 @@ def test_retained_operations_are_all_registered_without_losing_finite_services()
         "boundary.symbolic3d.toric_primary_preflight",
         "boundary.symbolic3d.xcube_preflight",
         "defects.cheshire.capabilities",
+        "defects.cheshire.classify_abelian",
+        "defects.cheshire.toric2d_reference",
+        "defects.cheshire.fuse",
+        "defects.cheshire.realize_toric2d",
+        "defects.cheshire.circuit_toric2d",
+        "defects.cheshire.toric3d_finite_reference",
+        "defects.cheshire.xcube_candidates",
+    }
+    assert retained <= operations
+    assert {
         "defects.cheshire.static_toric",
         "defects.cheshire.synthesize_toric",
         "defects.cheshire.enumerate_toric",
         "defects.cheshire.fuse_toric_static",
         "defects.cheshire.xcube_axial_reference",
-    }
-    assert retained <= operations
+    }.isdisjoint(operations)
     assert {
         "finite.code.analyze",
         "boundary.finite.analyze",
@@ -179,7 +188,7 @@ def test_small_metric_and_cheshire_static_service_smokes():
 
     cheshire = execute_service_payload(
         {
-            "operation": "defects.cheshire.static_toric",
+            "operation": "defects.cheshire.toric3d_finite_reference",
             "input_data": {
                 "shape": [2, 1, 1],
                 "periodic_axes": [],

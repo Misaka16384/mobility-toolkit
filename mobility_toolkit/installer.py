@@ -14,6 +14,7 @@ Skills are the primary artifact; the MCP server is wired as the universal
 fallback (every supported agent speaks MCP).
 """
 
+import ast
 import json
 import os
 import shutil
@@ -88,6 +89,39 @@ def _bootstrap_header() -> str:
     )
 
 
+def _inject_bootstrap(source: str) -> str:
+    """Insert the generated import path after legal module-header statements.
+
+    A ``from __future__`` import must follow only the module docstring, comments,
+    and other future imports.  Prepending executable bootstrap code therefore
+    makes every bundled skill script that uses ``from __future__`` invalid
+    Python.  Parse the pristine bundled source and place the bootstrap after
+    the final future import (or after the module docstring when there is none).
+    """
+
+    if _BOOTSTRAP_MARKER in source:
+        return source
+    tree = ast.parse(source)
+    insertion_line = 0
+    if (
+        tree.body
+        and isinstance(tree.body[0], ast.Expr)
+        and isinstance(tree.body[0].value, ast.Constant)
+        and isinstance(tree.body[0].value.value, str)
+    ):
+        insertion_line = tree.body[0].end_lineno or tree.body[0].lineno
+    for statement in tree.body:
+        if isinstance(statement, ast.ImportFrom) and statement.module == "__future__":
+            insertion_line = statement.end_lineno or statement.lineno
+
+    lines = source.splitlines(keepends=True)
+    prefix = "".join(lines[:insertion_line])
+    suffix = "".join(lines[insertion_line:])
+    if prefix and not prefix.endswith(("\n", "\r")):
+        prefix += "\n"
+    return prefix + "\n" + _bootstrap_header() + suffix
+
+
 def _copy_skills(dest_root: Path, log: Logger) -> int:
     dest_root.mkdir(parents=True, exist_ok=True)
     removed = 0
@@ -114,7 +148,7 @@ def _copy_skills(dest_root: Path, log: Logger) -> int:
             for script in scripts_dir.glob("*.py"):
                 text = script.read_text(encoding="utf-8")
                 if _BOOTSTRAP_MARKER not in text:
-                    script.write_text(_bootstrap_header() + text, encoding="utf-8")
+                    script.write_text(_inject_bootstrap(text), encoding="utf-8")
         count += 1
     log(f"  + {count} skills -> {dest_root}")
     return count

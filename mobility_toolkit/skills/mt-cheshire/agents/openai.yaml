@@ -1,4 +1,4 @@
 interface:
   display_name: "MT Cheshire"
-  short_description: "Synthesize and statically fuse finite Cheshire defects"
-  default_prompt: "Use $mt-cheshire to analyze or synthesize a bounded Cheshire defect workflow while keeping static and dynamic claims separate."
+  short_description: "Classify, fuse, and realize evidence-graded Cheshire defects"
+  default_prompt: "Use $mt-cheshire to run the complete 2D toric reference, a finite Abelian interface classification, a finite lattice/circuit check, the retained 3+1D reference, or an evidence-graded X-cube support search."

@@ -1,6 +1,6 @@
 ---
 name: mt-cheshire
-description: "Use to analyze, synthesize, finitely enumerate, or statically fuse Cheshire line defects: certified finite 3+1D Z2 toric open/closed defects, supplied-radius tube shrinking, explicit endpoint/junction networks, or the experimental axial X-cube reference."
+description: "Use to classify, fuse, realize, or circuit-check Cheshire and descendant line defects: the complete six-species 2D Z2 toric reference, finite pointed/Abelian folded interfaces, the retained finite 3+1D toric reference, and evidence-graded axial X-cube support candidates."
 ---
 
 # mt-cheshire
@@ -11,51 +11,170 @@ Send one canonical request through the bundled adapter:
 python scripts/mt-cheshire.py < request.json
 ```
 
-Registered operations:
+Begin with `defects.cheshire.capabilities`. Request `standard` for this
+discovery operation; the supported concrete toric operations below advertise
+their own `full` maximum. Cheshire service API v2 registers:
 
 - `defects.cheshire.capabilities`
-- `defects.cheshire.static_toric`
-- `defects.cheshire.synthesize_toric`
-- `defects.cheshire.enumerate_toric`
-- `defects.cheshire.fuse_toric_static`
-- `defects.cheshire.xcube_axial_reference`
+- `defects.cheshire.classify_abelian`
+- `defects.cheshire.toric2d_reference`
+- `defects.cheshire.fuse`
+- `defects.cheshire.realize_toric2d`
+- `defects.cheshire.circuit_toric2d`
+- `defects.cheshire.toric3d_finite_reference`
+- `defects.cheshire.xcube_candidates`
 
-Example:
+The old `static_toric`, supplied-list enumeration, tube-synthesis, and static
+fusion operation names are not compatibility aliases. The 3+1D finite static
+calculation is retained only as `toric3d_finite_reference`.
+
+## Complete 2D toric reference
+
+This request obtains the six oriented defects from the generic folded
+Lagrangian enumerator, then attaches the source-locked direct-algebra,
+orientation, anyon-action, and ordered-fusion crosswalk:
 
 ```json
 {
   "schema": "mobility_toolkit.service_request.v1",
-  "schema_version": "1",
-  "operation": "defects.cheshire.synthesize_toric",
+  "schema_version": "2",
+  "operation": "defects.cheshire.toric2d_reference",
+  "input_data": {},
+  "equivalence_relation": "oriented_morita",
+  "requested_certificate_level": "full"
+}
+```
+
+The output distinguishes the identity, strict Cheshire condensates `S_e` and
+`S_m`, invertible descendant/EM wall `S_psi`, and oriented mixed
+non-invertible defects `S_em` and `S_me`. Orientation reversal exchanges only
+`S_em` and `S_me`.
+
+For one ordered fusion use:
+
+```json
+{
+  "operation": "defects.cheshire.fuse",
   "input_data": {
-    "shape": [2, 1, 1],
-    "periodic_axes": [],
-    "candidate_id": "open-electric",
-    "radii": [1, 0],
-    "defects": [{
-      "defect_id": "gamma",
-      "topology": "open_segment",
-      "cube_bases": [[0, 0, 0], [1, 0, 0]]
-    }]
+    "model": "z2-toric",
+    "left_species_id": "S_em",
+    "right_species_id": "S_me"
   },
   "requested_certificate_level": "full"
 }
 ```
 
-For bounded species enumeration, replace `defects` by an explicit
-`candidate_sets` list. For static fusion, supply `fusion_id`,
-`before_defects`, and `after_defects`. Optional `before_network` and
-`after_network` objects contain nodes, edges, endpoint bindings, strata, and
-provenance; their certificate covers incidence and strata only unless the
-Hamiltonian itself includes a junction-local completion.
+Fusion coefficients are `FusionCoefficient1D` records. In particular the
+`Z2` coefficient is a 1+1D gauge TQFT; its finite-interval degeneracy shadow
+must not be substituted as a numeric fusion multiplicity.
+
+Use `realize_toric2d` for an explicit finite square-cellular slit Hamiltonian
+and operator-support-derived TikZ/JSON:
+
+```json
+{
+  "operation": "defects.cheshire.realize_toric2d",
+  "input_data": {
+    "species_id": "S_e",
+    "line_length_lattice_steps": 3
+  },
+  "requested_certificate_level": "full"
+}
+```
+
+Use `circuit_toric2d` with `process` equal to `creation`, `deformation`,
+`motion`, or `fusion`. Fusion also requires `right_species_id`. Every emitted
+circuit carries exact phase-aware Pauli-conjugation replay. `S_e` and `S_m`
+creation replay the source Pauli-rotation sequences; composed templates are
+marked `derived_from_source_generators`.
+
+The circuit schema uses `left_species_id`, not the realization field
+`species_id`:
+
+```json
+{
+  "operation": "defects.cheshire.circuit_toric2d",
+  "input_data": {
+    "process": "motion",
+    "left_species_id": "S_e",
+    "line_length_lattice_steps": 4
+  },
+  "requested_certificate_level": "full"
+}
+```
+
+## Generic pointed/Abelian interfaces
+
+`classify_abelian` accepts `left` and `right` metric specifications. Each can
+name a built-in model, for example `{"model": "z4-toric"}`, or supply the
+explicit metric object accepted by `mt-gapped-boundary-2d`. The right phase is
+orientation-reversed automatically during folding.
+
+The default classification scope is `oriented_morita`; alternatives are
+`unoriented_morita` and `raw_folded_lagrangian`. `classification_complete` is
+true only after the exact finite search is exhausted. An abstract metric-group
+classification does not assert that a microscopic boundary Hamiltonian was
+constructed. If pointed associator/cochain data needed for a direct algebra
+or ordered composition are absent, the corresponding obligation stays
+explicitly unsupported.
+
+## X-cube evidence ladder
+
+`xcube_candidates` accepts `axis` equal to `x`, `y`, `z`, or `all`, plus an
+orientation sign. Its default labels preserve:
+
+- a fixed oriented coordinate axis;
+- finite-depth equivalence as the intended physical relation;
+- planon dressing.
+
+It separately reports orientation-reversal, cubic-symmetry, and
+foliated/planon-dressing quotients. The last remains unsupported without
+explicit planon attachment circuits.
+
+Distinguish a support contained in the subgroup generated by planons from a
+support whose every constituent is two-dimensionally mobile. Products of
+planons from transverse planes can be line-mobile. Read
+`planon_generated_support_count`,
+`all_constituents_planon_mobile_support_count`,
+`all_constituents_line_mobile_support_count`, and
+`mixed_constituent_mobility_support_count` separately; never call the first
+count “pure planon.”
+
+The fixed-axis count 58 is only the exhaustive nonzero totally singular
+support-subgroup slice. Every one of those records is `support_candidate`,
+and every catalog has `classification_complete=false`. Counts 134 and 4590,
+when shown, are conditional cochain diagnostics and are never species counts.
+The retained finite static reference is source-locked to `+z`.  It uses the
+microscopic `q2` rigid-string map in the Ruba--Yang Eq. (140) presentation:
+add consecutive `X(edge_x)` lineon hopping/condensation terms, delete all and
+only anticommuting `cross_zx` checks, and retain every already-commuting bulk
+term.  Its exact finite certificate must show:
+
+- all added terms are present and commute;
+- the condensate-chain local paired quotient is trivial;
+- the rank deficit is one rather than extensive in line length;
+- the product of all replaced `cross_zx` checks is a commuting independent
+  hidden-charge operator and restores the bulk rank when reimposed.
+
+This is a `static_cheshire_candidate`, not a gap or circuit certificate.  Do
+not attach it to a reverse-orientation record without a separate replay
+certificate.  The retired `Z(edge_z)`/cube-X deletion is a fracton-sector
+probe and must never be relabeled as an `ell_z` lineon construction.
+Only the following fourth tier may be called a certified Cheshire without a
+qualifier:
+
+1. `support_candidate`
+2. `static_cheshire_candidate`
+3. `mobility_enriched_algebra`
+4. `circuit_certified_cheshire`
 
 ## Interpretation rules
 
-- Finite stabilizer, commutation, logical, pairing, and syndrome certificates
-  are exact only in their recorded cellulation.
-- Tube shrinking compares only supplied finite radii and declared invariants.
-  It does not construct a finite-depth circuit or prove phase equivalence.
-- Static fusion is not a thermodynamic fusion rule.
-- Species enumeration is complete only over the supplied finite candidate list.
-- The X-cube axial reference is experimental even where finite linear algebra
-  is exact. Other normals return structured unsupported results.
+- `source_theorem`, `computed_exact`, and `bounded_exact` refer to the precise
+  object and domain in the accompanying certificate.
+- Finite stabilizer degeneracy is not a thermodynamic phase invariant.
+- A finite circuit replay is not a proof of optimal depth or a bulk gap.
+- Folded Lagrangian support does not invent missing F-symbols, cochains,
+  junction spaces, or microscopic completions.
+- Unsupported non-Abelian, slanted-fracton, associativity, or foliated claims
+  remain structured `unsupported`; do not replace them with a heuristic count.

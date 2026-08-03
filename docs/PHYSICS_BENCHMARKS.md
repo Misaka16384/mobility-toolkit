@@ -208,7 +208,28 @@ anomaly detection, local Hamiltonian completion, residual boundary order,
 bulk termination, local-Clifford/stable-ancilla equivalence, stacking, and
 foliated equivalence remain unsupported.
 
-## Phase 9 finite Cheshire synthesis and static fusion
+## Cheshire classification service API v2
+
+The current public Cheshire regressions supersede the old supplied-list
+classification terminology:
+
+- folding the Z2 toric metric with its orientation reverse returns exactly six
+  Lagrangians before literature labels are attached;
+- the six labels, direct-algebra supports, orientation reversal, ordered
+  fusion table, and anyon action reproduce arXiv:2204.02407 Eqs. (6.37) and
+  (6.38);
+- source-locked `S_e` and `S_m` creation replay the Pauli rotations of
+  arXiv:2307.03180 Eqs. (2) and (12);
+- generic self-interface counts are 6 (Z2 toric), 22 (Z4 toric), 2 (double
+  semion), 270 (two toric copies), and 6 (three fermion);
+- the X-cube five-generator search returns 58 support candidates per axis and
+  41 cubic-support orbits, always with
+  `classification_complete=false`.
+
+See [CHESHIRE_CLASSIFICATION_V2.md](CHESHIRE_CLASSIFICATION_V2.md) for the
+exact object and non-claim boundary.
+
+## Historical Phase 9 finite Cheshire synthesis and static fusion
 
 The toric operational slice starts from the same source-locked 3+1D
 \(\mathbb Z_2\) plaquette-qubit Hamiltonian used in Phase 4; see
@@ -240,7 +261,7 @@ literature proof that the supplied deletion is a Cheshire defect.
 
 | Fixture | Expected finite result | Evidence |
 |---|---|---|
-| axial `(0,0,1)` X-cube candidate on a `2x2x2` slab, periodic in x/y and open in z | supplied local cube-X deletion absorbs a probe with two bulk syndrome entries; defect-window quotient has factors `(2,2)`, pairing rank zero and radical `(2,2)` | exact finite compilation, GF(2) syndrome and paired linear algebra |
+| axial `(0,0,1)` X-cube candidate on an embedded `2x2x6` slab for length one, periodic in x/y and open in z | `X(edge_x)` creates/hops q2 z-lineons and has two `cross_zx` bulk syndrome entries; the local completion deletes those two checks, adds the hopping term, has a trivial condensate-chain quotient and rank deficit one; the product of the two replaced checks is an independent commuting hidden charge and restores the bulk rank when reimposed | exact finite compilation, phase-aware commutation, GF(2) paired quotient and rank certificate; no thermodynamic or circuit extrapolation |
 | axial translation scan | records both terminating and nonterminating translated finite probes | exhaustive scan of translations in the supplied finite slab |
 | axial length-one scaling sample | 24 qubits; bulk/defect codespace dimensions `2048/4096`; two removed instances | exact finite GF(2) stabilizer ranks |
 | diagonal `(1,1,1)` request | structured `unsupported` | registered-orientation capability guard |

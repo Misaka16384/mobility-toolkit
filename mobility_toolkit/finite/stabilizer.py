@@ -36,6 +36,80 @@ def _matrix_mod(matrix: SparseIntMatrix, modulus: int) -> SparseIntMatrix:
     )
 
 
+def _binary_coefficient_relation_lattice(
+    generator_matrix: SparseIntMatrix,
+) -> SparseIntMatrix:
+    """Exact kernel lattice for a map from Z^m to (Z/2)^n.
+
+    Binary column elimination is lifted with the same unimodular integer
+    column operations.  If ``A U = [B 0]`` over GF(2), with the first ``r``
+    columns independent, then
+
+        U diag(2 I_r, I_{m-r})
+
+    is an integer basis for ``{c in Z^m : A c = 0 mod 2}``.
+    """
+
+    count = generator_matrix.ncols
+    binary_columns = [0] * count
+    for row, column, value in generator_matrix.entries:
+        if value % 2:
+            binary_columns[column] ^= 1 << row
+    transform_columns = [
+        [int(row == column) for row in range(count)]
+        for column in range(count)
+    ]
+
+    rank = 0
+    for row in range(generator_matrix.nrows):
+        pivot = next(
+            (
+                column
+                for column in range(rank, count)
+                if binary_columns[column] & (1 << row)
+            ),
+            None,
+        )
+        if pivot is None:
+            continue
+        binary_columns[rank], binary_columns[pivot] = (
+            binary_columns[pivot],
+            binary_columns[rank],
+        )
+        transform_columns[rank], transform_columns[pivot] = (
+            transform_columns[pivot],
+            transform_columns[rank],
+        )
+        for column in range(count):
+            if column == rank or not (
+                binary_columns[column] & (1 << row)
+            ):
+                continue
+            binary_columns[column] ^= binary_columns[rank]
+            transform_columns[column] = [
+                left - right
+                for left, right in zip(
+                    transform_columns[column],
+                    transform_columns[rank],
+                )
+            ]
+        rank += 1
+        if rank == count:
+            break
+
+    if any(binary_columns[column] for column in range(rank, count)):
+        raise ArithmeticError("binary column elimination failed to isolate the kernel")
+    entries = []
+    for column, transform in enumerate(transform_columns):
+        scale = 2 if column < rank else 1
+        entries.extend(
+            (row, column, scale * value)
+            for row, value in enumerate(transform)
+            if value
+        )
+    return SparseIntMatrix(count, count, tuple(entries))
+
+
 @dataclass(frozen=True)
 class StabilizerValidation:
     generator_matrix: SparseIntMatrix
@@ -122,17 +196,28 @@ def validate_stabilizer_generators(
 
     count = len(generators)
     if count:
-        ambient_relations = SparseIntMatrix.diagonal(coordinates.coordinate_orders)
-        relation_equations = SparseIntMatrix.hstack(
-            generator_matrix, ambient_relations.negate()
-        )
-        relation_kernel = backend.integer_kernel(relation_equations).basis
-        coefficient_relations = relation_kernel.select_rows(tuple(range(count)))
-        coefficient_relations = backend.column_lattice_basis(
-            coefficient_relations
-        ).basis
-        if coefficient_relations.ncols != count:
-            raise ArithmeticError("stabilizer coefficient-relation lattice is not full rank")
+        if all(order == 2 for order in coordinates.coordinate_orders):
+            coefficient_relations = _binary_coefficient_relation_lattice(
+                generator_matrix
+            )
+        else:
+            ambient_relations = SparseIntMatrix.diagonal(
+                coordinates.coordinate_orders
+            )
+            relation_equations = SparseIntMatrix.hstack(
+                generator_matrix, ambient_relations.negate()
+            )
+            relation_kernel = backend.integer_kernel(relation_equations).basis
+            coefficient_relations = relation_kernel.select_rows(
+                tuple(range(count))
+            )
+            coefficient_relations = backend.column_lattice_basis(
+                coefficient_relations
+            ).basis
+            if coefficient_relations.ncols != count:
+                raise ArithmeticError(
+                    "stabilizer coefficient-relation lattice is not full rank"
+                )
     else:
         coefficient_relations = SparseIntMatrix.zero(0, 0)
 

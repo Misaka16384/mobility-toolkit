@@ -9,7 +9,7 @@ Google Antigravity) working in or with this repository.
 research toolkit. It combines finite abelian-group algebra, explicit geometry,
 cellular relative homology, canonical periodic Laurent presentations,
 oriented half-spaces, bounded boundary enumeration, stratified defects, and
-finite static Cheshire analysis.
+evidence-graded Cheshire classification, fusion, lattice, and circuit work.
 
 The public computational surface is one versioned native service registry.
 Python, CLI, MCP, and the eight use-case skills are transports over that
@@ -34,7 +34,7 @@ remains a low-level and maintenance surface.
 | `mt-gapped-boundary-2d` | `boundary.completion2d.*` | Finite metric condensation and explicitly bounded local completions |
 | `mt-gapped-boundary-3d` | `boundary.symbolic3d.*` | E1/E2 and bounded symbolic E3 candidate searches |
 | `mt-defect` | `defects.capabilities` | Finite stratified boundaries, endpoints, tubes, and junction incidence |
-| `mt-cheshire` | `defects.cheshire.*` | Finite Cheshire static analysis, tube-to-line synthesis, bounded species search, and static fusion |
+| `mt-cheshire` | `defects.cheshire.*` | Complete 2D toric reference, finite pointed/Abelian classification and ordered fusion, finite lattice/circuit replay, retained 3+1D reference, and graded X-cube candidates |
 
 Every operation owns its input schema, exactness level, certificate,
 provenance, assumptions, and warnings. Query its capability operation before

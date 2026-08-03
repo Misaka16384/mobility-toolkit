@@ -14,8 +14,10 @@ families cover:
 - oriented rational half-spaces and source-locked boundary benchmarks;
 - bounded 2D and 3D boundary-candidate enumeration;
 - stratified defects, endpoints, tubes, and junction incidence;
-- finite static Cheshire analysis, supplied-candidate synthesis, and static
-  fusion data.
+- complete 2D Z2 toric Cheshire/descendant classification and ordered fusion,
+  finite lattice/circuit witnesses, finite pointed/Abelian interface
+  classification, retained 3+1D static references, and evidence-graded X-cube
+  support candidates.
 
 Every result reports its operation scope, exactness, assumptions, certificate,
 provenance, and warnings. A finite or bounded-exact computation is not a
@@ -98,7 +100,7 @@ The supported inventory is exactly these eight use-case skills:
 | `mt-gapped-boundary-2d` | `boundary.completion2d.*` | Finite metric condensation and explicitly bounded local completions |
 | `mt-gapped-boundary-3d` | `boundary.symbolic3d.*` | E1/E2 and bounded symbolic E3 candidate searches |
 | `mt-defect` | `defects.*` | Finite stratified boundaries, endpoints, tubes, and junction incidence |
-| `mt-cheshire` | `defects.cheshire.*` | Finite Cheshire static analysis, supplied-candidate searches, and static fusion |
+| `mt-cheshire` | `defects.cheshire.*` | 2D toric and finite Abelian classification/fusion, finite lattice/circuit checks, 3+1D reference, and graded X-cube candidates |
 
 Each skill is a thin transport to the same registry. Skills do not own a
 separate validator or algorithm implementation.
@@ -116,7 +118,7 @@ Execute one canonical `ServiceRequest`:
 ```bash
 mobility-toolkit service --request '{
   "schema": "mobility_toolkit.service_request.v1",
-  "schema_version": "1",
+  "schema_version": "2",
   "operation": "finite.code.capabilities",
   "input_data": {}
 }'

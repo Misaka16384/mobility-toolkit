@@ -32,6 +32,7 @@ from mobility_toolkit.anyons2d.models import (
     color_code_metric_model,
     double_semion_metric_model,
     fish_toric_metric_model,
+    three_fermion_metric_model,
     zd_toric_metric_model,
 )
 
@@ -58,6 +59,7 @@ __all__ = [
     "fish_toric_metric_model",
     "fold_metric_groups",
     "test_condensation",
+    "three_fermion_metric_model",
     "verify_condensation_certificate",
     "zd_toric_metric_model",
 ]

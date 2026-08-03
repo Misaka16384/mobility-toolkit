@@ -1,5 +1,13 @@
 # 有限几何、边界、缺陷与 Cheshire string 路线图
 
+> Cheshire 更新（service API v2）：本文 Phase 4/9 的 supplied-list 与
+> static-fusion 叙述是历史实施记录，已由
+> [CHESHIRE_CLASSIFICATION_V2.md](CHESHIRE_CLASSIFICATION_V2.md) 取代。
+> 新接口删除旧 operation 名，加入 2D toric 六类完整回归、一般有限
+> pointed/Abelian folded 分类、TQFT-valued ordered fusion、有限格点/电路
+> replay，以及保持 `classification_complete=false` 的三轴 X-cube
+> support-candidate 目录。
+
 状态：已批准，分阶段实施中
 
 日期：2026-07-22

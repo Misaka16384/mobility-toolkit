@@ -1,9 +1,10 @@
-"""Finite, experimental X-cube line/tube Cheshire reference.
+"""Finite, experimental X-cube lineon-condensate Cheshire reference.
 
-The finite Pauli calculations in this module are exact.  Calling the supplied
-stabilizer deletion a Cheshire defect is deliberately only an experimental
-candidate: no condensation, gapped-completion, thermodynamic, or dynamical
-claim is made.
+The finite Pauli calculations in this module are exact.  The supplied local
+completion adds the microscopic rigid z-lineon hopping/condensation terms and
+deletes every anticommuting bulk check.  Calling the result a thermodynamic
+Cheshire defect remains experimental: no uniform gap, multiplication,
+Morita-equivalence, or circuit claim is made.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ from mobility_toolkit.core import (
 from mobility_toolkit.finite import FiniteIntegerBackend
 from mobility_toolkit.geometry import (
     CrossingPolicy,
+    ExplicitOperatorSpec,
     FiniteCode,
     InstanceSelector,
     LatticeCoordinate,
@@ -248,6 +250,7 @@ class FractonFiniteScalingSample:
     bulk_codespace_dimension: int
     defect_codespace_dimension: int
     removed_instance_count: int
+    added_operator_count: int
 
     SCHEMA_ID = "mobility_toolkit.fracton_finite_scaling_sample.v1"
 
@@ -255,6 +258,7 @@ class FractonFiniteScalingSample:
         return {
             "bulk_codespace_dimension": self.bulk_codespace_dimension,
             "bulk_stabilizer_rank": self.bulk_stabilizer_rank,
+            "added_operator_count": self.added_operator_count,
             "defect_codespace_dimension": self.defect_codespace_dimension,
             "defect_stabilizer_rank": self.defect_stabilizer_rank,
             "line_length_lattice_steps": self.line_length_lattice_steps,
@@ -275,6 +279,10 @@ class XCubeFractonLineCertificate:
     defect_syndrome: Tuple[FiniteSyndromeEntry, ...]
     defect_syndrome_hash: str
     removed_instances: Tuple[GeneratorInstanceKey, ...]
+    added_condensation_operators: Tuple[PauliOperator, ...]
+    added_condensation_hashes: Tuple[str, ...]
+    hidden_charge_operator: PauliOperator
+    hidden_charge_hash: str
     tube_anchor_coordinates: Tuple[LatticeCoordinate, ...]
     bulk_validation_verified: bool
     defect_validation_verified: bool
@@ -282,8 +290,16 @@ class XCubeFractonLineCertificate:
     modification_locality_verified: bool
     removal_covers_bulk_syndrome: bool
     local_algebra_verified: bool
+    removed_lineon_sector_only: bool
+    removed_records_fully_selected: bool
+    added_condensation_present: bool
+    added_condensation_commutes: bool
+    rank_deficit_relative_to_bulk: int
+    hidden_charge_commutes: bool
+    hidden_charge_independent: bool
+    hidden_charge_restores_bulk_rank: bool
 
-    SCHEMA_ID = "mobility_toolkit.xcube_fracton_line_certificate.v1"
+    SCHEMA_ID = "mobility_toolkit.xcube_fracton_line_certificate.v2"
 
     @property
     def verified(self) -> bool:
@@ -302,6 +318,16 @@ class XCubeFractonLineCertificate:
             == self.bulk_syndrome_hash
             and canonical_hash("xcube-fracton-defect-syndrome", self.defect_syndrome)
             == self.defect_syndrome_hash
+            and bool(self.added_condensation_operators)
+            and tuple(
+                canonical_hash(PauliOperator.SCHEMA_ID, operator)
+                for operator in self.added_condensation_operators
+            )
+            == self.added_condensation_hashes
+            and canonical_hash(
+                PauliOperator.SCHEMA_ID, self.hidden_charge_operator
+            )
+            == self.hidden_charge_hash
             and bool(self.bulk_syndrome)
             and not self.defect_syndrome
             and not self.probe_operator.scalar_obstruction
@@ -312,6 +338,14 @@ class XCubeFractonLineCertificate:
             and self.removal_covers_bulk_syndrome
             and bulk_instances.issubset(set(self.removed_instances))
             and self.local_algebra_verified
+            and self.removed_lineon_sector_only
+            and self.removed_records_fully_selected
+            and self.added_condensation_present
+            and self.added_condensation_commutes
+            and self.rank_deficit_relative_to_bulk == 1
+            and self.hidden_charge_commutes
+            and self.hidden_charge_independent
+            and self.hidden_charge_restores_bulk_rank
         )
 
     def to_canonical_dict(self) -> dict:
@@ -319,16 +353,30 @@ class XCubeFractonLineCertificate:
             "bulk_syndrome": self.bulk_syndrome,
             "bulk_syndrome_hash": self.bulk_syndrome_hash,
             "bulk_validation_verified": self.bulk_validation_verified,
+            "added_condensation_hashes": self.added_condensation_hashes,
+            "added_condensation_operators": self.added_condensation_operators,
+            "added_condensation_commutes": self.added_condensation_commutes,
+            "added_condensation_present": self.added_condensation_present,
             "defect_syndrome": self.defect_syndrome,
             "defect_syndrome_hash": self.defect_syndrome_hash,
             "defect_validation_verified": self.defect_validation_verified,
             "finite_geometry_verified": self.finite_geometry_verified,
+            "hidden_charge_commutes": self.hidden_charge_commutes,
+            "hidden_charge_hash": self.hidden_charge_hash,
+            "hidden_charge_independent": self.hidden_charge_independent,
+            "hidden_charge_operator": self.hidden_charge_operator,
+            "hidden_charge_restores_bulk_rank":
+                self.hidden_charge_restores_bulk_rank,
             "local_algebra_verified": self.local_algebra_verified,
             "modification_locality_verified": self.modification_locality_verified,
             "probe_hash": self.probe_hash,
             "probe_operator": self.probe_operator,
+            "rank_deficit_relative_to_bulk": self.rank_deficit_relative_to_bulk,
             "removal_covers_bulk_syndrome": self.removal_covers_bulk_syndrome,
             "removed_instances": self.removed_instances,
+            "removed_lineon_sector_only": self.removed_lineon_sector_only,
+            "removed_records_fully_selected":
+                self.removed_records_fully_selected,
             "schema": self.SCHEMA_ID,
             "source_orientation": self.source_orientation,
             "tube_anchor_coordinates": self.tube_anchor_coordinates,
@@ -345,12 +393,14 @@ class XCubeFractonLineReference:
     probe_operator: PauliOperator
     bulk_syndrome: Tuple[FiniteSyndromeEntry, ...]
     defect_syndrome: Tuple[FiniteSyndromeEntry, ...]
+    condensation_operators: Tuple[PauliOperator, ...]
+    hidden_charge_operator: PauliOperator
     local_algebra: BinaryDefectPairedAlgebra
     translation_constraints: Tuple[FiniteTranslationConstraint, ...]
     scaling_sample: FractonFiniteScalingSample
     certificate: XCubeFractonLineCertificate
 
-    SCHEMA_ID = "mobility_toolkit.xcube_fracton_line_reference.v1"
+    SCHEMA_ID = "mobility_toolkit.xcube_fracton_line_reference.v2"
 
     @property
     def terminating_shifts(self) -> Tuple[IntegerVector, ...]:
@@ -365,9 +415,11 @@ class XCubeFractonLineReference:
             "bulk_compilation_certificate": self.bulk_compilation_certificate,
             "bulk_syndrome": self.bulk_syndrome,
             "certificate": self.certificate,
+            "condensation_operators": self.condensation_operators,
             "defect_compilation_certificate": self.defect_compilation_certificate,
             "defect_syndrome": self.defect_syndrome,
             "local_algebra": self.local_algebra,
+            "hidden_charge_operator": self.hidden_charge_operator,
             "model_id": self.model_id,
             "probe_operator": self.probe_operator,
             "request": self.request,
@@ -381,7 +433,7 @@ class XCubeFractonLineReference:
 def xcube_axial_line_reference_request(
     line_length_lattice_steps: int = 1,
 ) -> XCubeAxialLineRequest:
-    """Build the explicit small axial deletion/probe reference request."""
+    """Build an embedded finite local z-lineon-condensate completion."""
 
     if (
         isinstance(line_length_lattice_steps, bool)
@@ -390,36 +442,62 @@ def xcube_axial_line_reference_request(
     ):
         raise ValueError("line_length_lattice_steps must be a positive integer")
     model = z2_xcube_model()
-    cube_hash = canonical_hash(
-        OperatorTemplate.SCHEMA_ID, model.code.stabilizer_templates[0]
+    shape = (2, 2, line_length_lattice_steps + 5)
+    region = rectangular_region(
+        shape,
+        model.code.species,
+        periodic_axes=(0, 1),
+    )
+    cross_zx_hash = canonical_hash(
+        OperatorTemplate.SCHEMA_ID, model.code.stabilizer_templates[1]
+    )
+    path_coordinates = tuple(
+        LatticeCoordinate((1, 1, 2 + offset))
+        for offset in range(line_length_lattice_steps)
     )
     anchors = tuple(
-        LatticeCoordinate((x_coordinate, 0, z_coordinate))
-        for z_coordinate in range(1, line_length_lattice_steps + 1)
-        for x_coordinate in range(2)
+        LatticeCoordinate((1, 1, 1 + offset))
+        for offset in range(line_length_lattice_steps + 1)
     )
-    selectors = tuple(InstanceSelector(cube_hash, anchor) for anchor in anchors)
+    selectors = tuple(
+        InstanceSelector(cross_zx_hash, anchor) for anchor in anchors
+    )
+    add_operators = []
+    for index, coordinate in enumerate(path_coordinates):
+        resolved = region.resolve(SiteAddress(coordinate, "edge_x"))
+        if resolved is None:
+            raise ArithmeticError("embedded z-lineon link failed to resolve")
+        add_operators.append(
+            ExplicitOperatorSpec(
+                f"z-lineon-hop-{index}",
+                0,
+                (LocalPauliTerm.cyclic(resolved.physical_site_id, x=1),),
+            )
+        )
     modification = LocalModification(
-        "experimental-xcube-axial-cube-check-deletion",
+        "experimental-xcube-standard-z-lineon-condensate",
         remove_instances=selectors,
+        add_operators=tuple(add_operators),
         assumptions=(
-            "explicit supplied cube-X deletion only",
-            "not a certified gapped or condensate completion",
+            "add X(edge_x) on consecutive z links to condense q2 z-lineons",
+            "delete all and only anticommuting cross_zx checks",
+            "retain every already-commuting bulk stabilizer",
+            "finite local commuting completion; no thermodynamic gap claim",
         ),
     )
     probe = (
         LatticeProbeTerm(
-            SiteAddress(LatticeCoordinate((0, 0, 1)), "edge_z"),
-            z_exponent=1,
+            SiteAddress(path_coordinates[0], "edge_x"),
+            x_exponent=1,
         ),
     )
     window = tuple(
-        SiteAddress(LatticeCoordinate((0, 0, z_coordinate)), "edge_z")
-        for z_coordinate in range(line_length_lattice_steps + 1)
+        SiteAddress(coordinate, "edge_x")
+        for coordinate in path_coordinates
     )
     return XCubeAxialLineRequest(
         PrimitiveNormal((0, 0, 1)),
-        (2, 2, line_length_lattice_steps + 1),
+        shape,
         (0, 1),
         modification,
         anchors,
@@ -722,7 +800,7 @@ def analyze_xcube_fracton_line_reference(
     request: XCubeAxialLineRequest,
     backend: FiniteIntegerBackend,
 ) -> ComputationResult:
-    """Run the exact finite algebra for an explicitly supplied axial candidate."""
+    """Run exact finite algebra for an explicit local axial completion."""
 
     if not isinstance(request, XCubeAxialLineRequest):
         raise TypeError("request must be an XCubeAxialLineRequest")
@@ -762,6 +840,25 @@ def analyze_xcube_fracton_line_reference(
         )
     bulk_syndrome = _syndrome(bulk, probe)
     defect_syndrome = _syndrome(defect, probe)
+    added_condensation_operators = tuple(
+        bulk.pauli_module.operator(specification.terms, phase=specification.phase)
+        for specification in request.modification.add_operators
+    )
+    added_condensation_hashes = tuple(
+        canonical_hash(PauliOperator.SCHEMA_ID, operator)
+        for operator in added_condensation_operators
+    )
+    defect_generator_hashes = {
+        canonical_hash(PauliOperator.SCHEMA_ID, operator)
+        for operator in defect.generators
+    }
+    added_condensation_present = set(added_condensation_hashes).issubset(
+        defect_generator_hashes
+    )
+    added_condensation_commutes = all(
+        not _syndrome(defect, operator)
+        for operator in added_condensation_operators
+    )
     removed = tuple(
         sorted(
             GeneratorInstanceKey(selector.template_hash, selector.anchor)
@@ -770,6 +867,38 @@ def analyze_xcube_fracton_line_reference(
     )
     tube_anchors = set(request.tube_anchor_coordinates)
     locality = all(instance.anchor in tube_anchors for instance in removed)
+    removed_set = set(removed)
+    removed_records = tuple(
+        record
+        for record in bulk.compiled_generators
+        if any(
+            GeneratorInstanceKey(source.template_hash, source.anchor)
+            in removed_set
+            for source in record.sources
+            if hasattr(source, "template_hash") and hasattr(source, "anchor")
+        )
+    )
+    removed_record_instances = tuple(
+        {
+            GeneratorInstanceKey(source.template_hash, source.anchor)
+            for source in record.sources
+            if hasattr(source, "template_hash") and hasattr(source, "anchor")
+        }
+        for record in removed_records
+    )
+    removed_records_fully_selected = bool(removed_records) and all(
+        instances and instances.issubset(removed_set)
+        for instances in removed_record_instances
+    )
+    cross_zx_hash = canonical_hash(
+        OperatorTemplate.SCHEMA_ID, model.code.stabilizer_templates[1]
+    )
+    removed_lineon_sector_only = bool(removed) and all(
+        instance.template_hash == cross_zx_hash for instance in removed
+    )
+    hidden_charge = bulk.pauli_module.identity()
+    for record in removed_records:
+        hidden_charge = hidden_charge * record.operator
     bulk_instances = {
         instance
         for entry in bulk_syndrome
@@ -795,15 +924,25 @@ def analyze_xcube_fracton_line_reference(
     defect_rank = _gf2_rank(
         tuple(_operator_vector(operator) for operator in defect.generators)
     )
+    hidden_charge_vector = _operator_vector(hidden_charge)
+    hidden_charge_commutes = not _syndrome(defect, hidden_charge)
+    hidden_charge_augmented_rank = _gf2_rank(
+        tuple(_operator_vector(operator) for operator in defect.generators)
+        + (hidden_charge_vector,)
+    )
+    hidden_charge_independent = hidden_charge_augmented_rank == defect_rank + 1
+    hidden_charge_restores_bulk_rank = hidden_charge_augmented_rank == bulk_rank
+    rank_deficit = bulk_rank - defect_rank
     scaling = FractonFiniteScalingSample(
         request.shape,
-        request.shape[2] - 1,
+        len(added_condensation_operators),
         nqubits,
         bulk_rank,
         defect_rank,
         2 ** (nqubits - bulk_rank),
         2 ** (nqubits - defect_rank),
         len(removed),
+        len(added_condensation_operators),
     )
     certificate = XCubeFractonLineCertificate(
         orientation.value,
@@ -814,6 +953,10 @@ def analyze_xcube_fracton_line_reference(
         defect_syndrome,
         canonical_hash("xcube-fracton-defect-syndrome", defect_syndrome),
         removed,
+        added_condensation_operators,
+        added_condensation_hashes,
+        hidden_charge,
+        canonical_hash(PauliOperator.SCHEMA_ID, hidden_charge),
         request.tube_anchor_coordinates,
         bulk.validation.valid,
         defect.validation.valid,
@@ -822,6 +965,14 @@ def analyze_xcube_fracton_line_reference(
         locality,
         bulk_instances.issubset(set(removed)),
         local_algebra.verified,
+        removed_lineon_sector_only,
+        removed_records_fully_selected,
+        added_condensation_present,
+        added_condensation_commutes,
+        rank_deficit,
+        hidden_charge_commutes,
+        hidden_charge_independent,
+        hidden_charge_restores_bulk_rank,
     )
     value = XCubeFractonLineReference(
         model.model_id,
@@ -831,6 +982,8 @@ def analyze_xcube_fracton_line_reference(
         probe,
         bulk_syndrome,
         defect_syndrome,
+        added_condensation_operators,
+        hidden_charge,
         local_algebra,
         translations,
         scaling,
@@ -844,14 +997,17 @@ def analyze_xcube_fracton_line_reference(
         assumptions=(
             "Ruba--Yang Eq. (140) Z2 X-cube presentation",
             "finite x,y-periodic and z-open slab",
-            "explicit supplied cube-X deletion",
+            "q2 z-lineon is created/hopped by X(edge_x) along z",
+            "local X(edge_x) condensate terms replace anticommuting cross_zx checks",
+            "defect endpoints are embedded away from the physical open-z boundary",
             "small-period support aliases are phase-aware and recorded",
         ),
         theorem_scope=(
-            "Syndromes, commutators, binary paired quotients, translation scans, "
-            "and stabilizer ranks are exact for this supplied finite code. The "
-            "interpretation as a Cheshire line/tube is an experimental reference "
-            "candidate only."
+            "Syndromes, commutators, local projector replacement, binary paired "
+            "quotients, hidden-charge independence, translation scans, and "
+            "stabilizer ranks are exact for this supplied finite code. A uniform "
+            "thermodynamic gap and circuit-certified Cheshire interpretation are "
+            "not established."
         ),
         certificate_level=CertificateLevel.STANDARD,
         certificate=certificate,
@@ -868,16 +1024,28 @@ def analyze_xcube_fracton_line_reference(
             (("shape", request.shape),),
         ),
         diagnostics=(
-            "The supplied probe has nonzero bulk syndrome and zero syndrome after "
-            "the explicit tube-local deletion."
+            "The microscopic z-lineon hopping probe has nonzero bulk syndrome and "
+            "zero syndrome after the local condensate completion."
             if bulk_syndrome and not defect_syndrome
-            else "The supplied probe is not fully absorbed by the explicit deletion.",
+            else "The supplied z-lineon probe is not absorbed by the completion.",
+            "The product of all replaced cross_zx checks is a commuting independent "
+            "hidden-charge operator whose restoration recovers the bulk rank."
+            if (
+                hidden_charge_commutes
+                and hidden_charge_independent
+                and hidden_charge_restores_bulk_rank
+            )
+            else "The expected finite hidden-charge certificate failed.",
         ),
         warnings=(
             "The ordinary 2D anyon Lagrangian-subgroup criterion is not applied.",
-            "No gapped completion or fracton-condensation theorem is certified.",
+            "The local terms form an exact finite commuting completion, but no "
+            "uniform thermodynamic spectral gap is certified.",
+            "A finite hidden-charge qubit is not by itself a thermodynamic species "
+            "or mobility-enriched algebra classification.",
             "Finite translation data do not imply thermodynamic mobility.",
-            "No circuit-depth, adiabatic, energetic, or dynamical claim is made.",
+            "No creation, deformation, fusion, circuit-depth, adiabatic, or "
+            "dynamical claim is made.",
         ),
     )
 

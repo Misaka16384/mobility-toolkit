@@ -81,15 +81,20 @@ be `bounded_exact` while the broader research operation remains experimental.
 | `supplied_2d_local_completion` | Supplied metric group, lifts, finite Hamiltonian, and locality domain | `certified_exact` / `bounded_exact` | no automatic anyon extraction or gap theorem |
 | `halfspace_primary_and_supplied_pairing` | Rational normal, primary compiler, supplied uniform-prime free pairing | `certified_exact` | no generic full boundary module or secondary closure |
 | `static_toric_cheshire` | User-specified finite 3+1D Z2 toric segments/loops and two static representations | `certified_exact` / `bounded_exact` | no dynamic circuit or phase-equivalence claim |
+| `toric2d_cheshire_reference` | Six folded Lagrangians, direct-algebra crosswalk, orientation, Eq. (6.37) ordered fusion, and Eq. (6.38) action | `certified_exact` | finite lattice witnesses do not prove a thermodynamic gap |
+| `pointed_abelian_interfaces` | Exhausted folded Lagrangians for explicit finite metric groups; diagonal executor includes 6/22/2/270/6 literature regressions | `certified_exact` after exhaustion | generic direct multiplication/fusion needs pointed cochain data |
+| `toric2d_cheshire_lattice_circuits` | Explicit finite slit Hamiltonians and phase-aware Clifford/Pauli-rotation replay | `bounded_exact` | no optimal-depth or thermodynamic phase theorem |
 
 ## Experimental research slices
 
 | Capability ID | What is actually enumerated or checked | Missing promotion work |
 |---|---|---|
 | `symbolic_3d_e3_seeds` | RREF seed presentations in a finite Laurent exponent/rank box | saturation, anomaly, completion, stable equivalences |
-| `bounded_cheshire_synthesis` | Explicit toric candidate families over a finite tube-radius schedule | species completeness and dynamic equivalence |
-| `static_cheshire_fusion` | Finite before/after logical data and junction provenance | fusion circuit and complete superselection data |
-| `fracton_cheshire_reference` | One explicit finite axial X-cube reference | other orientations and general fracton classification |
+| `bounded_cheshire_synthesis` | Historical internal finite tube-radius regression; no longer a public Cheshire v2 operation | phase equivalence and public categorical semantics |
+| `static_cheshire_fusion` | Historical internal finite before/after comparison; no longer the public fusion operation | circuit and categorical coefficient semantics |
+| `fracton_cheshire_reference` | Retained optional finite axial X-cube deletion/probe reference | other orientations and thermodynamic control |
+| `xcube_cheshire_support_slice` | 58 nonzero totally singular support subgroups per coordinate axis; 41 cubic-support orbits | multiplication, junctions, Morita quotient, and circuits |
+| `fracton_cheshire_static_reference` | One explicit finite axial X-cube candidate can be attached to the `ell_z` support | thermodynamic scaling and certified creation/fusion circuits |
 
 ## Structured unsupported capabilities
 
@@ -97,7 +102,9 @@ be `bounded_exact` while the broader research operation remains experimental.
 |---|---|
 | `generic_full_halfspace_boundary_module` | No general certified full module/secondary closure constructor |
 | `arbitrary_code_anyon_extraction` | No general saturation and period-certificate pipeline |
-| `cheshire_dynamic_phase_and_circuits` | Static stabilizer quotients do not determine phase equivalence or minimum circuit depth |
+| `generic_nonabelian_cheshire_solver` | IR is representable, but no arbitrary non-Abelian algebra-object/F-symbol solver is installed |
+| `fracton_cheshire_species_count` | The 58/41/support-projection counts do not satisfy multiplication, Morita, junction, or circuit obligations |
+| `cheshire_minimum_depth_and_gap` | Finite circuit replay does not prove minimum depth or a thermodynamic spectral gap |
 
 ## Verified architecture versus future research
 
@@ -119,9 +126,10 @@ experimental or unsupported result:
 - arbitrary-code anyon extraction, saturation, and thermodynamic 2D
   completion;
 - E3 saturation, anomaly, completion, and stable-equivalence quotients;
-- automatic Cheshire condensation discovery, endpoint/junction completion,
-  dynamic circuits, and thermodynamic species completeness;
-- general X-cube orientations and Haah/checkerboard boundary classification.
+- generic non-Abelian Cheshire algebra solving, endpoint/junction completion,
+  and thermodynamic species completeness;
+- slanted X-cube directions, physical foliated-equivalence quotients, and
+  Haah/checkerboard Cheshire classification.
 
 ## Promotion rule
 
