@@ -4,7 +4,6 @@ Guards the unified `mt-` prefix, hyphenated (spec-valid) names, and the
 SKILL.md <-> folder <-> SKILL_NAMES consistency. No backend required.
 """
 import re
-from pathlib import Path
 
 import pytest
 

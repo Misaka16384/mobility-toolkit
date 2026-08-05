@@ -1,4 +1,3 @@
-import pytest
 from mobility_toolkit.homology import compute_ext_krull
 from mobility_toolkit.grobner import compute_gsd_and_periodicity
 from mobility_toolkit.fusion import solve_sset_fusion

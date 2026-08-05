@@ -1,4 +1,3 @@
-import pytest
 from mobility_toolkit.bridge import run_m2_script
 
 # ==============================================================================

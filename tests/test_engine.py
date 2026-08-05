@@ -1,4 +1,3 @@
-import pytest
 import subprocess
 from unittest.mock import MagicMock
 from mobility_toolkit.engine import run_macaulay2

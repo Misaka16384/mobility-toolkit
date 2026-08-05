@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Iterable, Optional, Sequence, Tuple
 
-from mobility_toolkit.core.codes import StabilizerCodeSpec
 from mobility_toolkit.core.pauli import LocalPauliTerm, PauliOperator
 from mobility_toolkit.core.results import (
     BackendProvenance,

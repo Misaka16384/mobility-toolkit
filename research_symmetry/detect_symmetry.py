@@ -1,5 +1,4 @@
 import sympy as sp
-import re
 from typing import List, Dict, Any
 
 # Define variables in SymPy
@@ -23,7 +22,7 @@ def parse_to_sympy(p_str: str):
         # replace implicit multiplications if any
         expr = sp.sympify(cleaned)
         return expr
-    except Exception as e:
+    except Exception:
         # manual fallback for simple cases
         return sp.sympify(cleaned.replace("*", "*"))
 

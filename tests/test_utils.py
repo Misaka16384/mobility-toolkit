@@ -1,6 +1,5 @@
 import os
 import json
-import shutil
 import pytest
 from mobility_toolkit.utils import (
     PROJECT_ROOT,

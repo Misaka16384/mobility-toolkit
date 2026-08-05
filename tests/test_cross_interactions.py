@@ -1,4 +1,3 @@
-import pytest
 from mobility_toolkit.bridge import run_m2_script
 from mobility_toolkit.homology import compute_ext_krull
 from mobility_toolkit.grobner import compute_gsd_and_periodicity

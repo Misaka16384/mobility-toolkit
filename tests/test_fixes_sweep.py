@@ -1,6 +1,6 @@
 import pytest
-from mobility_toolkit.translate import translate_stabilizers, map_variables_to_unified
-from mobility_toolkit.fusion import parse_poly_str, solve_sset_fusion
+from mobility_toolkit.translate import translate_stabilizers
+from mobility_toolkit.fusion import parse_poly_str
 from mobility_toolkit.grobner import compute_gsd_and_periodicity
 
 # ==============================================================================

@@ -1,7 +1,6 @@
 import os
 import sys
 import pytest
-import sqlite3
 import json
 
 # Add project root and skills directories to sys.path

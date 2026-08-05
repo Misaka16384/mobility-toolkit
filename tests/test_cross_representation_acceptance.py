@@ -15,7 +15,6 @@ from mobility_toolkit.core import (
     LocalSystem,
     OperatorTemplate,
     OperatorTerm,
-    PauliModule,
     PeriodicCode,
     SparseIntMatrix,
     TranslationGroup,

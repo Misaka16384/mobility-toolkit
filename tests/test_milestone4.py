@@ -1,7 +1,5 @@
 import os
 import pytest
-import sqlite3
-import json
 from mobility_toolkit.registry import ModelRegistry, DB_PATH
 from mobility_toolkit.homology import compute_ext_krull
 from mobility_toolkit.mobility import compute_translation_lattice

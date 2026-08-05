@@ -2,7 +2,6 @@ import re
 import math
 import itertools
 from typing import List, Dict, Any, Optional
-from fractions import Fraction
 from mobility_toolkit.bridge import run_m2_script, run_macaulay2
 from mobility_toolkit.translate import translate_stabilizers
 from mobility_toolkit import utils

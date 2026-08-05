@@ -2,7 +2,6 @@ import pytest
 
 from mobility_toolkit.core import LocalSystem, TranslationGroup, canonical_hash
 from mobility_toolkit.geometry import (
-    AxisIdentification,
     FiniteRegion,
     GeometryDisplayMetadata,
     LatticeCoordinate,
@@ -12,7 +11,6 @@ from mobility_toolkit.geometry import (
     SiteAddress,
     SiteAlias,
     SiteEmbedding,
-    SpeciesFrame,
     box_stratification,
     canonical_physical_site_id,
     rectangular_region,

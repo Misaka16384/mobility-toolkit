@@ -37,7 +37,7 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass
-from typing import Callable, Optional, Sequence, Tuple
+from typing import Callable, Optional, Tuple
 
 from mobility_toolkit.boundary_halfspace.geometry import PrimitiveNormal
 from mobility_toolkit.boundary_halfspace.presentation import (
