@@ -25,3 +25,6 @@
 ## 2024-11-20 - Vectorizing NumPy Array Modulo Operations
 **Learning:** Python loops executing NumPy operations row-by-row are significantly slower due to loop overhead. Using array masking (`mask = factors != 0`) and vectorizing column slices (`factors = arr[:, col] % p`) can yield a 3-4x speedup in dense array arithmetic.
 **Action:** When performing matrix row-reductions over finite fields in NumPy, avoid Python-level `for` loops iterating over array rows. Always use vectorized operations utilizing boolean masks and broadcasting.
+## 2023-11-09 - C-Level Optimization For Multiplicative Reductions
+**Learning:** Manual list loops and `functools.reduce(mul, ...)` over math iterables are unexpectedly heavy bottlenecks in Python. `math.prod` (since Python 3.8) accepts iterables directly and processes natively in C, avoiding Python-level function call overhead for every multiplication step in the loop.
+**Action:** Always scan numeric arrays for loop-based mathematical multiplicative reductions (Product) and map them to their Python 3.8+ C-optimized native multi-argument counterparts (`math.prod`).
