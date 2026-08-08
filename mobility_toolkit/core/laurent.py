@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, Sequence, Tuple
+from typing import Dict, Sequence, Tuple
 
 
 def _integer(value: int, name: str) -> int:

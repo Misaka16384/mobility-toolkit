@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import itertools
-import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import Iterable, Sequence, Tuple
@@ -169,18 +168,33 @@ def diagnose_cubical_mask(
     dimension = len(cells[0])
     if any(len(cell) != dimension for cell in cells):
         raise ValueError("cubical mask cells have inconsistent dimensions")
+    cells_set = frozenset(cells)
     adjacency = {cell: set() for cell in cells}
     pinched = []
-    for index, left in enumerate(cells):
-        for right in cells[index + 1 :]:
-            differences = tuple(abs(a - b) for a, b in zip(left, right))
-            if sum(value == 1 for value in differences) == 1 and all(
-                value <= 1 for value in differences
-            ):
-                adjacency[left].add(right)
-                adjacency[right].add(left)
-            elif all(value <= 1 for value in differences):
-                pinched.append((left, right))
+
+    # Calculate one half of all possible neighbor offsets (-1, 0, 1) in n-dimensions
+    # to avoid double counting undirected edges.
+    offsets = list(itertools.product((-1, 0, 1), repeat=dimension))
+    half_offsets = []
+    for offset in offsets:
+        for val in offset:
+            if val > 0:
+                half_offsets.append(offset)
+                break
+            elif val < 0:
+                break
+
+    for cell in cells:
+        for offset in half_offsets:
+            neighbor = tuple(a + b for a, b in zip(cell, offset))
+            if neighbor in cells_set:
+                diff_count = sum(1 for val in offset if val != 0)
+                if diff_count == 1:
+                    adjacency[cell].add(neighbor)
+                    adjacency[neighbor].add(cell)
+                else:
+                    pinched.append((cell, neighbor))
+
     component_count = 0
     unseen = set(cells)
     while unseen:

@@ -11,7 +11,7 @@ finite verification into a thermodynamic gap theorem.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Sequence, Tuple
+from typing import Sequence, Tuple
 
 from mobility_toolkit.anyons2d import (
     CondensationCertificate,

@@ -25,3 +25,7 @@
 ## 2024-11-20 - Vectorizing NumPy Array Modulo Operations
 **Learning:** Python loops executing NumPy operations row-by-row are significantly slower due to loop overhead. Using array masking (`mask = factors != 0`) and vectorizing column slices (`factors = arr[:, col] % p`) can yield a 3-4x speedup in dense array arithmetic.
 **Action:** When performing matrix row-reductions over finite fields in NumPy, avoid Python-level `for` loops iterating over array rows. Always use vectorized operations utilizing boolean masks and broadcasting.
+
+## 2024-11-20 - O(N) Grid Adjacency Computation
+**Learning:** Comparing grid cells pairwise to find adjacencies is an O(N^2) operation that severely bottlenecks geometry and mask generation tasks. Because the grid is regular, adjacencies can be resolved in O(N) by generating a set of neighbor offsets (e.g. from `itertools.product((-1, 0, 1), repeat=D)`), halving them to avoid double counting, and checking for offset existence in a `frozenset`.
+**Action:** When computing geometric neighborhood or adjacency on a regular lattice, never loop `N * N`. Always use `N * (3^D)` offset lookups against a `frozenset`.
