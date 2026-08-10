@@ -249,6 +249,7 @@ config is also written (`.mcp.json` / `opencode.json` / `.codex/config.toml` /
 
 ## Further reading
 
+- [`CHANGELOG.md`](CHANGELOG.md) — what changed per release, and why.
 - [`docs/THEORY_SCOPE.md`](docs/THEORY_SCOPE.md) — what each exactness tier means.
 - [`docs/CAPABILITY_DASHBOARD.md`](docs/CAPABILITY_DASHBOARD.md) — operation-scoped claims.
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — install kinds, release, self-update.

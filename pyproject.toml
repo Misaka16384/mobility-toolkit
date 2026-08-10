@@ -9,7 +9,10 @@ name = "mobility-toolkit"
 dynamic = ["version"]
 description = "Validated homological charge-module invariants for translation-invariant stabilizer codes, backed by Macaulay2."
 readme = "README.md"
-requires-python = ">=3.9"
+# 3.10 is the real floor: the finite-field and fracton paths call
+# int.bit_count() (3.10+). Declaring 3.9 let pip install a build that then
+# raised AttributeError at runtime instead of refusing to install.
+requires-python = ">=3.10"
 authors = [{ name = "Misaka16384" }]
 keywords = [
     "stabilizer codes",
@@ -22,6 +25,10 @@ keywords = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Mathematics",
 ]

@@ -17,6 +17,7 @@ left unsupported.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from math import gcd
 from typing import Iterable, Optional, Tuple
 
@@ -234,7 +235,11 @@ def _canonical_generators(subspace: frozenset[int]) -> Tuple[int, ...]:
     return tuple(basis)
 
 
+@lru_cache(maxsize=1)
 def _all_subspaces() -> Tuple[frozenset[int], ...]:
+    # Memoised: this closes over every subspace of F2^5 by repeated spanning,
+    # which dominates the axial enumeration (~19 ms) and depends on nothing.
+    # The result is an immutable tuple of frozensets, so sharing it is safe.
     subspaces = {frozenset({0})}
     for vector in range(1, 1 << 5):
         additions = {
@@ -254,6 +259,7 @@ def _all_subspaces() -> Tuple[frozenset[int], ...]:
     )
 
 
+@lru_cache(maxsize=1)
 def _totally_singular_subspaces() -> Tuple[frozenset[int], ...]:
     return tuple(
         subgroup

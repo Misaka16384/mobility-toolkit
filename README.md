@@ -30,7 +30,7 @@ physical interpretation.
 
 ## Requirements
 
-- Python 3.9 or newer.
+- Python 3.10 or newer.
 - Macaulay2 only for operations whose capability contract declares that
   backend requirement, notably supported periodic Laurent/Ext computations.
   Finite, relative-homology, static defect, and bounded enumeration operations
@@ -216,4 +216,5 @@ python tools/release.py --push
 
 The [research release checklist](docs/RELEASE_CHECKLIST.md) requires the
 operation-scoped dashboard, four evidence layers, full-suite results, and
-external-backend records before a research release is promoted.
+external-backend records before a research release is promoted. Notable changes
+per release are recorded in [`CHANGELOG.md`](CHANGELOG.md).
