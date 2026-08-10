@@ -35,3 +35,6 @@
 ## 2024-11-20 - Bit Packing for GF(2) Matrix Math
 **Learning:** For matrix operations over GF(2) in pure Python, nested loops or generator comprehensions (like `sum(a*b) % 2`) are slow due to interpretation overhead. Packing boolean rows into integers (`sum((val & 1) << i for i, val in enumerate(row))`) and using C-optimized bitwise operations (`(r & c).bit_count() & 1`) provides an order-of-magnitude (~10x) speedup. However, for simple 1D vector dot products, replacing generator comprehensions with explicit `for` loops is faster than bit-packing due to the initial packing overhead.
 **Action:** When implementing dense matrix multiplication over GF(2) in Python, vectorize using integer bit-packing. For 1D vector reductions, prefer explicit `for` loops with an accumulator to avoid generator instantiation overhead.
+## 2024-12-05 - [Generator Overhead With any()]
+**Learning:** Using `any()` with a generator expression inside heavily nested loops is a major performance bottleneck due to generator instantiation overhead in Python. Furthermore, repeatedly accessing dictionaries in hot inner loops also incurs performance hits.
+**Action:** Unroll such constructs into explicit `for/break` loops and cache dictionary lookups into arrays/lists before the loop, achieving significant speedups.
