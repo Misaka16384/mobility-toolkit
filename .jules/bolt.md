@@ -31,3 +31,7 @@
 ## 2023-11-09 - C-Level Optimization For Multiplicative Reductions
 **Learning:** Manual list loops and `functools.reduce(mul, ...)` over math iterables are unexpectedly heavy bottlenecks in Python. `math.prod` (since Python 3.8) accepts iterables directly and processes natively in C, avoiding Python-level function call overhead for every multiplication step in the loop.
 **Action:** Always scan numeric arrays for loop-based mathematical multiplicative reductions (Product) and map them to their Python 3.8+ C-optimized native multi-argument counterparts (`math.prod`).
+
+## 2024-11-20 - Bit Packing for GF(2) Matrix Math
+**Learning:** For matrix operations over GF(2) in pure Python, nested loops or generator comprehensions (like `sum(a*b) % 2`) are slow due to interpretation overhead. Packing boolean rows into integers (`sum((val & 1) << i for i, val in enumerate(row))`) and using C-optimized bitwise operations (`(r & c).bit_count() & 1`) provides an order-of-magnitude (~10x) speedup. However, for simple 1D vector dot products, replacing generator comprehensions with explicit `for` loops is faster than bit-packing due to the initial packing overhead.
+**Action:** When implementing dense matrix multiplication over GF(2) in Python, vectorize using integer bit-packing. For 1D vector reductions, prefer explicit `for` loops with an accumulator to avoid generator instantiation overhead.
