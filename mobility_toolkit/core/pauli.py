@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from functools import reduce
-from operator import mul
 from typing import Dict, Iterable, Sequence, Tuple
 
 
@@ -44,7 +42,8 @@ class LocalSystem:
 
     @property
     def hilbert_dimension(self) -> int:
-        return reduce(mul, self.invariant_factors, 1)
+        # ⚡ Bolt: C-optimized math.prod for performance
+        return math.prod(self.invariant_factors)
 
     def to_canonical_dict(self) -> dict:
         return {
@@ -128,7 +127,8 @@ class PauliModule:
 
     @property
     def hilbert_dimension(self) -> int:
-        return reduce(mul, (system.hilbert_dimension for system in self.local_systems), 1)
+        # ⚡ Bolt: C-optimized math.prod for performance
+        return math.prod(system.hilbert_dimension for system in self.local_systems)
 
     @property
     def projective_order(self) -> int:

@@ -28,3 +28,6 @@
 ## 2024-05-18 - Replacing O(N²) Pairwise Adjacency Checks with O(N) Hash Set Offsets
 **Learning:** Computing geometric cell adjacencies by iterating over all pairs of cells takes O(N²) time. This causes massive bottlenecks in dense 3D structures or large topological masks. Instead, converting the input cells to a `frozenset` and checking against the constant number of geometric neighbors (offsets) turns this into an O(N) lookup process.
 **Action:** Always precompute fixed-size neighbor offsets and use hash map/set lookups for cell or grid adjacency detection instead of using nested loop O(N²) pairwise difference tests.
+## 2023-11-09 - C-Level Optimization For Multiplicative Reductions
+**Learning:** Manual list loops and `functools.reduce(mul, ...)` over math iterables are unexpectedly heavy bottlenecks in Python. `math.prod` (since Python 3.8) accepts iterables directly and processes natively in C, avoiding Python-level function call overhead for every multiplication step in the loop.
+**Action:** Always scan numeric arrays for loop-based mathematical multiplicative reductions (Product) and map them to their Python 3.8+ C-optimized native multi-argument counterparts (`math.prod`).
