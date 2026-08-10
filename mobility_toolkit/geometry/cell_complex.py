@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import itertools
-import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import Iterable, Sequence, Tuple
@@ -169,18 +168,26 @@ def diagnose_cubical_mask(
     dimension = len(cells[0])
     if any(len(cell) != dimension for cell in cells):
         raise ValueError("cubical mask cells have inconsistent dimensions")
+
+    cell_set = frozenset(cells)
     adjacency = {cell: set() for cell in cells}
     pinched = []
-    for index, left in enumerate(cells):
-        for right in cells[index + 1 :]:
-            differences = tuple(abs(a - b) for a, b in zip(left, right))
-            if sum(value == 1 for value in differences) == 1 and all(
-                value <= 1 for value in differences
-            ):
-                adjacency[left].add(right)
-                adjacency[right].add(left)
-            elif all(value <= 1 for value in differences):
-                pinched.append((left, right))
+
+    offsets = list(itertools.product((-1, 0, 1), repeat=dimension))
+    offsets.remove((0,) * dimension)
+
+    for left in cells:
+        for offset in offsets:
+            right = tuple(a + b for a, b in zip(left, offset))
+            if right in cell_set and left < right:
+                if sum(abs(x) for x in offset) == 1:
+                    adjacency[left].add(right)
+                    adjacency[right].add(left)
+                else:
+                    pinched.append((left, right))
+
+    pinched.sort()
+
     component_count = 0
     unseen = set(cells)
     while unseen:
