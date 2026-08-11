@@ -127,7 +127,10 @@ pipx install --force "git+https://github.com/Misaka16384/mobility-toolkit.git"
 - `mobility_toolkit/skills/` — SKILL.md sources + scripts, bundled into the wheel;
   the installer copies these into each agent's location.
 - `tools/release.py` — the release/version bumper (dev-only, not shipped in the wheel).
-- `tests/` — `pytest`; M2-backed tests skip automatically without a backend.
+- `tests/` — `pytest`. Without a Macaulay2 backend the M2-dependent tests skip
+  (about 70 of them via the `conftest.py` sentinel hook, the rest via explicit
+  `skipif`), so a green run on such a machine leaves the Ext, GSD, and fusion
+  paths uncovered rather than verified.
 - `docs/VALIDATION.md` — benchmark results against known literature models.
 
 Don't commit install artifacts (`.claude/`, `.opencode/`, `.codex/`, `.agents/`,

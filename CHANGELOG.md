@@ -39,6 +39,21 @@ provenance, tooling, or performance.
   rather than silently promoted. Existing databases are migrated in place by
   `_ensure_models_columns`.
 
+- **Backend absence now skips instead of failing, as documented.** The README
+  requires that a missing Macaulay2 "produce structured unsupported behavior or
+  an explicit non-release skip; it must never fabricate an exact result", and
+  `docs/DEVELOPMENT.md` claimed M2-backed tests "skip automatically without a
+  backend". Neither was true: on a machine with no Macaulay2 the suite reported
+  **71 failed, 679 passed, 27 skipped** — only 27 tests carried a `skipif`
+  guard, and the other 71 reached the backend through unguarded call paths and
+  errored. `conftest.py` now rewrites backend-absent failures into skips,
+  matched on the engine's own sentinel, so any *other* Macaulay2 error still
+  fails loudly. The false claim is corrected in `docs/DEVELOPMENT.md` and
+  `AGENTS.md`, which now say plainly that a green run without a backend leaves
+  the Ext, GSD and fusion paths uncovered rather than verified.
+
+  This was found by the new CI on its first run, not by the audit.
+
 ### Added
 
 - **Continuous integration** (`.github/workflows/ci.yml`) — there was none.

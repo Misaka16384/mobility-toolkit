@@ -36,8 +36,9 @@ jobs:
 
       - name: Show resolved backend
         # Never fails the build: Macaulay2 is intentionally absent on the
-        # runner, so M2-backed tests skip. This step records that fact in the
-        # log so a green run is not mistaken for Ext coverage.
+        # runner. This step records that in the log so a green run is not
+        # mistaken for coverage of the Ext, GSD and fusion paths -- roughly 70
+        # tests skip here, and CI therefore does NOT exercise them.
         run: mobility-toolkit doctor || true
 
       - name: Run tests

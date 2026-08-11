@@ -222,11 +222,19 @@ python tools/release.py [--minor|--major|--set X.Y.Z] [--push]
 `conftest.py` puts the repo root on `sys.path`, so `pytest` works from a fresh
 clone before `pip install -e .`.
 
-**M2-backed tests skip silently without a backend.** They compute
-`M2_AVAILABLE = describe_m2_backend()["available"]` and guard with
-`@pytest.mark.skipif` (e.g. `tests/test_ruba_yang_core.py:12`). A green run on a
-machine with no Macaulay2 does not mean the Ext paths were exercised — check the
-skip count, or run `mobility-toolkit doctor` first.
+**A green run without Macaulay2 means those paths were skipped, not passing.**
+Some tests guard explicitly with
+`M2_AVAILABLE = describe_m2_backend()["available"]` plus `@pytest.mark.skipif`
+(e.g. `tests/test_ruba_yang_core.py:12`), but roughly seventy more reach the
+backend through call paths that carry no guard. Those would fail rather than
+skip, so `conftest.py` rewrites *backend-absent* failures — and only those,
+matched on the engine's own sentinel — into skips. Any other Macaulay2 error
+stays a failure.
+
+The practical consequence: with no backend the suite reports about 70 extra
+skips, and the Ext, GSD, and fusion paths are untested. Run
+`mobility-toolkit doctor` first and check the skip count before reading a green
+run as coverage.
 
 `tools/release.py` bumps `__version__`, commits `Release vX.Y.Z`, and tags it.
 It refuses a dirty tree (override with `--allow-dirty`) or an existing tag.
