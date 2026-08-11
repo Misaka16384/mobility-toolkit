@@ -7,6 +7,14 @@ truth in `mobility_toolkit/__init__.py`; releases are cut with
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 loosely and [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+- **#28**: pre-classify cubical-mask offsets into face and pinched sets and
+  filter to lexicographically-positive offsets, removing the per-iteration
+  `left < right` test and `sum(...)` from the inner loop. Verified equivalent to
+  the previous code over 7,871 randomized masks — adjacency and pinched-pair
+  tuples identical. Landed after the v0.4.0 tag.
+
 ## [0.4.0] — 2026-08-11
 
 A correctness audit of the scientific and implementation layers, the fixes it
