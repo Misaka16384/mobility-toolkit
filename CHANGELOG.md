@@ -46,11 +46,22 @@ provenance, tooling, or performance.
   backend". Neither was true: on a machine with no Macaulay2 the suite reported
   **71 failed, 679 passed, 27 skipped** — only 27 tests carried a `skipif`
   guard, and the other 71 reached the backend through unguarded call paths and
-  errored. `conftest.py` now rewrites backend-absent failures into skips,
-  matched on the engine's own sentinel, so any *other* Macaulay2 error still
-  fails loudly. The false claim is corrected in `docs/DEVELOPMENT.md` and
-  `AGENTS.md`, which now say plainly that a green run without a backend leaves
-  the Ext, GSD and fusion paths uncovered rather than verified.
+  errored. Two complementary fixes:
+
+  - `conftest.py` rewrites *backend-absent* failures into skips, matched on the
+    engine's own sentinel. Scope is deliberately narrow — a Macaulay2 error with
+    any other message still fails, a wrong invariant still fails, and a test
+    that asserts the absent-backend error still passes. This covers 56 tests.
+  - The remaining 15 are direct bridge/engine integration tests that assert on
+    the exit code (`assert 127 == 0`), so their messages carry no sentinel.
+    They now carry explicit `skipif` guards in `test_bridge.py`,
+    `test_engine.py`, `test_cross_interactions.py` and `test_utils.py`.
+
+  Without a backend the suite is now **679 passed, 98 skipped, 0 failed**; with
+  one it is unchanged at **776 passed, 1 skipped**. The false claim is corrected
+  in `docs/DEVELOPMENT.md` and `AGENTS.md`, which now state plainly that a green
+  run without a backend leaves the Ext, GSD and fusion paths uncovered rather
+  than verified.
 
   This was found by the new CI on its first run, not by the audit.
 

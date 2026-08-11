@@ -16,6 +16,10 @@ from mobility_toolkit.grobner import compute_gsd_and_periodicity
 from mobility_toolkit.fusion import solve_sset_fusion
 from mobility_toolkit.reference_models import TORIC_CODE_2D
 
+from mobility_toolkit.engine import describe_m2_backend
+
+M2_AVAILABLE = bool(describe_m2_backend()["available"])
+
 @pytest.fixture(autouse=True)
 def ensure_dirs():
     """Fixture to ensure the output directories exist before each test."""
@@ -137,6 +141,7 @@ def test_save_troubleshooting_dump():
         
     assert read_content == content
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_bridge_integration():
     """Verify that running a script via run_m2_script triggers log and dump creation."""
     # Ensure log file exists or clean it
