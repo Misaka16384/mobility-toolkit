@@ -1,8 +1,11 @@
 import pytest
 import subprocess
 from unittest.mock import MagicMock
-from mobility_toolkit.engine import run_macaulay2
+from mobility_toolkit.engine import describe_m2_backend, run_macaulay2
 
+M2_AVAILABLE = bool(describe_m2_backend()["available"])
+
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_engine_basic_arithmetic():
     """Runs a script doing basic arithmetic using run_macaulay2."""
     res = run_macaulay2("2 + 2")
@@ -10,6 +13,7 @@ def test_engine_basic_arithmetic():
     assert "4" in res["stdout"]
     assert res["timeout"] is False
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_engine_input_sanitization():
     """Checks that null bytes are removed and line endings normalized."""
     # We can pass text containing null bytes and check if it runs without error.
@@ -17,6 +21,7 @@ def test_engine_input_sanitization():
     assert res["exit_code"] == 0
     assert "4" in res["stdout"]
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_engine_output_sanitization():
     """Checks output sanitization for Matrix class names and wsl: lines."""
     # We can mock subprocess.run to return a stdout with 'Matrix' and a stderr with 'wsl: warning'
@@ -43,6 +48,7 @@ def test_engine_output_sanitization():
     finally:
         subprocess.run = original_run
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_engine_execution_error_heuristics():
     """Checks that interactive execution error heuristics force exit_code to 1."""
     # Test stdout contains 'error:'
@@ -62,6 +68,7 @@ def test_engine_execution_error_heuristics():
     finally:
         subprocess.run = original_run
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_engine_timeout_handling():
     """Checks that subprocess.TimeoutExpired returns timeout=True and exit_code=124."""
     original_run = subprocess.run

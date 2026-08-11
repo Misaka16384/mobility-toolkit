@@ -5,6 +5,10 @@ from mobility_toolkit.grobner import compute_gsd_and_periodicity
 from mobility_toolkit.fusion import solve_sset_fusion
 from mobility_toolkit.reference_models import TORIC_CODE_2D
 
+from mobility_toolkit.engine import describe_m2_backend
+
+M2_AVAILABLE = bool(describe_m2_backend()["available"])
+
 # ==============================================================================
 # Tier 3: Cross-Feature Interactions (5 tests)
 # ==============================================================================
@@ -64,6 +68,7 @@ def test_cross_hoca_and_grobner():
     
     assert hoca_result["lfsr_period"] == grob_result["periodicities"]["l_y"]
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_cross_full_pipeline():
     """Executes the full pipeline of bridge execution, SSET fusion, homological Ext, and Grobner GSD."""
     # 1. Test Bridge

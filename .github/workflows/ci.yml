@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pytest (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Lower bound must match `requires-python` in pyproject.toml: the
+        # finite-field and fracton paths call int.bit_count(), which is 3.10+.
+        python-version: ["3.10", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Show resolved backend
+        # Never fails the build: Macaulay2 is intentionally absent on the
+        # runner. This step records that in the log so a green run is not
+        # mistaken for coverage of the Ext, GSD and fusion paths -- roughly 70
+        # tests skip here, and CI therefore does NOT exercise them.
+        run: mobility-toolkit doctor || true
+
+      - name: Run tests
+        run: pytest -q -rs
+
+  dashboard:
+    name: research-release gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Verify operation-scoped capability dashboard
+        run: python tools/phase10_verify_dashboard.py
+
+  floor:
+    name: syntax floor (best-effort net)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Reject syntax and stdlib members newer than the declared floor
+        # A cheap secondary net, NOT the real guard. vermin resolves stdlib
+        # members by inferred receiver type, so it catches `5 .bit_count()` but
+        # misses `v.bit_count()` where v is only annotated `int` -- which is how
+        # this package calls it. What actually enforces `requires-python` is the
+        # test matrix above, whose lower bound must stay pinned to it.
+        #
+        # sys.set_int_max_str_digits is 3.11+ but __init__.py calls it behind a
+        # hasattr() guard that vermin cannot see, so the member is excluded.
+        run: |
+          python -m pip install --upgrade pip vermin
+          vermin --target=3.10- --violations --eval-annotations \
+                 --exclude sys.set_int_max_str_digits \
+                 mobility_toolkit

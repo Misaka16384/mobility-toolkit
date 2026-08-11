@@ -1,10 +1,15 @@
 import pytest
 from mobility_toolkit.bridge import run_m2_script
 
+from mobility_toolkit.engine import describe_m2_backend
+
+M2_AVAILABLE = bool(describe_m2_backend()["available"])
+
 # ==============================================================================
 # Tier 1: Feature Coverage (5 tests)
 # ==============================================================================
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_bridge_simple_arithmetic():
     """Runs a script doing basic arithmetic and checks if it computes correctly."""
     script = "2 + 2"
@@ -12,6 +17,7 @@ def test_bridge_simple_arithmetic():
     assert exit_code == 0
     assert "4" in stdout
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_bridge_ring_definition():
     """Runs a script defining a polynomial ring in M2."""
     script = "R = ZZ/2[x, y]; x^2 + y"
@@ -19,6 +25,7 @@ def test_bridge_ring_definition():
     assert exit_code == 0
     assert "x" in stdout
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_bridge_ideal_generators():
     """Runs a script generating an ideal and finding its minimal generators."""
     script = "R = ZZ/2[x, y]; I = ideal(x^2, x*y); generators gb I"
@@ -26,6 +33,7 @@ def test_bridge_ideal_generators():
     assert exit_code == 0
     assert "matrix" in stdout.lower()
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_bridge_multiline_script():
     """Runs a multiline script to define objects step-by-step and inspect results."""
     script = (
@@ -37,6 +45,7 @@ def test_bridge_multiline_script():
     assert exit_code == 0
     assert "1" in stdout
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_bridge_exit_code_zero():
     """Runs a simple correct command and asserts that the exit code is exactly 0."""
     script = "print \"Hello from M2\""
@@ -68,6 +77,7 @@ def test_bridge_empty_script():
     assert exit_code == 0
     assert stdout == ""
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_bridge_large_output():
     """Runs a script that generates a very large stdout payload and checks that the bridge does not hang."""
     script = "apply(1000, i -> print i)"
@@ -75,6 +85,7 @@ def test_bridge_large_output():
     assert exit_code == 0
     assert len(stdout) > 1000
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_bridge_unicode_characters():
     """Runs a script containing special/unicode characters to ensure shell encoding works properly."""
     script = "print \"测试 unicode\""
@@ -82,6 +93,7 @@ def test_bridge_unicode_characters():
     assert exit_code == 0
 
 
+@pytest.mark.skipif(not M2_AVAILABLE, reason="Macaulay2 backend not available")
 def test_bridge_timeout(monkeypatch):
     """Mocks subprocess.run to raise subprocess.TimeoutExpired and verifies handling."""
     import subprocess

@@ -1,3 +1,16 @@
+"""Personal model registry: a caller-owned SQLite note-keeping surface.
+
+One column needs its provenance stated, because it records a conclusion this
+toolkit is deliberately unable to derive.  ``is_topological`` is a **cited
+literature annotation about the model**, never a value computed here.
+``mobility_toolkit.physics.classify_mobility`` returns ``None`` for topological
+order unless the caller supplies ``lagrangian``, ``saturated`` and ``no_ssb``
+explicitly, precisely because a Krull dimension alone does not establish it.
+Every seeded row therefore carries ``topological_claim_basis`` naming where the
+claim comes from, and anything synced from a discovery file without that field
+is recorded as unattributed rather than silently promoted.
+"""
+
 import os
 import glob
 import sqlite3
@@ -7,6 +20,19 @@ from mobility_toolkit.reference_models import TORIC_CODE_2D, XCUBE_EQ98
 
 # Define the database path relative to this file for self-contained distribution
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mobility_models.db")
+
+
+def _ensure_models_columns(cursor) -> None:
+    """Add columns that postdate a database created by an earlier version.
+
+    ``CREATE TABLE IF NOT EXISTS`` is a no-op against an existing table, so a
+    registry seeded before the provenance column existed would keep an
+    unattributed ``is_topological`` forever.
+    """
+    existing = {row[1] for row in cursor.execute("PRAGMA table_info(models)").fetchall()}
+    if existing and "topological_claim_basis" not in existing:
+        cursor.execute("ALTER TABLE models ADD COLUMN topological_claim_basis TEXT")
+
 
 def seed_database(cursor):
     """Seed the database with standard models."""
@@ -22,6 +48,7 @@ def seed_database(cursor):
             "l_x": 1,
             "l_y": 1,
             "is_topological": True,
+            "topological_claim_basis": "literature: Kitaev, Ann. Phys. 303 (2003) 2",
             "description": "2D Toric Code point-like excitations"
         },
         {
@@ -35,6 +62,7 @@ def seed_database(cursor):
             "l_x": None,
             "l_y": None,
             "is_topological": False,
+            "topological_claim_basis": "literature: Vijay-Haah-Fu, PRB 94 (2016) 235157",
             "description": "3D X-Cube model, full sigma of Ruba-Yang Eq. (98); Q^i=0 for i>0"
         },
         {
@@ -48,6 +76,7 @@ def seed_database(cursor):
             "l_x": 2,
             "l_y": 2,
             "is_topological": True,
+            "topological_claim_basis": "literature: Wang-Cross-Fu bivariate bicycle construction",
             "description": "WCF Code bivariate bicycle code"
         },
         {
@@ -61,6 +90,7 @@ def seed_database(cursor):
             "l_x": 3,
             "l_y": 3,
             "is_topological": True,
+            "topological_claim_basis": "literature: Dinur-Chen-Yin bivariate bicycle construction",
             "description": "DCY Code bivariate bicycle code"
         },
         {
@@ -74,6 +104,7 @@ def seed_database(cursor):
             "l_x": 1,
             "l_y": 1,
             "is_topological": False,
+            "topological_claim_basis": "literature: Chamon, PRL 94 (2005) 040402",
             "description": "Chamon's Cubic Code commuting representation"
         }
     ]
@@ -81,11 +112,12 @@ def seed_database(cursor):
     for m in seed_models:
         cursor.execute("""
             INSERT OR REPLACE INTO models 
-            (name, qudit_dim, spatial_dim, stabilizer_matrix, d0, d1, gsd_val, l_x, l_y, is_topological, description)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (name, qudit_dim, spatial_dim, stabilizer_matrix, d0, d1, gsd_val, l_x, l_y, is_topological, topological_claim_basis, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             m["name"], m["qudit_dim"], m["spatial_dim"], m["stabilizer_matrix"],
-            m["d0"], m["d1"], m["gsd_val"], m["l_x"], m["l_y"], m["is_topological"], m["description"]
+            m["d0"], m["d1"], m["gsd_val"], m["l_x"], m["l_y"], m["is_topological"],
+            m["topological_claim_basis"], m["description"]
         ))
 
 def query_vector_db(action: str, params: dict = None) -> dict:
@@ -123,10 +155,12 @@ def query_vector_db(action: str, params: dict = None) -> dict:
                 l_x INTEGER,
                 l_y INTEGER,
                 is_topological BOOLEAN,
+                topological_claim_basis TEXT,
                 description TEXT
             );
         """)
-        
+        _ensure_models_columns(cursor)
+
         if action in ("init", "seed"):
             seed_database(cursor)
             conn.commit()
@@ -154,12 +188,16 @@ def query_vector_db(action: str, params: dict = None) -> dict:
                     if all(field in data for field in required_fields):
                         cursor.execute("""
                             INSERT OR REPLACE INTO models 
-                            (name, qudit_dim, spatial_dim, stabilizer_matrix, d0, d1, gsd_val, l_x, l_y, is_topological, description)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            (name, qudit_dim, spatial_dim, stabilizer_matrix, d0, d1, gsd_val, l_x, l_y, is_topological, topological_claim_basis, description)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, (
                             data["name"], data["qudit_dim"], data["spatial_dim"], data["stabilizer_matrix"],
                             data.get("d0"), data.get("d1"), data.get("gsd_val"), data.get("l_x"), data.get("l_y"),
-                            data.get("is_topological"), data.get("description")
+                            data.get("is_topological"),
+                            data.get("topological_claim_basis")
+                            or ("unattributed: synced from a discovery file"
+                                if data.get("is_topological") is not None else None),
+                            data.get("description"),
                         ))
                         synced_count += 1
                 except Exception:
@@ -214,9 +252,11 @@ class ModelRegistry:
                 l_x INTEGER,
                 l_y INTEGER,
                 is_topological BOOLEAN,
+                topological_claim_basis TEXT,
                 description TEXT
             );
         """)
+        _ensure_models_columns(cursor)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS computations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
