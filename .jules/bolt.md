@@ -38,3 +38,6 @@
 ## 2024-12-05 - [Generator Overhead With any()]
 **Learning:** Using `any()` with a generator expression inside heavily nested loops is a major performance bottleneck due to generator instantiation overhead in Python. Furthermore, repeatedly accessing dictionaries in hot inner loops also incurs performance hits.
 **Action:** Unroll such constructs into explicit `for/break` loops and cache dictionary lookups into arrays/lists before the loop, achieving significant speedups.
+## 2025-01-20 - [Optimizing adjacency generation with pre-computed filtered offsets]
+**Learning:** When calculating adjacency maps by applying offsets to coordinates in a hot loop, checking conditions like `sum(abs(o) == 1)` or `left < right` on every offset inside the loop significantly impacts performance due to generator instantiation overhead.
+**Action:** Pre-classify the offset vectors before the inner loops, and filter them for directional uniqueness (e.g. only strictly "positive" offsets) so redundant checks (`left < right`) and generator usages are entirely removed from the fast path.

@@ -173,20 +173,41 @@ def diagnose_cubical_mask(
 
     cell_set = frozenset(cells)
 
-    offsets = list(itertools.product([-1, 0, 1], repeat=dimension))
-    offsets.remove((0,) * dimension)
+    face_offsets = []
+    pinched_offsets = []
+
+    for offset in itertools.product([-1, 0, 1], repeat=dimension):
+        if all(o == 0 for o in offset):
+            continue
+
+        is_positive = False
+        for o in offset:
+            if o > 0:
+                is_positive = True
+                break
+            elif o < 0:
+                break
+
+        if not is_positive:
+            continue
+
+        ones = sum(abs(o) == 1 for o in offset)
+        if ones == 1:
+            face_offsets.append(offset)
+        else:
+            pinched_offsets.append(offset)
 
     for left in cells:
-        for offset in offsets:
+        for offset in face_offsets:
             right = tuple(a + b for a, b in zip(left, offset))
             if right in cell_set:
-                if left < right:
-                    ones = sum(abs(o) == 1 for o in offset)
-                    if ones == 1:
-                        adjacency[left].add(right)
-                        adjacency[right].add(left)
-                    else:
-                        pinched.append((left, right))
+                adjacency[left].add(right)
+                adjacency[right].add(left)
+        for offset in pinched_offsets:
+            right = tuple(a + b for a, b in zip(left, offset))
+            if right in cell_set:
+                pinched.append((left, right))
+
     component_count = 0
     unseen = set(cells)
     while unseen:
