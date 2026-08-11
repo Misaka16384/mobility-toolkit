@@ -7,7 +7,7 @@ truth in `mobility_toolkit/__init__.py`; releases are cut with
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 loosely and [Semantic Versioning](https://semver.org/).
 
-## [0.4.0] — 2026-08-10
+## [0.4.0] — 2026-08-11
 
 A correctness audit of the scientific and implementation layers, the fixes it
 produced, and the resolution of the whole open pull-request queue.
