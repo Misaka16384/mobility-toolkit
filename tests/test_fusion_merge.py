@@ -1,6 +1,5 @@
-import pytest
 from mobility_toolkit.translate import normalize_laurent_poly
-from mobility_toolkit.fusion import check_ideal_principal, analyze_annihilator_fusion, solve_sset_fusion
+from mobility_toolkit.fusion import check_ideal_principal, analyze_annihilator_fusion
 from mobility_toolkit.homology import compute_ext_krull
 from mobility_toolkit.reference_models import TORIC_CODE_2D
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, replace
-from fractions import Fraction
 from typing import Dict, Optional, Sequence, Tuple
 
 from sympy import Matrix as SympyMatrix
@@ -274,16 +273,49 @@ class _ElementSpace:
         rows = metric.group.relation_lattice_basis.to_rows()
         self.metric = metric
         self._inverse = SympyMatrix(rows).inv() if rows else SympyMatrix.zeros(0, 0)
+        # Pre-convert _inverse to a list of lists of (p, q) integers for fast pure-Python math
+        self._fast_inverse = []
+        for i in range(self._inverse.rows):
+            row = []
+            for j in range(self._inverse.cols):
+                val = self._inverse[i, j]
+                row.append((int(val.p), int(val.q)))
+            self._fast_inverse.append(row)
 
     def key(self, vector: Sequence[int]) -> ElementKey:
         if not vector:
             return ()
-        coordinates = self._inverse * SympyMatrix(tuple(vector))
+
+        # Fast pure-Python matrix-vector multiplication with rationals
         result = []
-        for value in coordinates:
-            rational = Fraction(int(value.p), int(value.q))
-            reduced = rational - math.floor(rational)
-            result.append((reduced.numerator, reduced.denominator))
+        for row in self._fast_inverse:
+            sum_num = 0
+            sum_den = 1
+            for (p, q), v in zip(row, vector):
+                if v == 0 or p == 0:
+                    continue
+                num = p * v
+                den = q
+
+                if sum_den == den:
+                    sum_num += num
+                else:
+                    sum_num = sum_num * den + num * sum_den
+                    sum_den = sum_den * den
+
+            if sum_den == 1:
+                result.append((0, 1))
+            else:
+                g = math.gcd(sum_num, sum_den)
+                if g > 1:
+                    sum_num //= g
+                    sum_den //= g
+
+                if sum_den == 1:
+                    result.append((0, 1))
+                else:
+                    num = sum_num % sum_den
+                    result.append((num, sum_den))
         return tuple(result)
 
 

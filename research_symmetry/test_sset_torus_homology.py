@@ -78,7 +78,7 @@ print "VALUE:HOMOLOGY_END"
         print(f"SSET Model A on {Lx}x{Ly} Torus:")
         print(f"  Homology: {hom_str}")
         print(f"  Krull Dimension: {dim_str}")
-        print(f"  Generators of Symmetries:")
+        print("  Generators of Symmetries:")
         print(f"    {gen_str}")
     except ValueError:
         print(f"Failed to parse M2 output: {stdout}")

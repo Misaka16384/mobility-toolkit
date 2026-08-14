@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Protocol, Tuple
+from typing import Protocol, Tuple
 
 from sympy import Matrix as SympyMatrix
 from sympy.matrices.normalforms import smith_normal_form as sympy_smith_normal_form

@@ -28,7 +28,7 @@ def truncate_operator_2d(
         truncated_op = np.zeros_like(op)
 
         for idx in range(num_qudits):
-            s = idx % q
+            idx % q
             temp = idx // q
             x = temp % Lx
             y = temp // Lx

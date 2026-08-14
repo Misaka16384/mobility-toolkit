@@ -234,7 +234,7 @@ class PauliOperator:
     def inverse(self) -> "PauliOperator":
         inverse_terms = []
         for term in self.terms:
-            system = self.module.system(term.site_id)
+            self.module.system(term.site_id)
             inverse_terms.append(
                 LocalPauliTerm(
                     term.site_id,

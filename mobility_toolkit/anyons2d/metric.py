@@ -54,11 +54,16 @@ def _raw_braiding(
     matrix: SparseIntMatrix, left: Sequence[int], right: Sequence[int]
 ) -> int:
     rows = matrix.to_rows()
-    return sum(
-        int(left[row]) * rows[row][column] * int(right[column])
-        for row in range(matrix.nrows)
-        for column in range(matrix.ncols)
-    )
+    res = 0
+    for row in range(matrix.nrows):
+        left_val = int(left[row])
+        if not left_val:
+            continue
+        row_data = rows[row]
+        for column in range(matrix.ncols):
+            if row_data[column] and right[column]:
+                res += left_val * row_data[column] * int(right[column])
+    return res
 
 
 def _raw_spin(
@@ -202,7 +207,7 @@ class FiniteMetricGroup:
             if raw % phase_modulus:
                 raise ValueError("quadratic refinement does not descend through relations")
 
-        provisional = cls(
+        cls(
             group,
             phase_modulus,
             pairing,

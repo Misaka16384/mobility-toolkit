@@ -26,7 +26,6 @@ from typing import Any, Optional, Sequence, Tuple
 
 from mobility_toolkit.anyons2d import (
     CondensateCandidate,
-    CondensateCompletenessCertificate,
     CondensateEnumerationBudget,
     CondensateEnumerationCheckpoint,
     FiniteMetricGroup,

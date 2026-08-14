@@ -12,7 +12,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, Sequence
+from typing import Dict, List, Mapping, Sequence
 
 
 SCHEMA_VERSION = "mobility_toolkit.research_dashboard.v1"

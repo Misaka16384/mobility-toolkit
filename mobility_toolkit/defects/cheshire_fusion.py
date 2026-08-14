@@ -11,7 +11,7 @@ from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
 from hashlib import sha256
-from typing import Iterable, Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 from mobility_toolkit.core import CertificateLevel, Exactness, canonical_json
 from mobility_toolkit.core.codes import StabilizerCodeSpec

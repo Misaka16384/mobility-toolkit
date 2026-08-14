@@ -2,7 +2,6 @@ import re
 import math
 import itertools
 from typing import List, Dict, Any, Optional
-from fractions import Fraction
 from mobility_toolkit.bridge import run_m2_script, run_macaulay2
 from mobility_toolkit.translate import translate_stabilizers
 from mobility_toolkit import utils
@@ -184,7 +183,7 @@ class Z2PolynomialParser:
     def parse_expression(self) -> Z2Polynomial:
         res = self.parse_term()
         while self.peek() in ('+', '-'):
-            op = self.consume()
+            self.consume()
             right = self.parse_term()
             res = res + right # subtraction is also addition mod 2
         return res
@@ -517,7 +516,7 @@ print J
 def classify_divisor(g_terms: set[tuple[int, ...]], qudit_dim: int = 2, variables: Optional[List[str]] = None) -> Dict[str, Any]:
     if variables is None:
         variables = ['x', 'y']
-    d = len(variables)
+    len(variables)
     
     g_terms = shift_poly_general(g_terms)
     
@@ -788,7 +787,7 @@ def solve_sset_fusion(
         variables = ['x', 'y']
             
     ring_vars = ", ".join(variables)
-    d = len(variables)
+    len(variables)
     
     if not class_fusion_mode and set(variables) == {'x', 'y'}:
         validate_variables_only_x_y(poly_f)

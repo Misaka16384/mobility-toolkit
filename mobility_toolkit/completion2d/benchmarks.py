@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
 
 from mobility_toolkit.anyons2d import zd_toric_metric_model
 from mobility_toolkit.completion2d.local import (

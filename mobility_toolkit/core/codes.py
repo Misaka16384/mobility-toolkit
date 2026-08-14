@@ -7,7 +7,7 @@ from typing import Dict, Iterable, Sequence, Tuple
 
 from mobility_toolkit.core.canonical import canonical_json
 from mobility_toolkit.core.laurent import TranslationGroup
-from mobility_toolkit.core.pauli import LocalPauliTerm, LocalSystem, PauliModule, PauliOperator
+from mobility_toolkit.core.pauli import LocalSystem, PauliModule, PauliOperator
 
 
 def _integer(value: int, name: str) -> int:

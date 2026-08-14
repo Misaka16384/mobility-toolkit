@@ -41,3 +41,6 @@
 ## 2025-01-20 - [Optimizing adjacency generation with pre-computed filtered offsets]
 **Learning:** When calculating adjacency maps by applying offsets to coordinates in a hot loop, checking conditions like `sum(abs(o) == 1)` or `left < right` on every offset inside the loop significantly impacts performance due to generator instantiation overhead.
 **Action:** Pre-classify the offset vectors before the inner loops, and filter them for directional uniqueness (e.g. only strictly "positive" offsets) so redundant checks (`left < right`) and generator usages are entirely removed from the fast path.
+## 2026-08-14 - Avoiding SymPy in hot inner paths
+**Learning:** Using heavy algebraic library constructs (like `SympyMatrix`) inside inner loops adds significant function call and class instantiation overhead compared to naive Python data structures, especially for relatively simple mathematical operations over rationals.
+**Action:** When a calculation like rational matrix multiplication is heavily executed on a hot path, pre-compute the heavy matrix into primitive Python integers (e.g., lists of tuples `(p, q)`) and perform the rational multiplications iteratively in Python using integer arithmetic and `math.gcd` rather than relying on SymPy's abstraction layer.

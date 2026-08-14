@@ -9,11 +9,10 @@ subgroup traversal without changing these contracts.
 
 from __future__ import annotations
 
-import itertools
 import math
 from dataclasses import dataclass, replace
 from fractions import Fraction
-from typing import Dict, Iterable, Optional, Sequence, Tuple
+from typing import Dict, Optional, Sequence, Tuple
 
 from sympy import Matrix as SympyMatrix
 

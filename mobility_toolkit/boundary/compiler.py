@@ -36,7 +36,7 @@ from mobility_toolkit.boundary.algebra import (
     TangentTranslationSpec,
     analyze_finite_boundary_algebra,
 )
-from mobility_toolkit.core import Exactness, PauliOperator, SparseIntMatrix
+from mobility_toolkit.core import Exactness, PauliOperator
 from mobility_toolkit.finite import (
     FiniteIntegerBackend,
     FiniteStabilizerAnalysis,

@@ -388,7 +388,7 @@ def compute_translation_lattice(
         scalar_relations.append(log_table[rho])
 
     if not exponent_relations:
-        zero_basis = Matrix.zeros(dimension, 0)
+        Matrix.zeros(dimension, 0)
         result = {
             "status": "success",
             "conclusive": True,

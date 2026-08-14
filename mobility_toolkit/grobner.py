@@ -638,7 +638,7 @@ def compute_gsd_and_periodicity(stabilizer_matrix: List[List[str]], Lx: Any = No
     
     parsed_gb = []
     for idx in range(0, len(gb_vals), 2):
-        gen = gb_vals[idx]
+        gb_vals[idx]
         lt = gb_vals[idx+1]
         coef, exponents = parse_leading_term(lt, vars_list)
         parsed_gb.append((coef, exponents))
