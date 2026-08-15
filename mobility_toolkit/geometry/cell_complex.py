@@ -80,12 +80,17 @@ class FiniteCellComplex:
             raise ValueError("one boundary map is required per chain degree")
         for dimension, level in enumerate(cells):
             if tuple(sorted(set(level))) != level:
-                raise ValueError("cell IDs must be sorted and unique within each degree")
+                raise ValueError(
+                    "cell IDs must be sorted and unique within each degree"
+                )
             boundary = self.boundary_maps[dimension]
             expected_rows = 0 if dimension == 0 else len(cells[dimension - 1])
             if (boundary.nrows, boundary.ncols) != (expected_rows, len(level)):
                 raise ValueError("cellular boundary map has the wrong shape")
-            if dimension >= 2 and self.boundary_maps[dimension - 1].matmul(boundary).entries:
+            if (
+                dimension >= 2
+                and self.boundary_maps[dimension - 1].matmul(boundary).entries
+            ):
                 raise ValueError("cell complex violates boundary squared equals zero")
         object.__setattr__(self, "cell_ids_by_dimension", cells)
         object.__setattr__(self, "assumptions", tuple(sorted(set(self.assumptions))))
@@ -100,7 +105,10 @@ class FiniteCellComplex:
 
     @property
     def euler_characteristic(self) -> int:
-        return sum((-1) ** dimension * count for dimension, count in enumerate(self.cell_counts))
+        return sum(
+            (-1) ** dimension * count
+            for dimension, count in enumerate(self.cell_counts)
+        )
 
     def to_canonical_dict(self) -> dict:
         return {
@@ -120,7 +128,9 @@ class CubicalComplex:
     SCHEMA_ID = "mobility_toolkit.cubical_complex.v1"
 
     def __post_init__(self) -> None:
-        ids = tuple(tuple(cell.cell_id for cell in level) for level in self.cells_by_dimension)
+        ids = tuple(
+            tuple(cell.cell_id for cell in level) for level in self.cells_by_dimension
+        )
         if ids != self.chain_complex.cell_ids_by_dimension:
             raise ValueError("cubical cells disagree with chain-complex bases")
 
@@ -176,26 +186,23 @@ def diagnose_cubical_mask(
     face_offsets = []
     pinched_offsets = []
 
+    # Bolt Optimization: Avoid generator instantiation overhead in inner loop
     for offset in itertools.product([-1, 0, 1], repeat=dimension):
-        if all(o == 0 for o in offset):
-            continue
-
-        is_positive = False
         for o in offset:
             if o > 0:
-                is_positive = True
+                # Explicit unrolled primitive loop to determine if the offset is strictly positive
+                # and to count the number of non-zero entries (ones) is faster than sum/all comprehensions.
+                ones = 0
+                for x in offset:
+                    if x != 0:
+                        ones += 1
+                if ones == 1:
+                    face_offsets.append(offset)
+                else:
+                    pinched_offsets.append(offset)
                 break
             elif o < 0:
                 break
-
-        if not is_positive:
-            continue
-
-        ones = sum(abs(o) == 1 for o in offset)
-        if ones == 1:
-            face_offsets.append(offset)
-        else:
-            pinched_offsets.append(offset)
 
     for left in cells:
         for offset in face_offsets:
@@ -218,9 +225,7 @@ def diagnose_cubical_mask(
             neighbors = adjacency[current] & unseen
             unseen.difference_update(neighbors)
             stack.extend(neighbors)
-    return MaskTopologyDiagnostics(
-        len(cells), component_count, tuple(pinched)
-    )
+    return MaskTopologyDiagnostics(len(cells), component_count, tuple(pinched))
 
 
 @dataclass(frozen=True, order=True)
@@ -333,15 +338,17 @@ def quotient_cell_complex(
         old_upper = complex_.cell_ids_by_dimension[dimension]
         old_boundary = complex_.boundary_maps[dimension]
         old_rows = old_boundary.to_rows()
-        lower_index = {cell: index for index, cell in enumerate(quotient_ids[dimension - 1])}
-        upper_index = {cell: index for index, cell in enumerate(quotient_ids[dimension])}
+        lower_index = {
+            cell: index for index, cell in enumerate(quotient_ids[dimension - 1])
+        }
+        upper_index = {
+            cell: index for index, cell in enumerate(quotient_ids[dimension])
+        }
         images_by_upper = {}
         for old_column, upper_cell in enumerate(old_upper):
             upper_root, upper_weight = orbit_data[dimension][upper_cell]
             image = {}
-            for old_row, coefficient in enumerate(
-                row[old_column] for row in old_rows
-            ):
+            for old_row, coefficient in enumerate(row[old_column] for row in old_rows):
                 if not coefficient:
                     continue
                 lower_root, lower_weight = orbit_data[dimension - 1][old_lower[old_row]]
@@ -391,7 +398,10 @@ def rectangular_glued_cell_complex(
         shifts = gluing.transverse_shifts or (0,) * dimension
         if shifts[gluing.axis]:
             raise ValueError("boundary gluing cannot shift along its glued axis")
-        if any(axis < 0 or axis >= dimension or axis == gluing.axis for axis in gluing.reverse_axes):
+        if any(
+            axis < 0 or axis >= dimension or axis == gluing.axis
+            for axis in gluing.reverse_axes
+        ):
             raise ValueError("invalid reflected transverse axis")
         normalized_gluings.append((gluing, shifts))
 
@@ -424,7 +434,9 @@ def rectangular_glued_cell_complex(
                             base[transverse] += direction * shifts[transverse]
                 changed = True
             if not changed:
-                return CubicalCell(dimension, cell.varying_axes, tuple(base)), orientation
+                return CubicalCell(
+                    dimension, cell.varying_axes, tuple(base)
+                ), orientation
         raise ValueError("boundary gluing reduction did not reach a canonical cell")
 
     cell_gluings = []
@@ -534,7 +546,9 @@ def _assemble_cubical_complex(
                     raise ArithmeticError("cubical complex is not closed under faces")
                 entries.append((lower_index[face], column, coefficient))
         boundaries.append(
-            SparseIntMatrix(len(levels[dimension - 1]), len(levels[dimension]), tuple(entries))
+            SparseIntMatrix(
+                len(levels[dimension - 1]), len(levels[dimension]), tuple(entries)
+            )
         )
     chain = FiniteCellComplex(
         tuple(tuple(cell.cell_id for cell in level) for level in levels),
@@ -579,7 +593,10 @@ def rectangular_cubical_complex(
     shape: Sequence[int], periodic_axes: Iterable[int] = ()
 ) -> CubicalComplex:
     shape = tuple(shape)
-    if not shape or any(isinstance(value, bool) or not isinstance(value, int) or value < 1 for value in shape):
+    if not shape or any(
+        isinstance(value, bool) or not isinstance(value, int) or value < 1
+        for value in shape
+    ):
         raise ValueError("rectangular shape entries must be positive integers")
     dimension = len(shape)
     periodic = frozenset(periodic_axes)
@@ -798,9 +815,7 @@ def cellular_stabilizer_code(
     code = StabilizerCodeSpec(
         module,
         generators,
-        (
-            "cellular generalized Pauli code from signed integer incidence maps",
-        ),
+        ("cellular generalized Pauli code from signed integer incidence maps",),
     )
     return CellularCode(
         complex_,
