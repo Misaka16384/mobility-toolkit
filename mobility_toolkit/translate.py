@@ -1,6 +1,7 @@
 import math
 import re
 from typing import Any, Dict, List, Optional, Tuple
+import operator
 
 from mobility_toolkit.utils import verify_qudit_dim
 
@@ -59,7 +60,7 @@ def _poly_mul(left: Poly, right: Poly, modulus: int) -> Poly:
     result: Poly = {}
     for left_exp, left_coefficient in left.items():
         for right_exp, right_coefficient in right.items():
-            monomial = tuple(a + b for a, b in zip(left_exp, right_exp))
+            monomial = tuple(map(operator.add, left_exp, right_exp))
             value = (result.get(monomial, 0) + left_coefficient * right_coefficient) % modulus
             if value:
                 result[monomial] = value

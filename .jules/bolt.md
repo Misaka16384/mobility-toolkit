@@ -41,3 +41,7 @@
 ## 2025-01-20 - [Optimizing adjacency generation with pre-computed filtered offsets]
 **Learning:** When calculating adjacency maps by applying offsets to coordinates in a hot loop, checking conditions like `sum(abs(o) == 1)` or `left < right` on every offset inside the loop significantly impacts performance due to generator instantiation overhead.
 **Action:** Pre-classify the offset vectors before the inner loops, and filter them for directional uniqueness (e.g. only strictly "positive" offsets) so redundant checks (`left < right`) and generator usages are entirely removed from the fast path.
+
+## 2025-02-28 - [Avoiding Generator Comprehensions for Element-wise Tuple Operations in Hot Loops]
+**Learning:** To avoid generator instantiation overhead in pure Python hot inner loops, replace generator comprehensions used for simple tuple element-wise additions or subtractions with native mapping functions. For instance, `tuple(a + b for a, b in zip(left, right))` can be up to 1.7x to 2x slower than `tuple(map(operator.add, left, right))` due to avoiding generator instantiation and looping interpretation overhead.
+**Action:** When implementing or optimizing tuple-based mathematics within highly nested iterative methods (such as Laurent polynomial multiplication, grid translation, geometry adjacency mappings, or complex translations), replace pure Python `zip`-generator expressions with optimized `map` and `operator` module functions.

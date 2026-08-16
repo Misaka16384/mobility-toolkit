@@ -1,6 +1,7 @@
 """Exact finite cell complexes, cubical constructors, and cellular codes."""
 
 from __future__ import annotations
+import operator
 
 import itertools
 from dataclasses import dataclass
@@ -199,12 +200,12 @@ def diagnose_cubical_mask(
 
     for left in cells:
         for offset in face_offsets:
-            right = tuple(a + b for a, b in zip(left, offset))
+            right = tuple(map(operator.add, left, offset))
             if right in cell_set:
                 adjacency[left].add(right)
                 adjacency[right].add(left)
         for offset in pinched_offsets:
-            right = tuple(a + b for a, b in zip(left, offset))
+            right = tuple(map(operator.add, left, offset))
             if right in cell_set:
                 pinched.append((left, right))
 
