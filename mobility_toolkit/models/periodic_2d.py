@@ -1,6 +1,7 @@
 """Canonical two-dimensional literature models and exact Clifford relations."""
 
 from __future__ import annotations
+import operator
 
 from dataclasses import dataclass
 from typing import Tuple
@@ -157,7 +158,7 @@ def apply_fish_cnot_shear(code: PeriodicCode) -> PeriodicCode:
                 for shift in gate_offsets:
                     terms.append(
                         _term(
-                            tuple(a + b for a, b in zip(term.free_offset, shift)),
+                            tuple(map(operator.add, term.free_offset, shift)),
                             "v",
                             x=1,
                         )
@@ -166,7 +167,7 @@ def apply_fish_cnot_shear(code: PeriodicCode) -> PeriodicCode:
                 for shift in gate_offsets:
                     terms.append(
                         _term(
-                            tuple(a - b for a, b in zip(term.free_offset, shift)),
+                            tuple(map(operator.sub, term.free_offset, shift)),
                             "h",
                             z=1,
                         )

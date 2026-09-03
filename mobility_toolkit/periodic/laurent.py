@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Sequence, Tuple
+import operator
 
 from mobility_toolkit.core.laurent import (
     LaurentPolynomial,
@@ -67,11 +68,8 @@ class GroupRingMonomial:
         self._require_same_group(other)
         return GroupRingMonomial(
             self.translation_group,
-            tuple(a + b for a, b in zip(self.free_exponents, other.free_exponents)),
-            tuple(
-                a + b
-                for a, b in zip(self.torsion_exponents, other.torsion_exponents)
-            ),
+            tuple(map(operator.add, self.free_exponents, other.free_exponents)),
+            tuple(map(operator.add, self.torsion_exponents, other.torsion_exponents)),
         )
 
     def inverse(self) -> "GroupRingMonomial":

@@ -1,6 +1,7 @@
 """Canonical group-ring and Laurent-polynomial value objects."""
 
 from __future__ import annotations
+import operator
 
 from dataclasses import dataclass
 from typing import Dict, Iterable, Sequence, Tuple
@@ -188,11 +189,8 @@ class LaurentPolynomial:
                 products.append(
                     LaurentTerm(
                         left.coefficient * right.coefficient,
-                        tuple(a + b for a, b in zip(left.free_exponents, right.free_exponents)),
-                        tuple(
-                            a + b
-                            for a, b in zip(left.torsion_exponents, right.torsion_exponents)
-                        ),
+                        tuple(map(operator.add, left.free_exponents, right.free_exponents)),
+                        tuple(map(operator.add, left.torsion_exponents, right.torsion_exponents)),
                     )
                 )
         return LaurentPolynomial(self.coefficient_modulus, self.translation_group, tuple(products))

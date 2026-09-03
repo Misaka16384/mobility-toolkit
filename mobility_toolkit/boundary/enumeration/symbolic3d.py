@@ -31,6 +31,7 @@ from __future__ import annotations
 import itertools
 from dataclasses import dataclass
 from enum import Enum
+import operator
 from typing import Dict, Iterable, Iterator, Optional, Sequence, Tuple
 
 from mobility_toolkit.boundary_halfspace.boundary_module import (
@@ -712,7 +713,7 @@ def _translate_basis(
                 coefficient = row[component * count + monomial_index]
                 if not coefficient:
                     continue
-                target = tuple(a + b for a, b in zip(exponent, shift))
+                target = tuple(map(operator.add, exponent, shift))
                 if target not in index:
                     raise ValueError("translated support leaves the search box")
                 output[component * count + index[target]] = coefficient
