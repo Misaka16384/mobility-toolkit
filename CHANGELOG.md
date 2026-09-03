@@ -9,11 +9,23 @@ loosely and [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.4.1] — 2026-09-03
+
+A performance patch release addressing inner-loop, geometric adjacency, and sparse metric evaluation bottlenecks.
+
+### Performance
+
 - **#28**: pre-classify cubical-mask offsets into face and pinched sets and
   filter to lexicographically-positive offsets, removing the per-iteration
   `left < right` test and `sum(...)` from the inner loop. Verified equivalent to
   the previous code over 7,871 randomized masks — adjacency and pinched-pair
-  tuples identical. Landed after the v0.4.0 tag.
+  tuples identical.
+- **#30**: optimize sparse metric and algebraic form evaluations in `anyons2d/metric.py`
+  by replacing generator expressions with explicit loops and early zero-coefficient pruning,
+  speeding up sparse braiding by ~4.2x and spin evaluations by ~2.0x.
+- **#34**: replace pure-Python `zip`-generator expressions with C-level `tuple(map(operator.add/sub, ...))`
+  in hot iterative loops across Laurent polynomial multiplication, grid translation, and cubical
+  adjacency mappings, yielding ~1.9x speedup in vector arithmetic.
 
 ## [0.4.0] — 2026-08-11
 
