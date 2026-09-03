@@ -4,7 +4,7 @@
 # version from this attribute (dynamic = ["version"]), and `tools/release.py`
 # bumps this line. Keep it a plain string literal so setuptools can read it
 # statically at build time without importing the package.
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 import sys
 if hasattr(sys, "set_int_max_str_digits"):
