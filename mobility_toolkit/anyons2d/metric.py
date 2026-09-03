@@ -54,11 +54,20 @@ def _raw_braiding(
     matrix: SparseIntMatrix, left: Sequence[int], right: Sequence[int]
 ) -> int:
     rows = matrix.to_rows()
-    return sum(
-        int(left[row]) * rows[row][column] * int(right[column])
-        for row in range(matrix.nrows)
-        for column in range(matrix.ncols)
-    )
+    result = 0
+    for row in range(matrix.nrows):
+        l_val = int(left[row])
+        if not l_val:
+            continue
+        row_data = rows[row]
+        for column in range(matrix.ncols):
+            r_val = int(right[column])
+            if not r_val:
+                continue
+            val = row_data[column]
+            if val:
+                result += l_val * val * r_val
+    return result
 
 
 def _raw_spin(
@@ -68,12 +77,17 @@ def _raw_spin(
 
     values = tuple(int(value) for value in vector)
     rows = matrix.to_rows()
-    result = sum(value * generator_spins[index] for index, value in enumerate(values))
+    result = 0
     for index, value in enumerate(values):
+        if not value:
+            continue
+        result += value * generator_spins[index]
         result += value * (value - 1) // 2 * rows[index][index]
-    for left in range(len(values)):
-        for right in range(left + 1, len(values)):
-            result += values[left] * values[right] * rows[left][right]
+        row_data = rows[index]
+        for right in range(index + 1, len(values)):
+            v_right = values[right]
+            if v_right and row_data[right]:
+                result += value * v_right * row_data[right]
     return result
 
 
@@ -200,9 +214,11 @@ class FiniteMetricGroup:
         for column in range(relations.ncols):
             raw = _raw_spin(pairing, spins, _column(relations, column))
             if raw % phase_modulus:
-                raise ValueError("quadratic refinement does not descend through relations")
+                raise ValueError(
+                    "quadratic refinement does not descend through relations"
+                )
 
-        provisional = cls(
+        cls(
             group,
             phase_modulus,
             pairing,
@@ -230,7 +246,9 @@ class FiniteMetricGroup:
         )
         result.verify_certificate(backend)
         if require_nondegenerate and not nondegenerate:
-            raise ValueError("braiding is degenerate, so the data is not a metric group")
+            raise ValueError(
+                "braiding is degenerate, so the data is not a metric group"
+            )
         return result
 
     def braiding_exponent(self, left: Sequence[int], right: Sequence[int]) -> int:
@@ -240,9 +258,10 @@ class FiniteMetricGroup:
 
     def spin_exponent(self, anyon: Sequence[int]) -> int:
         self._validate_vector(anyon)
-        return _raw_spin(
-            self.braiding_matrix, self.generator_spins, anyon
-        ) % self.phase_modulus
+        return (
+            _raw_spin(self.braiding_matrix, self.generator_spins, anyon)
+            % self.phase_modulus
+        )
 
     def orthogonal_complement(
         self, subgroup: FiniteSubgroup, backend: FiniteIntegerBackend

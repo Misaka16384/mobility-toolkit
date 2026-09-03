@@ -41,6 +41,9 @@
 ## 2025-01-20 - [Optimizing adjacency generation with pre-computed filtered offsets]
 **Learning:** When calculating adjacency maps by applying offsets to coordinates in a hot loop, checking conditions like `sum(abs(o) == 1)` or `left < right` on every offset inside the loop significantly impacts performance due to generator instantiation overhead.
 **Action:** Pre-classify the offset vectors before the inner loops, and filter them for directional uniqueness (e.g. only strictly "positive" offsets) so redundant checks (`left < right`) and generator usages are entirely removed from the fast path.
+## 2024-06-25 - Avoid generators in sum() for sparse forms
+**Learning:** Using Python generator expressions within `sum()` or in combinatorial iterations (such as O(N^2) evaluation of bilinear/quadratic forms for anyons) has high memory and CPU overhead. A simple explicit `for` loop with an early `if not val: continue` completely bypasses the generator allocation overhead and prunes large portions of sparse operations in one go.
+**Action:** When computing multi-dimensional or nested reductions (like symmetric monodromy braiding or coordinate spin), write an explicit `for` loop, cache row access if applicable, and eagerly `continue` if the current coefficient is zero. This replaces several O(N^2) loops with one sparse-friendly pass.
 
 ## 2025-02-28 - [Avoiding Generator Comprehensions for Element-wise Tuple Operations in Hot Loops]
 **Learning:** To avoid generator instantiation overhead in pure Python hot inner loops, replace generator comprehensions used for simple tuple element-wise additions or subtractions with native mapping functions. For instance, `tuple(a + b for a, b in zip(left, right))` can be up to 1.7x to 2x slower than `tuple(map(operator.add, left, right))` due to avoiding generator instantiation and looping interpretation overhead.
